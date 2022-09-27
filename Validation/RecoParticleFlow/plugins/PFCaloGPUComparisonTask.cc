@@ -140,11 +140,12 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
   for (unsigned i = 0; i < pfClusters_ref->size(); ++i) {
     if (matched_idx[i]>=0){
       unsigned int j = matched_idx[i];
-      /*
-      if (pfClusters_ref->at(i).energy() != pfClusters_target->at(j).energy())
-	std::cout << pfClusters_ref->at(i).energy() << " " << pfClusters_ref->at(i).eta() << " " << pfClusters_ref->at(i).phi() << " "
+      int ref_energy_bin = pfCluster_Energy_GPUvsCPU_->getTH2F()->GetXaxis()->FindBin(pfClusters_ref->at(i).energy());
+      int target_energy_bin = pfCluster_Energy_GPUvsCPU_->getTH2F()->GetXaxis()->FindBin(pfClusters_target->at(j).energy());
+      if (ref_energy_bin!=target_energy_bin)
+	std::cout << "Off-diagonal energy bin entries: "
+		  << pfClusters_ref->at(i).energy()    << " " << pfClusters_ref->at(i).eta()    << " " << pfClusters_ref->at(i).phi() << " "
 		  << pfClusters_target->at(j).energy() << " " << pfClusters_target->at(j).eta() << " " << pfClusters_target->at(j).phi() << std::endl;
-      */
       pfCluster_Energy_GPUvsCPU_->Fill(pfClusters_ref->at(i).energy(),
 				       pfClusters_target->at(j).energy());
       pfCluster_RecHitMultiplicity_GPUvsCPU_->Fill((float)pfClusters_ref->at(i).recHitFractions().size(),
