@@ -12,14 +12,13 @@
 #include "SimplePFGPUAlgos.h"
 
 // Uncomment for debug mode
-#define DEBUG_ENABLE
+//#define DEBUG_ENABLE
 
 namespace PFRecHit {
   namespace HCAL {
 
     __constant__ Constants constantsGPU_d;
 
-    //
     // member methods:
     //  initializeCudaConstants [called from producer]
     //  initializeArrays
