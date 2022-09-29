@@ -3757,12 +3757,10 @@ namespace PFClusterCudaHCAL {
       // Odd linking
       for (int idx = start; idx < nEdges; idx += gridStride) {
         int i = pfrh_edgeId[idx];  // Get edge topo id
-        //if (pfrh_edgeMask[idx] > 0 && pfrh_passTopoThresh[i] && isLeftEdge(idx, nEdges, pfrh_edgeId, pfrh_edgeMask)) {
         if (pfrh_edgeMask[idx] > 0 && isLeftEdge(idx, nEdges, pfrh_edgeId, pfrh_edgeMask)) {
           pfrh_parent[i] = (int)min(i, pfrh_edgeList[idx]);
         }
       }
-
       __syncthreads();
 
       // edgeParent
@@ -3789,6 +3787,8 @@ namespace PFClusterCudaHCAL {
 
       if (!notDone)
         break;
+
+      __syncthreads();//!!
 
       if (threadIdx.x == 0) {
         notDone = false;
@@ -3824,17 +3824,20 @@ namespace PFClusterCudaHCAL {
           }
         }
       }
+
       if (threadIdx.x == 0)
         iter++;
 
       __syncthreads();
 
     } while (notDone);
+
     *topoIter = iter;
 #ifdef DEBUG_GPU_HCAL
 //    if (threadIdx.x == 0) {
 //        printf("*** Topo clustering converged in %d iterations ***\n", iter);
-//    } __syncthreads();
+//    }
+//    __syncthreads();
 #endif
   }
 
@@ -4391,23 +4394,19 @@ namespace PFClusterCudaHCAL {
       ::PFClustering::HCAL::OutputDataGPU& outputGPU,
       ::PFClustering::HCAL::ScratchDataGPU& scratchGPU,
       float (&timer)[8]) {
-    int nRH = inputPFRecHits.size;
-    //int nRH = 10;
-    //    printf("Now in PFRechitToPFCluster_HCAL_entryPoint with nRH = %d\tnEdges = %d\n", nRH, nEdges);
-    if (nRH < 1)
-      return;
-    cudaProfilerStart();
 
 #ifdef DEBUG_GPU_HCAL
+    cudaProfilerStart();
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, cudaStream);
 #endif
 
+    int nRH = inputPFRecHits.size;
+
     // Combined seeding & topo clustering thresholds, array initialization
 
-    //seedingTopoThreshKernel_HCAL<<<(nRH+63)/64, 128, 0, cudaStream>>>(
     seedingTopoThreshKernel_HCAL<<<(nRH + 31) / 32, 64, 0, cudaStream>>>(nRH,
                                                                          inputPFRecHits.pfrh_energy.get(),
                                                                          inputPFRecHits.pfrh_x.get(),
@@ -4426,6 +4425,8 @@ namespace PFClusterCudaHCAL {
                                                                          outputGPU.topoSeedOffsets.get(),
                                                                          outputGPU.topoSeedList.get(),
                                                                          outputGPU.pfc_iter.get());
+
+    cudaCheck(cudaStreamSynchronize(cudaStream));
 
 #ifdef DEBUG_GPU_HCAL
     cudaEventRecord(stop, cudaStream);
@@ -4451,6 +4452,7 @@ namespace PFClusterCudaHCAL {
                                                                            inputPFRecHits.pfrh_neighbours.get(),
                                                                            scratchGPU.pfrh_edgeId.get(),
                                                                            scratchGPU.pfrh_edgeList.get());
+    cudaCheck(cudaStreamSynchronize(cudaStream));
 
     //    prepareTopoInputs<<<1, 256, 256 * (8+4) * sizeof(int), cudaStream>>>(
     //        nRH,
@@ -4489,6 +4491,7 @@ namespace PFClusterCudaHCAL {
                                                   //inputGPU.pfrh_edgeMask.get(),
                                                   outputGPU.pfrh_passTopoThresh.get(),
                                                   outputGPU.topoIter.get());
+    cudaCheck(cudaStreamSynchronize(cudaStream));
 
     topoClusterContraction<<<1, 512, 0, cudaStream>>>(nRH,
                                                       outputGPU.pfrh_topoId.get(),
@@ -4552,12 +4555,11 @@ namespace PFClusterCudaHCAL {
                                                            inputGPU.pfc_prevPos4.get(),
                                                            inputGPU.pfc_energy.get(),
                                                            outputGPU.pfc_iter.get());
-
 #ifdef DEBUG_GPU_HCAL
     cudaEventRecord(stop, cudaStream);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&timer[3], start, stop);
-#endif
     cudaProfilerStop();
+#endif
   }
 }  // namespace PFClusterCudaHCAL
