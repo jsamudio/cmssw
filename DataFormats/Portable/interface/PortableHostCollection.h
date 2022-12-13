@@ -13,6 +13,15 @@
 // generic SoA-based product in host memory
 template <typename T>
 class PortableHostCollection {
+  // Make sure void is not interleaved with other types.
+  static_assert(not std::is_same<T3, void>::value or std::is_same<T4, void>::value);
+  static_assert(not std::is_same<T2, void>::value or std::is_same<T3, void>::value);
+  static_assert(not std::is_same<T1, void>::value or std::is_same<T2, void>::value);
+  template <typename T>
+  static constexpr std::size_t typeCount = CollectionTypeCount<T, T0, T1, T2, T3, T4>;
+
+  static constexpr std::size_t membersCount = CollectionMembersCount<T0, T1, T2, T3, T4>;
+
 public:
   using Layout = T;
   using View = typename Layout::View;
