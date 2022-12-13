@@ -68,11 +68,39 @@ public:
 
   template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
   PortableDeviceCollection(int32_t elements, TQueue const& queue)
-      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout::computeDataSize(elements))},
-        layout_{buffer_->data(), elements},
-        view_{layout_} {
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout<>::computeDataSize(elements))},
+        impl_{buffer_->data(), elements} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
-    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout::alignment == 0);
+    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
+    static_assert(membersCount == 1);
+  }
+
+  static int32_t computeDataSize(const SizesArray& sizes) {
+    int32_t ret = 0;
+    constexpr_for<0, membersCount>(
+        [&sizes, &ret](auto i) { ret += TypeResolver::template Resolver<i>::type::computeDataSize(sizes[i]); });
+    return ret;
+  }
+
+  PortableDeviceCollection(const SizesArray& sizes, TDev const& device)
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, computeDataSize(sizes))},
+        impl_{buffer_->data(), sizes} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    constexpr_for<0, membersCount>(
+        [&](auto i) { assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<i>::alignment == 0); });
+    constexpr auto alignment = Layout<0>::alignment;
+    constexpr_for<1, membersCount>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
+  }
+
+  template <typename TQueue, typename = std::enable_if_t<cms::alpakatools::is_queue_v<TQueue>>>
+  PortableDeviceCollection(const SizesArray& sizes, TQueue const& queue)
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, computeDataSize(sizes))},
+        impl_{buffer_->data(), sizes} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    constexpr_for<0, membersCount>(
+        [&](auto i) { assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<i>::alignment == 0); });
+    constexpr auto alignment = Layout<0>::alignment;
+    constexpr_for<1, membersCount>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
   }
 
   // non-copyable
@@ -132,6 +160,13 @@ public:
   Buffer buffer() { return *buffer_; }
   ConstBuffer buffer() const { return *buffer_; }
   ConstBuffer const_buffer() const { return *buffer_; }
+
+  // Extract the sizes array
+  SizesArray sizes() const {
+    SizesArray ret;
+    constexpr_for<0, membersCount>([&](auto i) { ret[i] = get<i>().layout_.metadata().size(); });
+    return ret;
+  }
 
 private:
   std::optional<Buffer> buffer_;  //!
