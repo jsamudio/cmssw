@@ -14,7 +14,8 @@
 class PFRecHitEcalBarrelNavigatorWithTime : public PFRecHitCaloNavigatorWithTime<EBDetId, EcalBarrelTopology> {
 public:
   PFRecHitEcalBarrelNavigatorWithTime(const edm::ParameterSet& iConfig, edm::ConsumesCollector& cc)
-      : PFRecHitCaloNavigatorWithTime(iConfig, cc), geomToken_(cc.esConsumes<edm::Transition::BeginRun>()) {}
+      : PFRecHitCaloNavigatorWithTime(iConfig, cc),
+        geomToken_(cc.esConsumes<edm::Transition::BeginRun>()) {}
 
   void init(const edm::EventSetup& iSetup) override {
     edm::ESHandle<CaloGeometry> geoHandle = iSetup.getHandle(geomToken_);
@@ -28,7 +29,8 @@ private:
 class PFRecHitEcalEndcapNavigatorWithTime : public PFRecHitCaloNavigatorWithTime<EEDetId, EcalEndcapTopology> {
 public:
   PFRecHitEcalEndcapNavigatorWithTime(const edm::ParameterSet& iConfig, edm::ConsumesCollector& cc)
-      : PFRecHitCaloNavigatorWithTime(iConfig, cc), geomToken_(cc.esConsumes<edm::Transition::BeginRun>()) {}
+      : PFRecHitCaloNavigatorWithTime(iConfig, cc),
+        geomToken_(cc.esConsumes<edm::Transition::BeginRun>()) {}
 
   void init(const edm::EventSetup& iSetup) override {
     edm::ESHandle<CaloGeometry> geoHandle = iSetup.getHandle(geomToken_);
@@ -98,7 +100,8 @@ private:
 class PFRecHitHCALNavigatorWithTime : public PFRecHitCaloNavigatorWithTime<HcalDetId, HcalTopology, false> {
 public:
   PFRecHitHCALNavigatorWithTime(const edm::ParameterSet& iConfig, edm::ConsumesCollector& cc)
-      : PFRecHitCaloNavigatorWithTime(iConfig, cc), hcalToken_(cc.esConsumes<edm::Transition::BeginRun>()) {}
+      : PFRecHitCaloNavigatorWithTime(iConfig, cc),
+        hcalToken_(cc.esConsumes<edm::Transition::BeginRun>()) {}
 
   void init(const edm::EventSetup& iSetup) override {
     edm::ESHandle<HcalTopology> hcalTopology = iSetup.getHandle(hcalToken_);
