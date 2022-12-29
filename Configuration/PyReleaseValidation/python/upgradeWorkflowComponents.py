@@ -2348,7 +2348,7 @@ upgradeProperties[2026] = {
     },
     '2026D88' : {
         'Geom' : 'Extended2026D88',
-        'HLTmenu': '@fake2',
+        'HLTmenu': '@relval2026',
         'GT' : 'auto:phase2_realistic_T21',
         'Era' : 'Phase2C17I13M9',
         'ScenToRun' : ['GenSimHLBeamSpot','DigiTrigger','RecoGlobal', 'HARVESTGlobal', 'ALCAPhase2'],
@@ -2383,7 +2383,7 @@ upgradeProperties[2026] = {
     },
     '2026D95' : {
         'Geom' : 'Extended2026D95',
-        'HLTmenu': '@fake2',
+        'HLTmenu': '@relval2026',
         'GT' : 'auto:phase2_realistic_T21',
         'Era' : 'Phase2C17I13M9',
         'ScenToRun' : ['GenSimHLBeamSpot','DigiTrigger','RecoGlobal', 'HARVESTGlobal', 'ALCAPhase2'],
