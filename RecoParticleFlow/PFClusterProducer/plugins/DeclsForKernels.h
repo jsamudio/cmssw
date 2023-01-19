@@ -10,7 +10,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFHBHERecHitParamsGPU.h"
-#include "RecoParticleFlow/PFClusterProducer/interface/HBHETopologyGPU.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/PFHBHETopologyGPU.h"
 
 namespace PFRecHit {
   namespace HCAL {
@@ -85,10 +85,12 @@ namespace PFRecHit {
       PFHBHERecHitParamsGPU::Product const& recHitParametersProduct;
       std::vector<int, cms::cuda::HostAllocator<int>> const& depthHB;
       std::vector<int, cms::cuda::HostAllocator<int>> const& depthHE;
-      std::vector<double, cms::cuda::HostAllocator<double>> const& thresholdE_HB;
-      std::vector<double, cms::cuda::HostAllocator<double>> const& thresholdE_HE;
-      HBHETopologyGPU::Product const& hbheTopoDataProduct;
+      std::vector<float, cms::cuda::HostAllocator<float>> const& thresholdE_HB;
+      std::vector<float, cms::cuda::HostAllocator<float>> const& thresholdE_HE;
+      PFHBHETopologyGPU::Product const& topoDataProduct;
+      std::vector<uint, cms::cuda::HostAllocator<uint32_t>> const& denseId;
       std::vector<uint, cms::cuda::HostAllocator<uint32_t>> const& detId;
+      std::vector<float3, cms::cuda::HostAllocator<float3>> const& position;
       std::vector<int, cms::cuda::HostAllocator<int>> const& neighbours;
     };
 
