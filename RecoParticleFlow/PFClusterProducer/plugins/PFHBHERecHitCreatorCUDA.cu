@@ -51,6 +51,12 @@ namespace PFRecHit {
                                      int* pfrhToInputIdx,     // Mapping of output PFRecHit index -> input rechit index
                                      int* inputToPFRHIdx) {   // Mapping of input rechit index -> output PFRecHit index
 
+      if (blockIdx.x==0 && threadIdx.x==0){
+	printf("bb3 %8d %8d\n",
+	       (int)constantsGPU_d.nDenseIdsInRange,
+	       nTopoArraySize);
+      }
+
       // Reset mappings of reference table index. Total length = number of all valid HCAL detIds
       //for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < (constantsGPU_d.nValidBarrelIds + constantsGPU_d.nValidEndcapIds); i += blockDim.x * gridDim.x) {
       //for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < (sizeof(detId)/sizeof(detId[0])); i += blockDim.x * gridDim.x) {
@@ -704,7 +710,17 @@ namespace PFRecHit {
 
       //printf("bb %8d\n",recHitParametersProduct.valuesdepthHB[1]);
       //printf("bb %8d\n",constantProducts.depthHB[1]);
-      //printf("bb2 %8d\n",constantProducts.detId[1]);
+      std::cout << constantProducts.denseId.size() << std::endl;
+      std::cout << constantProducts.detId.size() << std::endl;
+      std::cout << constantProducts.position.size() << std::endl;
+      std::cout << constantProducts.neighbours.size() << std::endl;
+      // printf("bb2 %8d %8d %8d %8d %8d %8d\n",
+      // 	     cudaConstants.nDenseIdsInRange,
+      // 	     constantProducts.denseId[0],
+      // 	     constantProducts.denseId[13325],
+      // 	     *(&(constantProducts.denseId) + 1) - constantProducts.denseId;
+      // 	     (int)sizeof(constantProducts.denseId),
+      // 	     (int)sizeof(constantProducts.denseId[0]));
 
       uint32_t nRHIn = HBHERecHits_asInput.size;  // Number of input rechits
       if (nRHIn == 0) {
@@ -719,7 +735,6 @@ namespace PFRecHit {
       // h_nPFRHCleaned = new uint32_t(0);
       // cudaCheck(cudaMallocAsync(&d_nPFRHOut, sizeof(int), cudaStream));
       // cudaCheck(cudaMallocAsync(&d_nPFRHCleaned, sizeof(int), cudaStream));
-
 
       cms::cuda::device::unique_ptr<uint32_t[]> d_nPFRHOut; // Number of output PFRecHits (total passing cuts)
       cms::cuda::device::unique_ptr<uint32_t[]> d_nPFRHCleaned; // Number of cleaned PFRecHits
@@ -781,10 +796,9 @@ namespace PFRecHit {
       // buildDetIdMapHackathon<<<(nRHIn + threadsPerBlock - 1)/threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(nRHIn,
       // buildDetIdMapKH<<<(nRHIn + threadsPerBlock - 1)/threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(nRHIn,
       buildDetIdMapKH2<<<(nRHIn + threadsPerBlock - 1)/threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(nRHIn,
-							    constantProducts.hbheTopoDataProduct.denseId,
-                                //cudaConstants.denseIdHcalMin,                            
+							    constantProducts.topoDataProduct.denseId,
                                 persistentDataGPU.rh_detId.get(),
-							    constantProducts.hbheTopoDataProduct.detId,
+							    constantProducts.topoDataProduct.detId,
                                 scratchDataGPU.rh_inputToFullIdx.get(),
                                 scratchDataGPU.rh_fullToInputIdx.get(),
                                 HBHERecHits_asInput.did.get());
@@ -866,8 +880,8 @@ namespace PFRecHit {
           scratchDataGPU.inputToPFRHIdx.get(),
           persistentDataGPU.rh_pos.get(),
           persistentDataGPU.rh_neighbours.get(),
-	  constantProducts.hbheTopoDataProduct.position,
-	  constantProducts.hbheTopoDataProduct.neighbours,
+	  constantProducts.topoDataProduct.position,
+	  constantProducts.topoDataProduct.neighbours,
           scratchDataGPU.rh_inputToFullIdx.get(),
           scratchDataGPU.rh_fullToInputIdx.get(),
           HBHERecHits_asInput.energy.get(),
