@@ -91,9 +91,7 @@ private:
 
   // Miscellaneous
   PFRecHit::HCAL::PersistentDataCPU persistentDataCPU;
-  PFRecHit::HCAL::PersistentDataGPU persistentDataGPU;
   PFRecHit::HCAL::ScratchDataGPU scratchDataGPU;
-  PFRecHit::HCAL::Constants cudaConstants;
 
   uint32_t nValidDetIds = 0;
   uint32_t nDenseIdsInRange = 0;
@@ -105,7 +103,6 @@ private:
   std::unordered_map<unsigned, std::shared_ptr<const CaloCellGeometry>>
       detIdToCell;  // Mapping of detId to cell geometry.
 
-  bool initCuda = true;
   std::array<float, 5> GPU_timers;
 
   bool debug=false;
@@ -140,30 +137,7 @@ PFHBHERecHitProducerGPU::PFHBHERecHitProducerGPU(edm::ParameterSet const& ps)
 
   // Single threshold
   const std::string& qualityTestName = qualityConf.getParameter<std::string>("name");
-  cudaConstants.qTestThresh = 0.8;
-  if (qualityConf.exists("threshold")) cudaConstants.qTestThresh = (float)qualityConf.getParameter<double>("threshold");
-  //std::cout << cudaConstants.qTestThresh << std::endl;
-
   // Thresholds vs depth
-  const auto& qualityCutConfs = qualityConf.getParameterSetVector("cuts");
-  for (const auto& cutConf : qualityCutConfs) {
-    uint32_t detEnum = cutConf.getParameter<uint32_t>("detectorEnum");
-
-    //const auto& thresholds = pset.getParameter<std::vector<double>>("seedingThreshold");
-
-    const auto& depths = cutConf.getParameter<std::vector<uint32_t>>("depth");
-    const auto& thresholds = cutConf.getParameter<std::vector<double>>("threshold");
-    std::vector<float> fthresholds(thresholds.begin(), thresholds.end());
-    if (detEnum == HcalBarrel){
-      std::copy(depths.begin(), depths.end(), cudaConstants.qTestDepthHB);
-      std::copy(fthresholds.begin(), fthresholds.end(), cudaConstants.qTestThreshVsDepthHB);
-    }
-    else if (detEnum == HcalEndcap){
-      std::copy(depths.begin(), depths.end(), cudaConstants.qTestDepthHE);
-      std::copy(fthresholds.begin(), fthresholds.end(), cudaConstants.qTestThreshVsDepthHE);
-    }
-  }
-
   //
   // navigator-related parameters
   const auto& navSet = ps.getParameterSet("navigator");
@@ -207,13 +181,8 @@ void PFHBHERecHitProducerGPU::beginRun(edm::Run const& r, edm::EventSetup const&
 
   const std::vector<DetId>& validBarrelDetIds = hcalBarrelGeo->getValidDetIds(DetId::Hcal, HcalBarrel);
   const std::vector<DetId>& validEndcapDetIds = hcalEndcapGeo->getValidDetIds(DetId::Hcal, HcalEndcap);
-  cudaConstants.nValidBarrelIds = validBarrelDetIds.size();
-  cudaConstants.nValidEndcapIds = validEndcapDetIds.size();
-  nValidDetIds = cudaConstants.nValidBarrelIds + cudaConstants.nValidEndcapIds;
-  cudaConstants.nValidDetIds = nValidDetIds;
 
-  // std::cout << "Found nValidBarrelIds = " << cudaConstants.nValidBarrelIds
-  // 	    << "\tnValidEndcapIds = " << cudaConstants.nValidEndcapIds << std::endl;
+  nValidDetIds = validBarrelDetIds.size() + validEndcapDetIds.size();
 
   vDenseIdHcal = reinterpret_cast<PFRecHitHCALDenseIdNavigator*>(&(*navigator_))->getValidDenseIds();
   //std::cout << "Found vDenseIdHcal->size() = " << vDenseIdHcal->size() << std::endl;
@@ -223,8 +192,6 @@ void PFHBHERecHitProducerGPU::beginRun(edm::Run const& r, edm::EventSetup const&
   denseIdHcalMin_ = *std::min_element(vDenseIdHcal->begin(), vDenseIdHcal->end());
   //std::cout << denseIdHcalMax_ << " " << denseIdHcalMin_ << std::endl;
   nDenseIdsInRange = denseIdHcalMax_ - denseIdHcalMin_ + 1;
-  cudaConstants.nDenseIdsInRange = nDenseIdsInRange;
-  cudaConstants.denseIdHcalMin = denseIdHcalMin_;
 
   validDetIdPositions.clear();
   validDetIdPositions.reserve(nValidDetIds);
@@ -331,67 +298,7 @@ void PFHBHERecHitProducerGPU::acquire(edm::Event const& event,
 
   }
 
-  if (initCuda) {
-    // Initialize persistent arrays for rechit positions
-    persistentDataCPU.allocate(nDenseIdsInRange, ctx.stream());
-    persistentDataGPU.allocate(nDenseIdsInRange, ctx.stream());
-    scratchDataGPU.allocate(nValidDetIds, ctx.stream());
-
-    uint32_t nRHTotal = 0;
-    for (const auto& denseId : *vDenseIdHcal) {
-      DetId detId = topology_.get()->denseId2detId(denseId);
-      HcalDetId hid(detId.rawId());
-      unsigned index = getIdx(denseId);
-
-      persistentDataCPU.rh_pos[index] = make_float3(validDetIdPositions.at(nRHTotal).x(),
-                                                       validDetIdPositions.at(nRHTotal).y(),
-                                                       validDetIdPositions.at(nRHTotal).z());
-      persistentDataCPU.rh_detId[index] = hid.rawId();
-      auto neigh = reinterpret_cast<PFRecHitHCALDenseIdNavigator*>(&(*navigator_))->getNeighbours(denseId);
-      for (uint32_t n = 0; n < 8; n++) {
-        // cmssdt.cern.ch/lxr/source/RecoParticleFlow/PFClusterProducer/interface/PFHCALDenseIdNavigator.h#0087
-        // Order: CENTER(NONE),SOUTH,SOUTHEAST,SOUTHWEST,EAST,WEST,NORTHEAST,NORTHWEST,NORTH
-        // neighboursHcal_[centerIndex][0] is the rechit itself. Skip for neighbour array
-        // If no neighbour exists in a direction, the value will be 0
-        // Some neighbors from HF included! Need to test if these are included in the map!
-        auto neighDetId = neigh[n + 1].rawId();
-        if (neighDetId > 0
-	    && topology_.get()->detId2denseId(neighDetId)>=denseIdHcalMin_
-	    && topology_.get()->detId2denseId(neighDetId)<=denseIdHcalMax_) {
-          persistentDataCPU.rh_neighbours[index * 8 + n] = getIdx(topology_.get()->detId2denseId(neighDetId));
-        } else
-          persistentDataCPU.rh_neighbours[index * 8 + n] = -1;
-      }
-      nRHTotal++;
-    }
-
-    //
-    // Copy to GPU
-    cudaCheck(cudaMemcpyAsync(persistentDataGPU.rh_pos.get(),
-                              persistentDataCPU.rh_pos.get(),
-                              nDenseIdsInRange * sizeof(float3),
-                              cudaMemcpyHostToDevice,
-                              ctx.stream()));
-    cudaCheck(cudaMemcpyAsync(persistentDataGPU.rh_detId.get(),
-                              persistentDataCPU.rh_detId.get(),
-                              nDenseIdsInRange * sizeof(uint32_t),
-                              cudaMemcpyHostToDevice,
-                              ctx.stream()));
-    cudaCheck(cudaMemcpyAsync(persistentDataGPU.rh_neighbours.get(),
-                              persistentDataCPU.rh_neighbours.get(),
-                              8 * nDenseIdsInRange * sizeof(int),
-                              cudaMemcpyHostToDevice,
-                              ctx.stream()));
-
-    // Initialize Cuda constants
-    PFRecHit::HCAL::initializeCudaConstants(cudaConstants, ctx.stream());
-
-    // if (cudaStreamQuery(ctx.stream()) != cudaSuccess)
-    //   cudaCheck(cudaStreamSynchronize(ctx.stream()));
-
-    initCuda = false;
-
-  }
+  scratchDataGPU.allocate(nValidDetIds, ctx.stream()); //Initialize scratchData array
 
   if (debug) std::cout << "init done" << std::endl;
 
@@ -415,9 +322,10 @@ void PFHBHERecHitProducerGPU::acquire(edm::Event const& event,
 
   // Entry point for GPU calls
   GPU_timers.fill(0.0);
-  PFRecHit::HCAL::entryPoint(HBHERecHitSoA, cudaConstants,
-			     constantProducts,
-			     outputGPU, persistentDataGPU, scratchDataGPU, ctx.stream(), GPU_timers);
+  PFRecHit::HCAL::entryPoint(HBHERecHitSoA, 
+			                constantProducts,
+			                outputGPU, 
+                            scratchDataGPU, ctx.stream(), GPU_timers);
 
   // if (cudaStreamQuery(ctx.stream()) != cudaSuccess)
   //   cudaCheck(cudaStreamSynchronize(ctx.stream()));
