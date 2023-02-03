@@ -34,7 +34,6 @@ namespace PFRecHit {
 
     struct ScratchDataGPU {
       uint32_t maxSize;
-      cms::cuda::device::unique_ptr<int[]> rh_mask;
       cms::cuda::device::unique_ptr<int[]>
           rh_inputToFullIdx;  // Used to build map from input rechit index to lookup table index
       cms::cuda::device::unique_ptr<int[]>
@@ -45,7 +44,6 @@ namespace PFRecHit {
 
       void allocate(uint32_t length, cudaStream_t cudaStream) {
         maxSize = length;
-        rh_mask = cms::cuda::make_device_unique<int[]>(sizeof(int) * length, cudaStream);
         rh_inputToFullIdx = cms::cuda::make_device_unique<int[]>(sizeof(int) * length, cudaStream);
         rh_fullToInputIdx = cms::cuda::make_device_unique<int[]>(sizeof(int) * length, cudaStream);
         pfrhToInputIdx = cms::cuda::make_device_unique<int[]>(sizeof(int) * length, cudaStream);
