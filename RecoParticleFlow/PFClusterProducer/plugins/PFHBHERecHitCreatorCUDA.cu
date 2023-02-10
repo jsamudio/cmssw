@@ -142,19 +142,16 @@ namespace PFRecHit {
     }
 
     // Phase I threshold test corresponding to PFRecHitQTestHCALThresholdVsDepth
-    // Apply rechit mask and determine output PFRecHit ordering
-    __global__ void applyDepthThresholdQTestsAndMask(
-        const uint32_t nRHIn,  // Number of input rechits
-        int const* depthHB,    // The following from recHitParamsProduct
-        int const* depthHE,
-        float const* thresholdE_HB,
-        float const* thresholdE_HE,
-        const uint32_t* recHits_did,  // Input rechit detIds
-        const float* recHits_energy,  // Input rechit energy
-        uint32_t* nPFRHOut,           // Number of passing output PFRecHits
-        uint32_t* nPFRHCleaned,       // Number of cleaned output PFRecHits
-        int* pfrhToInputIdx,          // Mapping of output PFRecHit index -> input rechit index
-        int* inputToPFRHIdx) {        // Mapping of input rechit index -> output PFRecHit index
+    __global__ void applyDepthThresholdQTests(const uint32_t nRHIn,  // Number of input rechits
+                                              int const* nDepthHB,
+                                              int const* nDepthHE,
+                                              int const* depthHB,  // The following from recHitParamsProduct
+                                              int const* depthHE,
+                                              float const* thresholdE_HB,
+                                              float const* thresholdE_HE,
+                                              int* rh_mask,                   // Mask for rechit index
+                                              const uint32_t* recHits_did,    // Input rechit detIds
+                                              const float* recHits_energy) {  // Input rechit energy
 
       extern __shared__ uint32_t cleanedList[];
       __shared__ uint32_t cleanedTotal, pos;
@@ -170,7 +167,7 @@ namespace PFRecHit {
         float threshold = 9999.;
         if (subdet == HcalBarrel) {
           bool found = false;
-          for (uint32_t j = 0; j < 4; j++) {
+          for (uint32_t j = 0; j < *nDepthHB; j++) {
             if (depth == depthHB[j]) {
               threshold = thresholdE_HB[j];
               found = true;  // found depth and threshold
@@ -180,7 +177,7 @@ namespace PFRecHit {
             printf("i = %u\tInvalid depth %u for barrel rechit %u!\n", i, depth, detid);
         } else if (subdet == HcalEndcap) {
           bool found = false;
-          for (uint32_t j = 0; j < 7; j++) {
+          for (uint32_t j = 0; j < *nDepthHE; j++) {
             if (depth == depthHE[j]) {
               threshold = thresholdE_HE[j];
               found = true;  // found depth and threshold
@@ -430,6 +427,8 @@ namespace PFRecHit {
       // Apply rechit mask and determine output PFRecHit order
       applyDepthThresholdQTestsAndMask<<<1, threadsPerBlock, 0, cudaStream>>>(
           nRHIn,
+          constantProducts.recHitParametersProduct.nDepthHB,
+          constantProducts.recHitParametersProduct.nDepthHE,
           constantProducts.recHitParametersProduct.depthHB,
           constantProducts.recHitParametersProduct.depthHE,
           constantProducts.recHitParametersProduct.thresholdE_HB,
