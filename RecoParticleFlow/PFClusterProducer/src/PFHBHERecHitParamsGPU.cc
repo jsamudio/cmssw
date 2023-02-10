@@ -1,5 +1,6 @@
 #include "RecoParticleFlow/PFClusterProducer/interface/PFHBHERecHitParamsGPU.h"
 
+#include "FWCore/Utilities/interface/Exception.h"
 #include "FWCore/Utilities/interface/typelookup.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/copyAsync.h"
@@ -19,6 +20,11 @@ PFHBHERecHitParamsGPU::PFHBHERecHitParamsGPU(edm::ParameterSet const& ps) {
   std::copy(valuesThresholdE_HE.begin(), valuesThresholdE_HE.end(), thresholdE_HE_.begin());
   nDepthHB_ = (int)valuesDepthHB.size();
   nDepthHE_ = (int)valuesDepthHE.size();
+  if (valuesDepthHB.size() != valuesThresholdE_HB.size() || valuesDepthHE.size() != valuesThresholdE_HE.size())
+    throw cms::Exception("PFHBHERecHitParamsGPU ")
+        << "The parameter vector sizes are not consistent.\n"
+        << " HB: " << valuesDepthHB.size() << " " << valuesThresholdE_HB.size() << " HE: " << valuesDepthHE.size()
+        << " " << valuesThresholdE_HE.size() << "\n";
 }
 
 PFHBHERecHitParamsGPU::Product::~Product() {
