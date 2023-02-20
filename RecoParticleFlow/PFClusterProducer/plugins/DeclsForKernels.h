@@ -55,8 +55,6 @@ namespace PFRecHit {
     // Store EventSetup variables
     struct ConstantProducts {
       PFHBHERecHitParamsGPU::Product const& recHitParametersProduct;
-      std::vector<int, cms::cuda::HostAllocator<int>> const& depthHB;
-      std::vector<int, cms::cuda::HostAllocator<int>> const& depthHE;
       std::vector<float, cms::cuda::HostAllocator<float>> const& thresholdE_HB;
       std::vector<float, cms::cuda::HostAllocator<float>> const& thresholdE_HE;
       PFHBHETopologyGPU::Product const& topoDataProduct;

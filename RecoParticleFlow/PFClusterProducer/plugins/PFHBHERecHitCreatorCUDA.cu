@@ -60,22 +60,22 @@ namespace PFRecHit {
 
     // Get subdetector encoded in detId to narrow the range of reference table values to search
     // cmssdt.cern.ch/lxr/source/DataFormats/DetId/interface/DetId.h#0048
-    __device__ uint32_t getSubdet(uint32_t detId) {return ((detId >> DetId::kSubdetOffset) & DetId::kSubdetMask);}
+    __device__ constexpr uint32_t getSubdet(uint32_t detId) {return ((detId >> DetId::kSubdetOffset) & DetId::kSubdetMask);}
 
     //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0163
-    __device__ uint32_t getDepth(uint32_t detId) {return ((detId >> HcalDetId::kHcalDepthOffset2) & HcalDetId::kHcalDepthMask2);}
+    __device__ constexpr uint32_t getDepth(uint32_t detId) {return ((detId >> HcalDetId::kHcalDepthOffset2) & HcalDetId::kHcalDepthMask2);}
 
     //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0148
-    __device__ uint32_t getIetaAbs(uint32_t detId) {return ((detId >> HcalDetId::kHcalEtaOffset2) & HcalDetId::kHcalEtaMask2);}
+    __device__ constexpr uint32_t getIetaAbs(uint32_t detId) {return ((detId >> HcalDetId::kHcalEtaOffset2) & HcalDetId::kHcalEtaMask2);}
 
     //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0157
-    __device__ uint32_t getIphi(uint32_t detId) {return (detId & HcalDetId::kHcalPhiMask2);}
+    __device__ constexpr uint32_t getIphi(uint32_t detId) {return (detId & HcalDetId::kHcalPhiMask2);}
 
     //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0141
-    __device__ int getZside(uint32_t detId) {return ((detId & HcalDetId::kHcalZsideMask2) ? (1) : (-1));}
+    __device__ constexpr int getZside(uint32_t detId) {return ((detId & HcalDetId::kHcalZsideMask2) ? (1) : (-1));}
 
     //https://cmssdt.cern.ch/lxr/source/Geometry/CaloTopology/src/HcalTopology.cc#1170
-    __device__ uint32_t detId2denseIdHB(uint32_t detId) {
+    __device__ constexpr uint32_t detId2denseIdHB(uint32_t detId) {
       const int nEtaHB = (lastHBRing - firstHBRing + 1);
       const int ip = getIphi(detId);
       const int ie = getIetaAbs(detId);
@@ -92,7 +92,7 @@ namespace PFRecHit {
     }
 
     //https://cmssdt.cern.ch/lxr/source/Geometry/CaloTopology/src/HcalTopology.cc#1189
-    __device__ uint32_t detId2denseIdHE(uint32_t detId) {
+    __device__ constexpr uint32_t detId2denseIdHE(uint32_t detId) {
       const int nEtaHE = (lastHERing - firstHERing + 1);
       const int maxPhiHE = IPHI_MAX;
       const int ip = getIphi(detId);
@@ -110,7 +110,7 @@ namespace PFRecHit {
       return retval;
     }
 
-    __device__ uint32_t detId2denseId(uint32_t detId) {
+    __device__ constexpr uint32_t detId2denseId(uint32_t detId) {
       if (getSubdet(detId)==HcalBarrel) return detId2denseIdHB(detId);
       else if (getSubdet(detId)==HcalEndcap) return detId2denseIdHE(detId);
       else printf("invalid detId\n");
@@ -139,10 +139,8 @@ namespace PFRecHit {
     // Apply rechit mask and determine output PFRecHit ordering
     __global__ void applyDepthThresholdQTestsAndMask(
       const uint32_t nRHIn,           // Number of input rechits
-      int const* depthHB,             // The following from recHitParamsProduct
-      int const* depthHE,
-      float const* thresholdE_HB,
-      float const* thresholdE_HE,
+      float const* thresholdE_HB,     // From recHitParamsProduct
+      float const* thresholdE_HE,     // From recHitParamsProduct
       const uint32_t* recHits_did,    // Input rechit detIds
       const float* recHits_energy,    // Input rechit energy
       uint32_t* nPFRHOut,             // Number of passing output PFRecHits
@@ -158,41 +156,24 @@ namespace PFRecHit {
       }
       __syncthreads();
       for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nRHIn; i += gridDim.x * blockDim.x) {
-        uint32_t detid = recHits_did[i];
-        uint32_t subdet = (detid >> DetId::kSubdetOffset) & DetId::kSubdetMask;
-        uint32_t depth = (detid >> HcalDetId::kHcalDepthOffset2) & HcalDetId::kHcalDepthMask2;
+        const uint32_t detid = recHits_did[i];
+        const uint32_t subdet = (detid >> DetId::kSubdetOffset) & DetId::kSubdetMask;
         float threshold = 9999.;
         if (subdet == HcalBarrel) {
-          bool found = false;
-          for (uint32_t j=0; j<4; j++) {
-            if (depth == depthHB[j]) {
-              threshold = thresholdE_HB[j];
-              found = true; // found depth and threshold
-            }
-          }
-          if (!found)
-            printf("i = %u\tInvalid depth %u for barrel rechit %u!\n", i, depth, detid);
+          threshold = thresholdE_HB[getDepth(detid) - 1];
         } else if (subdet == HcalEndcap) {
-          bool found = false;
-          for (uint32_t j=0; j<7; j++) {
-            if (depth == depthHE[j]) {
-              threshold = thresholdE_HE[j];
-              found = true; // found depth and threshold
-            }
-          }
-          if (!found)
-            printf("i = %u\tInvalid depth %u for endcap rechit %u!\n", i, depth, detid);
+          threshold = thresholdE_HE[getDepth(detid) - 1];
         } else {
           printf("Rechit %u detId %u has invalid subdetector %u!\n", blockIdx.x, detid, subdet);
           return;
         }
 
         if (recHits_energy[i] >= threshold) {  // Passing
-          int k = atomicAdd(&pos, 1);
+          const int k = atomicAdd(&pos, 1);
           pfrhToInputIdx[k] = i;
           inputToPFRHIdx[i] = k;
         } else if (false) {  // Cleaned
-          int k = atomicAdd(&cleanedTotal, 1);
+          const int k = atomicAdd(&cleanedTotal, 1);
           cleanedList[k] = i;
         }
       }
@@ -420,8 +401,6 @@ namespace PFRecHit {
       // Apply rechit mask and determine output PFRecHit order
       applyDepthThresholdQTestsAndMask<<<1, threadsPerBlock, 0, cudaStream>>>(
         nRHIn,
-        constantProducts.recHitParametersProduct.depthHB,
-        constantProducts.recHitParametersProduct.depthHE,
         constantProducts.recHitParametersProduct.thresholdE_HB,
         constantProducts.recHitParametersProduct.thresholdE_HE,
         HBHERecHits_asInput.did.get(),

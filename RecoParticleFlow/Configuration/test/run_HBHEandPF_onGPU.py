@@ -155,10 +155,8 @@ for idx, x in enumerate(_pset_hltParticleFlowRecHitHBHE_producers_mod):
             for idz, z in enumerate(y.cuts): # convert signed to unsigned
                 if z.detectorEnum == 1: # HB
                     z.detectorEnum = cms.uint32( 1 )
-                    z.depth = cms.vuint32( 1, 2, 3, 4 )
                 if z.detectorEnum == 2: # HE
                     z.detectorEnum = cms.uint32( 2 )
-                    z.depth = cms.vuint32( 1, 2, 3, 4, 5, 6, 7  )
 
 process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFHBHERecHitProducerGPU", # instead of "PFRecHitProducer"
                                                    producers = _pset_hltParticleFlowRecHitHBHE_producers_mod,
@@ -183,8 +181,6 @@ process.hltParticleFlowClusterHBHE = cms.EDProducer("PFClusterProducerCudaHCAL",
 
 # ES ---
 process.hltPFHBHERecHitParamsGPUESProducer  = cms.ESSource("PFHBHERecHitParamsGPUESProducer",
-                                                             depthHB = cms.vuint32( 1, 2, 3, 4 ),
-                                                             depthHE = cms.vuint32( 1, 2, 3, 4, 5, 6, 7  ),
                                                              thresholdE_HB = cms.vdouble(0.1, 0.2, 0.3, 0.3),
                                                              thresholdE_HE = cms.vdouble(0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2)
 )

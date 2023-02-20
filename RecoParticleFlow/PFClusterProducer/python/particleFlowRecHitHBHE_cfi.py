@@ -20,12 +20,10 @@ _module_pset = cms.PSet(
                   name = cms.string("PFRecHitQTestHCALThresholdVsDepth"),
                   cuts = cms.VPSet(
                         cms.PSet(
-                            depth=cms.vint32(1, 2, 3, 4),
                             threshold = _thresholdsHB,
                             detectorEnum = cms.int32(1)
                             ),
                         cms.PSet(
-                            depth=cms.vint32(1, 2, 3, 4, 5, 6, 7),
                             threshold = _thresholdsHE,
                             detectorEnum = cms.int32(2)
                             )
@@ -54,10 +52,8 @@ for idx, x in enumerate(_module_pset_cuda.producers):
             for idz, z in enumerate(y.cuts): # convert signed to unsigned
                 if z.detectorEnum == 1: # HB
                     z.detectorEnum = cms.uint32( 1 )
-                    z.depth = cms.vuint32( 1, 2, 3, 4 )
                 if z.detectorEnum == 2: # HE
                     z.detectorEnum = cms.uint32( 2 )
-                    z.depth = cms.vuint32( 1, 2, 3, 4, 5, 6, 7  )
 
 _particleFlowRecHitHBHE_cpu = cms.EDProducer("PFRecHitProducer", _module_pset.clone() )
 _particleFlowRecHitHBHE_cpu.produceDummyProducts=cms.bool(True)

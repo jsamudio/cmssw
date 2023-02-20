@@ -218,23 +218,6 @@ void PFHBHERecHitProducerGPU::acquire(edm::Event const& event,
   if (debug) {
   std::cout << (topoData.getValuesDetId()).size() << std::endl;
 
-  std::cout << (recHitParametersHandle_->getValuesDepthHB())[0] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHB())[1] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHB())[2] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHB())[3] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHB()).size() << std::endl;
-
-  std::cout << (recHitParams.getValuesDepthHB()).size() << std::endl;
-
-  std::cout << (recHitParametersHandle_->getValuesDepthHE())[0] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHE())[1] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHE())[2] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHE())[3] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHE())[4] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHE())[5] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHE())[6] << std::endl;
-  std::cout << (recHitParametersHandle_->getValuesDepthHE()).size() << std::endl;
-
   std::cout << (recHitParametersHandle_->getValuesThresholdE_HB())[0] << std::endl;
   std::cout << (recHitParametersHandle_->getValuesThresholdE_HB())[1] << std::endl;
   std::cout << (recHitParametersHandle_->getValuesThresholdE_HB())[2] << std::endl;
@@ -259,16 +242,14 @@ void PFHBHERecHitProducerGPU::acquire(edm::Event const& event,
 
   // bundle up constants
   PFRecHit::HCAL::ConstantProducts constantProducts{
-        recHitParamsProduct,
-	recHitParams.getValuesDepthHB(),
-	recHitParams.getValuesDepthHE(),
-	recHitParams.getValuesThresholdE_HB(),
-	recHitParams.getValuesThresholdE_HE(),
-	topoDataProduct,
-	topoData.getValuesDenseId(),
-	topoData.getValuesDetId(),
-	topoData.getValuesPosition(),
-	topoData.getValuesNeighbours()
+    recHitParamsProduct,
+    recHitParams.getValuesThresholdE_HB(),
+    recHitParams.getValuesThresholdE_HE(),
+    topoDataProduct,
+    topoData.getValuesDenseId(),
+    topoData.getValuesDetId(),
+    topoData.getValuesPosition(),
+    topoData.getValuesNeighbours()
   };
 
   // Entry point for GPU calls

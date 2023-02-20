@@ -15,13 +15,9 @@ public:
   struct Product {
     ~Product();
     /*
-    int* depthHB;
-    int* depthHE;
     float* thresholdE_HB;
     float* thresholdE_HE;
     */
-    edm::propagate_const_array<cms::cuda::device::unique_ptr<int[]>> depthHB;
-    edm::propagate_const_array<cms::cuda::device::unique_ptr<int[]>> depthHE;
     edm::propagate_const_array<cms::cuda::device::unique_ptr<float[]>> thresholdE_HB;
     edm::propagate_const_array<cms::cuda::device::unique_ptr<float[]>> thresholdE_HE;
   };
@@ -40,15 +36,11 @@ public:
   //using uint32vec = std::reference_wrapper<std::vector<uint32_t, cms::cuda::HostAllocator<uint32_t>> const>;
   //using floatvec = std::reference_wrapper<std::vector<float, cms::cuda::HostAllocator<float>> const>;
 
-  std::vector<int, cms::cuda::HostAllocator<int>> const& getValuesDepthHB() const { return depthHB_; }
-  std::vector<int, cms::cuda::HostAllocator<int>> const& getValuesDepthHE() const { return depthHE_; }
   std::vector<float, cms::cuda::HostAllocator<float>> const& getValuesThresholdE_HB() const { return thresholdE_HB_; }
   std::vector<float, cms::cuda::HostAllocator<float>> const& getValuesThresholdE_HE() const { return thresholdE_HE_; }
 
 private:
 
-  std::vector<int, cms::cuda::HostAllocator<int>> depthHB_;
-  std::vector<int, cms::cuda::HostAllocator<int>> depthHE_;
   std::vector<float, cms::cuda::HostAllocator<float>> thresholdE_HB_;
   std::vector<float, cms::cuda::HostAllocator<float>> thresholdE_HE_;
 
