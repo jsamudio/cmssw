@@ -20,15 +20,12 @@ namespace PFRecHit {
     // member methods:
     //  initializeArrays
     //  buildDetIdMap
-    //  applyDepthThresholdQTests
-    //  applyMaskSerial (simplier version)
-    //  applyMask
+    //  applyDepthThresholdQTestsAndMask
     //  convert_rechits_to_PFRechits
     //  entryPoint [called from producer] utilizes:
     //   initializeArrays
     //   buildDetIdMapPerBlock
-    //   applyDepthThresholdQTests
-    //   applyMask
+    //   applyDepthThresholdQTestsAndMask
     //   convert_rechits_to_PFRechits
 
     // some constants
@@ -43,7 +40,6 @@ namespace PFRecHit {
     // Initialize arrays used to store temporary values for each event
     __global__ void initializeArrays(uint32_t nTopoArraySize,  // Takes detId.size() but needs work
                                      uint32_t nRHIn,           // Number of input rechits
-                                     int* rh_mask,             // Mask for input rechit index
                                      int* rh_inputToFullIdx,   // Mapping of input rechit index -> reference table index
                                      int* rh_fullToInputIdx,   // Mapping of reference table index -> input rechit index
                                      int* pfrhToInputIdx,      // Mapping of output PFRecHit index -> input rechit index
@@ -59,7 +55,6 @@ namespace PFRecHit {
       for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nRHIn; i += blockDim.x * gridDim.x) {
         pfrhToInputIdx[i] = -1;
         inputToPFRHIdx[i] = -1;
-        rh_mask[i] = -2;
       }
     }
 
@@ -129,12 +124,12 @@ namespace PFRecHit {
     }
 
     __global__ void buildDetIdMap(uint32_t size,
-                                  uint32_t const* denseIdarr,   // denseId array
-                                  uint32_t const* detId,        // Takes in topoDataProduct.detId
-                                  int* rh_inputToFullIdx,       // Map for input rechit detId -> reference table index
-                                  int* rh_fullToInputIdx,       // Map for reference table index -> input rechit index
-                                  uint32_t const* recHits_did)  // Input rechit detIds
-    {
+                                  uint32_t const* denseIdarr,     // denseId array
+                                  uint32_t const* detId,          // Takes in topoDataProduct.detId
+                                  int* rh_inputToFullIdx,         // Map for input rechit detId -> reference table index
+                                  int* rh_fullToInputIdx,         // Map for reference table index -> input rechit index
+                                  uint32_t const* recHits_did) {  // Input rechit detIds
+
       int first = blockIdx.x * blockDim.x + threadIdx.x;
       for (int i = first; i < size; i += gridDim.x * blockDim.x) {
         // i: index for input rechits
@@ -147,15 +142,27 @@ namespace PFRecHit {
     }
 
     // Phase I threshold test corresponding to PFRecHitQTestHCALThresholdVsDepth
-    __global__ void applyDepthThresholdQTests(const uint32_t nRHIn,  // Number of input rechits
-                                              int const* depthHB,    // The following from recHitParamsProduct
-                                              int const* depthHE,
-                                              float const* thresholdE_HB,
-                                              float const* thresholdE_HE,
-                                              int* rh_mask,                   // Mask for rechit index
-                                              const uint32_t* recHits_did,    // Input rechit detIds
-                                              const float* recHits_energy) {  // Input rechit energy
+    // Apply rechit mask and determine output PFRecHit ordering
+    __global__ void applyDepthThresholdQTestsAndMask(
+        const uint32_t nRHIn,  // Number of input rechits
+        int const* depthHB,    // The following from recHitParamsProduct
+        int const* depthHE,
+        float const* thresholdE_HB,
+        float const* thresholdE_HE,
+        const uint32_t* recHits_did,  // Input rechit detIds
+        const float* recHits_energy,  // Input rechit energy
+        uint32_t* nPFRHOut,           // Number of passing output PFRecHits
+        uint32_t* nPFRHCleaned,       // Number of cleaned output PFRecHits
+        int* pfrhToInputIdx,          // Mapping of output PFRecHit index -> input rechit index
+        int* inputToPFRHIdx) {        // Mapping of input rechit index -> output PFRecHit index
 
+      extern __shared__ uint32_t cleanedList[];
+      __shared__ uint32_t cleanedTotal, pos;
+
+      if (threadIdx.x == 0) {
+        pos = cleanedTotal = 0;
+      }
+      __syncthreads();
       for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nRHIn; i += gridDim.x * blockDim.x) {
         uint32_t detid = recHits_did[i];
         uint32_t subdet = (detid >> DetId::kSubdetOffset) & DetId::kSubdetMask;
@@ -185,65 +192,12 @@ namespace PFRecHit {
           printf("Rechit %u detId %u has invalid subdetector %u!\n", blockIdx.x, detid, subdet);
           return;
         }
-        // If this PFRecHit:
-        //  Passes threshold cuts, set mask to 1
-        //  Fails cuts and discarded, set mask to 0
-        //  Should be cleaned (only applicable to HF), mask = -1 (default value)
-        rh_mask[i] = (recHits_energy[i] >= threshold);
-        if (rh_mask[i] < 0)
-          printf("WARNING: Found input rechit %d has rh_mask = %d\n", i, rh_mask[i]);
-      }
-    }
 
-    __global__ void applyMaskSerial(uint32_t nRHIn,
-                                    uint32_t* nPFRHOut,
-                                    //const bool* rh_mask,
-                                    const int* rh_mask,
-                                    int* pfrhToInputIdx,
-                                    int* inputToPFRHIdx) {
-      extern __shared__ uint16_t serial_cleanedList[];
-      __shared__ uint16_t cleanedTotal, pos;
-
-      pos = cleanedTotal = 0;
-      for (uint16_t i = 0; i < nRHIn; i++) {
-        if (rh_mask[i] == 1) {
-          pfrhToInputIdx[pos] = i;
-          inputToPFRHIdx[i] = pos;
-          pos++;
-        } else if (rh_mask[i] == -1) {
-          serial_cleanedList[cleanedTotal] = i;
-          cleanedTotal++;
-        }
-      }
-      for (uint16_t i = 0; i < cleanedTotal; i++) {
-        pfrhToInputIdx[pos + i] = serial_cleanedList[i];
-        inputToPFRHIdx[serial_cleanedList[i]] = pos + i;
-      }
-      *nPFRHOut = pos;  // Total number of PFRecHits passing cuts
-    }
-
-    // Apply rechit mask and determine output PFRecHit ordering
-    __global__ void applyMask(uint32_t nRHIn,          // Number of input rechits
-                              uint32_t* nPFRHOut,      // Number of passing output PFRecHits
-                              uint32_t* nPFRHCleaned,  // Number of cleaned output PFRecHits
-                              const int* rh_mask,      // Rechit mask
-                              int* pfrhToInputIdx,     // Mapping of output PFRecHit index -> input rechit index
-                              int* inputToPFRHIdx) {   // Mapping of input rechit index -> output PFRecHit index
-
-      extern __shared__ uint32_t cleanedList[];
-      __shared__ uint32_t cleanedTotal, pos;
-
-      if (threadIdx.x == 0) {
-        pos = cleanedTotal = 0;
-      }
-      __syncthreads();
-
-      for (uint32_t i = threadIdx.x; i < nRHIn; i += blockDim.x) {
-        if (rh_mask[i] == 1) {  // Passing
+        if (recHits_energy[i] >= threshold) {  // Passing
           int k = atomicAdd(&pos, 1);
           pfrhToInputIdx[k] = i;
           inputToPFRHIdx[i] = k;
-        } else if (rh_mask[i] == -1) {  // Cleaned
+        } else if (false) {  // Cleaned
           int k = atomicAdd(&cleanedTotal, 1);
           cleanedList[k] = i;
         }
@@ -251,7 +205,8 @@ namespace PFRecHit {
       __syncthreads();
 
       // Loop over cleaned PFRecHits and append to the end of the output array
-      for (uint32_t i = threadIdx.x; i < cleanedTotal; i += blockDim.x) {
+      //for (uint32_t i = threadIdx.x; i < cleanedTotal; i += blockDim.x) {
+      for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < cleanedTotal; i += gridDim.x * blockDim.x) {
         pfrhToInputIdx[pos + i] = cleanedList[i];
         inputToPFRHIdx[cleanedList[i]] = pos + i;
       }
@@ -264,9 +219,8 @@ namespace PFRecHit {
 
     // Fill output PFRecHit arrays
     __global__ void convert_rechits_to_PFRechits(const uint32_t nRHIn,
+                                                 const uint32_t* offset,
                                                  const uint32_t* nPFRHOut,
-                                                 const uint32_t* nPFRHCleaned,
-                                                 const int* rh_mask,
                                                  const int* pfrhToInputIdx,
                                                  const int* inputToPFRHIdx,
                                                  const float3* position,
@@ -286,15 +240,16 @@ namespace PFRecHit {
                                                  float* pfrechits_x,
                                                  float* pfrechits_y,
                                                  float* pfrechits_z,
-                                                 int* pfrechits_neighbours) {
-      for (uint32_t pfIdx = blockIdx.x * blockDim.x + threadIdx.x; pfIdx < (*nPFRHOut + *nPFRHCleaned);
+                                                 int* pfrechits_neighbours,
+                                                 const bool associate_neighbours) {
+      for (uint32_t pfIdx = blockIdx.x * blockDim.x + threadIdx.x + (offset == nullptr ? 0 : *offset);
+           pfIdx < (*nPFRHOut + (offset == nullptr ? 0 : *offset));
            pfIdx += blockDim.x * gridDim.x) {
         int i = pfrhToInputIdx[pfIdx];  // Get input rechit index corresponding to output PFRecHit index pfIdx
         if (i < 0)
           printf("convert kernel with pfIdx = %u has input index i = %u\n", pfIdx, i);
         pfrechits_time[pfIdx] = recHits_timeM0[i];
-        float energy = recHits_energy[i];
-        pfrechits_energy[pfIdx] = energy;
+        pfrechits_energy[pfIdx] = recHits_energy[i];
 
         uint32_t detid = recHits_did[i];
         pfrechits_detId[pfIdx] = detid;
@@ -329,7 +284,10 @@ namespace PFRecHit {
         pfrechits_y[pfIdx] = pos.y;
         pfrechits_z[pfIdx] = pos.z;
 
-        if (debug) {
+        if (!associate_neighbours)
+          continue;
+
+        if (debug)
           printf("Now debugging rechit %d\tpfIdx %u\ti = %d\tindex = %d\tpos = (%f, %f, %f)\n",
                  detid,
                  pfIdx,
@@ -338,7 +296,6 @@ namespace PFRecHit {
                  pos.x,
                  pos.y,
                  pos.z);
-        }
 
         // Lambda function for filling PFRecHit neighbour arrays
         // pos: Order in PFRecHit neighbour array. First four values correspond to 4-neighbours: N,S,E,W
@@ -362,16 +319,15 @@ namespace PFRecHit {
                 inputIdx,
                 pfrhIdx,
                 recHits_did[inputIdx]);
-          if (pfrhIdx < 0 ||
-              pfrhIdx >= *nPFRHOut) {  // Only include valid PFRecHit indices. Don't include cleaned rechits
-            pfrechits_neighbours[pfIdx * 8 + pos] = -1;
-            if (debug)
-              printf("\tNeigh %u has invalid pfrhIdx %d!\n", pos, pfrhIdx);
-          } else {
+          if (pfrhIdx >= 0) {  // Only include valid PFRecHit indices.
             // Set PFRecHit index and infos for this neighbour
             pfrechits_neighbours[pfIdx * 8 + pos] = pfrhIdx;
             if (debug)
               printf("\tNeigh %u has pfrhIdx %d.\n", pos, pfrhIdx);
+          } else {
+            pfrechits_neighbours[pfIdx * 8 + pos] = -1;
+            if (debug)
+              printf("\tNeigh %u has invalid pfrhIdx %d!\n", pos, pfrhIdx);
           }
         };
 
@@ -435,7 +391,6 @@ namespace PFRecHit {
                          0,
                          cudaStream>>>(constantProducts.detId.size(),
                                        nRHIn,
-                                       scratchDataGPU.rh_mask.get(),
                                        scratchDataGPU.rh_inputToFullIdx.get(),
                                        scratchDataGPU.rh_fullToInputIdx.get(),
                                        scratchDataGPU.pfrhToInputIdx.get(),
@@ -461,7 +416,6 @@ namespace PFRecHit {
           HBHERecHits_asInput.did.get());
       cudaCheck(cudaGetLastError());
 
-      cudaCheck(cudaGetLastError());
 #ifdef DEBUG_ENABLE
       cudaEventRecord(stop, cudaStream);
       cudaEventSynchronize(stop);
@@ -473,40 +427,26 @@ namespace PFRecHit {
 #endif
 
       // Apply PFRecHit threshold & quality tests
-      applyDepthThresholdQTests<<<(nRHIn + threadsPerBlock - 1) / threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(
+      // Apply rechit mask and determine output PFRecHit order
+      applyDepthThresholdQTestsAndMask<<<1, threadsPerBlock, 0, cudaStream>>>(
           nRHIn,
           constantProducts.recHitParametersProduct.depthHB,
           constantProducts.recHitParametersProduct.depthHE,
           constantProducts.recHitParametersProduct.thresholdE_HB,
           constantProducts.recHitParametersProduct.thresholdE_HE,
-          scratchDataGPU.rh_mask.get(),
           HBHERecHits_asInput.did.get(),
-          HBHERecHits_asInput.energy.get());
-      cudaCheck(cudaGetLastError());
-
-#ifdef DEBUG_ENABLE
-      cudaEventRecord(stop, cudaStream);
-      cudaEventSynchronize(stop);
-
-      cudaEventElapsedTime(&timer[2], start, stop);
-      printf("\napplyQTests took %f ms\n", timer[2]);
-      cudaEventRecord(start, cudaStream);
-#endif
-
-      // Apply rechit mask and determine output PFRecHit order
-      applyMask<<<1, threadsPerBlock, 0, cudaStream>>>(nRHIn,
-                                                       d_nPFRHOut.get(),
-                                                       d_nPFRHCleaned.get(),
-                                                       scratchDataGPU.rh_mask.get(),
-                                                       scratchDataGPU.pfrhToInputIdx.get(),
-                                                       scratchDataGPU.inputToPFRHIdx.get());
+          HBHERecHits_asInput.energy.get(),
+          d_nPFRHOut.get(),
+          d_nPFRHCleaned.get(),
+          scratchDataGPU.pfrhToInputIdx.get(),
+          scratchDataGPU.inputToPFRHIdx.get());
       cudaCheck(cudaGetLastError());
 
 #ifdef DEBUG_ENABLE
       cudaEventRecord(stop, cudaStream);
       cudaEventSynchronize(stop);
       cudaEventElapsedTime(&timer[3], start, stop);
-      printf("\napplyMask took %f ms\n\n", timer[3]);
+      printf("\napplyDepthThresholdQTestsAndMask took %f ms\n\n", timer[3]);
 #endif
 
       cms::cuda::copyAsync(h_nPFRHOut, d_nPFRHOut, sizeof(uint32_t), cudaStream);
@@ -520,9 +460,8 @@ namespace PFRecHit {
       // Fill output PFRecHit arrays
       convert_rechits_to_PFRechits<<<(nRHIn + threadsPerBlock - 1) / threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(
           nRHIn,
+          nullptr,
           d_nPFRHOut.get(),
-          d_nPFRHCleaned.get(),
-          scratchDataGPU.rh_mask.get(),
           scratchDataGPU.pfrhToInputIdx.get(),
           scratchDataGPU.inputToPFRHIdx.get(),
           constantProducts.topoDataProduct.position,
@@ -542,8 +481,34 @@ namespace PFRecHit {
           HBHEPFRecHits_asOutput.PFRecHits.pfrh_x.get(),
           HBHEPFRecHits_asOutput.PFRecHits.pfrh_y.get(),
           HBHEPFRecHits_asOutput.PFRecHits.pfrh_z.get(),
-          HBHEPFRecHits_asOutput.PFRecHits.pfrh_neighbours.get());
-
+          HBHEPFRecHits_asOutput.PFRecHits.pfrh_neighbours.get(),
+          true);
+      cudaCheck(cudaGetLastError());
+      convert_rechits_to_PFRechits<<<(nRHIn + threadsPerBlock - 1) / threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(
+          nRHIn,
+          d_nPFRHOut.get(),
+          d_nPFRHCleaned.get(),
+          scratchDataGPU.pfrhToInputIdx.get(),
+          scratchDataGPU.inputToPFRHIdx.get(),
+          constantProducts.topoDataProduct.position,
+          constantProducts.topoDataProduct.neighbours,
+          scratchDataGPU.rh_inputToFullIdx.get(),
+          scratchDataGPU.rh_fullToInputIdx.get(),
+          HBHERecHits_asInput.energy.get(),
+          HBHERecHits_asInput.chi2.get(),
+          HBHERecHits_asInput.energyM0.get(),
+          HBHERecHits_asInput.timeM0.get(),
+          HBHERecHits_asInput.did.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_depth.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_layer.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_detId.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_time.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_energy.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_x.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_y.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_z.get(),
+          HBHEPFRecHits_asOutput.PFRecHits_cleaned.pfrh_neighbours.get(),
+          false);
       cudaCheck(cudaGetLastError());
 
       // Make sure output size has finished copying before freeing memory
