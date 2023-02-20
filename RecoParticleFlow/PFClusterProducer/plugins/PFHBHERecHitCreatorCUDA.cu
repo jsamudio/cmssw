@@ -170,7 +170,7 @@ namespace PFRecHit {
         float threshold = 9999.;
         if (subdet == HcalBarrel) {
           bool found = false;
-          for (uint32_t j = 0; j < 4; j++) {
+          for (uint32_t j = 0; j < *nDepthHB; j++) {
             if (depth == depthHB[j]) {
               threshold = thresholdE_HB[j];
               found = true;  // found depth and threshold
@@ -180,7 +180,7 @@ namespace PFRecHit {
             printf("i = %u\tInvalid depth %u for barrel rechit %u!\n", i, depth, detid);
         } else if (subdet == HcalEndcap) {
           bool found = false;
-          for (uint32_t j = 0; j < 7; j++) {
+          for (uint32_t j = 0; j < *nDepthHE; j++) {
             if (depth == depthHE[j]) {
               threshold = thresholdE_HE[j];
               found = true;  // found depth and threshold
@@ -430,6 +430,8 @@ namespace PFRecHit {
       // Apply rechit mask and determine output PFRecHit order
       applyDepthThresholdQTestsAndMask<<<1, threadsPerBlock, 0, cudaStream>>>(
           nRHIn,
+          constantProducts.recHitParametersProduct.nDepthHB,
+          constantProducts.recHitParametersProduct.nDepthHE,
           constantProducts.recHitParametersProduct.depthHB,
           constantProducts.recHitParametersProduct.depthHE,
           constantProducts.recHitParametersProduct.thresholdE_HB,
