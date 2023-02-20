@@ -311,9 +311,16 @@ namespace PFRecHit {
               inputIdx,
               pfrhIdx,
               recHits_did[inputIdx]);
-          pfrechits_neighbours[pfIdx * 8 + pos] = pfrhIdx;
-          if (debug)
-            printf("\tNeigh %u has pfrhIdx %d.\n", pos, pfrhIdx);
+          if (pfrhIdx >= 0) {  // Only include valid PFRecHit indices.
+            // Set PFRecHit index and infos for this neighbour
+            pfrechits_neighbours[pfIdx * 8 + pos] = pfrhIdx;
+            if (debug)
+              printf("\tNeigh %u has pfrhIdx %d.\n", pos, pfrhIdx);
+          } else {
+            pfrechits_neighbours[pfIdx * 8 + pos] = -1;
+            if (debug)
+              printf("\tNeigh %u has invalid pfrhIdx %d!\n", pos, pfrhIdx);
+          }
         };
 
         // Now fill neighbours and neighbourInfos
