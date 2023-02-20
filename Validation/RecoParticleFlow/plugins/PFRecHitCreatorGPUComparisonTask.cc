@@ -61,23 +61,27 @@ private:
   std::string pfCaloGPUCompDir;
 };
 
-PFRecHitCreatorGPUComparisonTask::PFRecHitCreatorGPUComparisonTask(const edm::ParameterSet& conf) :
-  recHitsToken(consumes<edm::SortedCollection<HBHERecHit>>(conf.getUntrackedParameter<edm::InputTag>("recHitsSourceCPU"))),
-  pfRecHitsTokenCPU(consumes<reco::PFRecHitCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceCPU"))),
-  pfRecHitsTokenGPU(consumes<reco::PFRecHitCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceGPU"))),
-  pfClusterTokenCPU(consumes<reco::PFClusterCollection>(conf.getUntrackedParameter<edm::InputTag>("pfClusterSourceCPU"))),
-  pfClusterTokenGPU(consumes<reco::PFClusterCollection>(conf.getUntrackedParameter<edm::InputTag>("pfClusterSourceGPU"))),
-  pfCaloGPUCompDir(conf.getUntrackedParameter<std::string>("pfCaloGPUCompDir"))
-{}
+PFRecHitCreatorGPUComparisonTask::PFRecHitCreatorGPUComparisonTask(const edm::ParameterSet& conf)
+    : recHitsToken(
+          consumes<edm::SortedCollection<HBHERecHit>>(conf.getUntrackedParameter<edm::InputTag>("recHitsSourceCPU"))),
+      pfRecHitsTokenCPU(
+          consumes<reco::PFRecHitCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceCPU"))),
+      pfRecHitsTokenGPU(
+          consumes<reco::PFRecHitCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceGPU"))),
+      pfClusterTokenCPU(
+          consumes<reco::PFClusterCollection>(conf.getUntrackedParameter<edm::InputTag>("pfClusterSourceCPU"))),
+      pfClusterTokenGPU(
+          consumes<reco::PFClusterCollection>(conf.getUntrackedParameter<edm::InputTag>("pfClusterSourceGPU"))),
+      pfCaloGPUCompDir(conf.getUntrackedParameter<std::string>("pfCaloGPUCompDir")) {}
 
 PFRecHitCreatorGPUComparisonTask::~PFRecHitCreatorGPUComparisonTask() {}
 
 void PFRecHitCreatorGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
-                                         edm::Run const& irun,
-                                         edm::EventSetup const& isetup) {
+                                                      edm::Run const& irun,
+                                                      edm::EventSetup const& isetup) {
   constexpr auto size = 100;
   char histo[size];
-  ibooker.setCurrentFolder("ParticleFlow/"+pfCaloGPUCompDir);
+  ibooker.setCurrentFolder("ParticleFlow/" + pfCaloGPUCompDir);
 
   strncpy(histo, "pfCluster_Multiplicity_GPUvsCPU_", size);
   pfCluster_Multiplicity_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 2000, 100, 0, 2000);
@@ -95,9 +99,8 @@ void PFRecHitCreatorGPUComparisonTask::analyze(edm::Event const& event, edm::Eve
   event.getByToken(recHitsToken, recHits);
   printf("Found %zd recHits\n", recHits->size());
   fprintf(stderr, "Found %zd recHits\n", recHits->size());
-  for(size_t i = 0; i < recHits->size(); i++)
+  for (size_t i = 0; i < recHits->size(); i++)
     printf("recHit %4lu %u\n", i, recHits->operator[](i).id().rawId());
-
 
   // PF Rec Hits
   // paste <(grep "^CPU" validation.log | sort -nk3) <(grep "^GPU" validation.log | sort -nk3) | awk '$3!=$13 || $4!=$14 || $5!=$15 || $6!=$16 || $9!=$19 {print}' | head
@@ -106,35 +109,36 @@ void PFRecHitCreatorGPUComparisonTask::analyze(edm::Event const& event, edm::Eve
   event.getByToken(pfRecHitsTokenGPU, pfRecHitsGPU);
   printf("Found %zd/%zd pfRecHits on CPU/GPU\n", pfRecHitsCPU->size(), pfRecHitsGPU->size());
   fprintf(stderr, "Found %zd/%zd pfRecHits on CPU/GPU\n", pfRecHitsCPU->size(), pfRecHitsGPU->size());
-  for(size_t i = 0; i < pfRecHitsCPU->size(); i++)
-    printf("CPU %4lu %u %d %d %u : %f %f (%f,%f,%f)\n", i,
-      pfRecHitsCPU->at(i).detId(),
-      pfRecHitsCPU->at(i).depth(),
-      pfRecHitsCPU->at(i).layer(),
-      pfRecHitsCPU->at(i).neighbours().size(),
-      pfRecHitsCPU->at(i).time(),
-      pfRecHitsCPU->at(i).energy(),
-      0.,//pfRecHitsCPU->at(i).position().x(),
-      0.,//pfRecHitsCPU->at(i).position().y(),
-      0.//pfRecHitsCPU->at(i).position().z()
-      );
-  for(size_t i = 0; i < pfRecHitsGPU->size(); i++)
-    printf("GPU %4lu %u %d %d %u : %f %f (%f,%f,%f)\n", i,
-      pfRecHitsGPU->at(i).detId(),
-      pfRecHitsGPU->at(i).depth(),
-      pfRecHitsGPU->at(i).layer(),
-      pfRecHitsGPU->at(i).neighbours().size(),
-      pfRecHitsGPU->at(i).time(),
-      pfRecHitsGPU->at(i).energy(),
-      0.,//pfRecHitsGPU->at(i).position().x(),
-      0.,//pfRecHitsGPU->at(i).position().y(),
-      0.//pfRecHitsGPU->at(i).position().z()
-      );
+  for (size_t i = 0; i < pfRecHitsCPU->size(); i++)
+    printf("CPU %4lu %u %d %d %u : %f %f (%f,%f,%f)\n",
+           i,
+           pfRecHitsCPU->at(i).detId(),
+           pfRecHitsCPU->at(i).depth(),
+           pfRecHitsCPU->at(i).layer(),
+           pfRecHitsCPU->at(i).neighbours().size(),
+           pfRecHitsCPU->at(i).time(),
+           pfRecHitsCPU->at(i).energy(),
+           0.,  //pfRecHitsCPU->at(i).position().x(),
+           0.,  //pfRecHitsCPU->at(i).position().y(),
+           0.   //pfRecHitsCPU->at(i).position().z()
+    );
+  for (size_t i = 0; i < pfRecHitsGPU->size(); i++)
+    printf("GPU %4lu %u %d %d %u : %f %f (%f,%f,%f)\n",
+           i,
+           pfRecHitsGPU->at(i).detId(),
+           pfRecHitsGPU->at(i).depth(),
+           pfRecHitsGPU->at(i).layer(),
+           pfRecHitsGPU->at(i).neighbours().size(),
+           pfRecHitsGPU->at(i).time(),
+           pfRecHitsGPU->at(i).energy(),
+           0.,  //pfRecHitsGPU->at(i).position().x(),
+           0.,  //pfRecHitsGPU->at(i).position().y(),
+           0.   //pfRecHitsGPU->at(i).position().z()
+    );
 
   static int cnt = 0;
-  if(++cnt >= 1)
+  if (++cnt >= 1)
     exit(1);
-
 
   // PF Clusters
   edm::Handle<reco::PFClusterCollection> pfClustersCPU, pfClustersGPU;
@@ -142,45 +146,50 @@ void PFRecHitCreatorGPUComparisonTask::analyze(edm::Event const& event, edm::Eve
   event.getByToken(pfClusterTokenGPU, pfClustersGPU);
 
   // Compare per-event PF cluster multiplicity
-  if (pfClustersCPU->size() != pfClustersGPU->size()) 
-    LOGVERB("PFRecHitCreatorGPUComparisonTask") << " PFCluster multiplicity " <<  pfClustersCPU->size() << " " <<  pfClustersGPU->size();
-  pfCluster_Multiplicity_GPUvsCPU_->Fill((float)pfClustersCPU->size(),(float)pfClustersGPU->size());
+  if (pfClustersCPU->size() != pfClustersGPU->size())
+    LOGVERB("PFRecHitCreatorGPUComparisonTask")
+        << " PFCluster multiplicity " << pfClustersCPU->size() << " " << pfClustersGPU->size();
+  pfCluster_Multiplicity_GPUvsCPU_->Fill((float)pfClustersCPU->size(), (float)pfClustersGPU->size());
 
   // Find matching PF cluster pairs
   std::vector<int> matched_idx;
   for (unsigned i = 0; i < pfClustersCPU->size(); ++i) {
-    bool matched=false;
+    bool matched = false;
     for (unsigned j = 0; j < pfClustersGPU->size(); ++j) {
-      if (pfClustersCPU->at(i).seed() == pfClustersGPU->at(j).seed()){
-        if (!matched){
-          matched=true;
+      if (pfClustersCPU->at(i).seed() == pfClustersGPU->at(j).seed()) {
+        if (!matched) {
+          matched = true;
           matched_idx.push_back((int)j);
         } else {
           LOGWARN("PFRecHitCreatorGPUComparisonTask") << " another matching? ";
         }
       }
     }
-    if (!matched) matched_idx.push_back(-1); // if you don't find a match, put a dummy number
+    if (!matched)
+      matched_idx.push_back(-1);  // if you don't find a match, put a dummy number
   }
 
   // Check matches
   std::vector<int> tmp = matched_idx;
   sort(tmp.begin(), tmp.end());
-  const bool hasDuplicates = std::adjacent_find(tmp.begin(), tmp.end()) != tmp.end();  
-  if (hasDuplicates) LOGWARN("PFRecHitCreatorGPUComparisonTask") << "find duplicated matched";
-  
+  const bool hasDuplicates = std::adjacent_find(tmp.begin(), tmp.end()) != tmp.end();
+  if (hasDuplicates)
+    LOGWARN("PFRecHitCreatorGPUComparisonTask") << "find duplicated matched";
+
   // Plot matching PF cluster variables
   for (unsigned i = 0; i < pfClustersCPU->size(); ++i) {
-    if (matched_idx[i]>=0){
+    if (matched_idx[i] >= 0) {
       unsigned int j = matched_idx[i];
       int ref_energy_bin = pfCluster_Energy_GPUvsCPU_->getTH2F()->GetXaxis()->FindBin(pfClustersCPU->at(i).energy());
       int target_energy_bin = pfCluster_Energy_GPUvsCPU_->getTH2F()->GetXaxis()->FindBin(pfClustersGPU->at(j).energy());
-      if (ref_energy_bin!=target_energy_bin)
-        std::cout << "Off-diagonal energy bin entries: "
-          << pfClustersCPU->at(i).energy()    << " " << pfClustersCPU->at(i).eta()    << " " << pfClustersCPU->at(i).phi() << " "
-          << pfClustersGPU->at(j).energy() << " " << pfClustersGPU->at(j).eta() << " " << pfClustersGPU->at(j).phi() << std::endl;
+      if (ref_energy_bin != target_energy_bin)
+        std::cout << "Off-diagonal energy bin entries: " << pfClustersCPU->at(i).energy() << " "
+                  << pfClustersCPU->at(i).eta() << " " << pfClustersCPU->at(i).phi() << " "
+                  << pfClustersGPU->at(j).energy() << " " << pfClustersGPU->at(j).eta() << " "
+                  << pfClustersGPU->at(j).phi() << std::endl;
       pfCluster_Energy_GPUvsCPU_->Fill(pfClustersCPU->at(i).energy(), pfClustersGPU->at(j).energy());
-      pfCluster_RecHitMultiplicity_GPUvsCPU_->Fill((float)pfClustersCPU->at(i).recHitFractions().size(), (float)pfClustersGPU->at(j).recHitFractions().size());
+      pfCluster_RecHitMultiplicity_GPUvsCPU_->Fill((float)pfClustersCPU->at(i).recHitFractions().size(),
+                                                   (float)pfClustersGPU->at(j).recHitFractions().size());
     }
   }
 }
@@ -193,6 +202,6 @@ void PFRecHitCreatorGPUComparisonTask::analyze(edm::Event const& event, edm::Eve
 //   desc.addUntracked<std::string>("pfCaloGPUCompDir", "pfClusterHBHEGPUv");
 //   descriptions.addDefault(desc);
 // }
-  
+
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(PFRecHitCreatorGPUComparisonTask);
