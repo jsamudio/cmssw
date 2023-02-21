@@ -142,16 +142,21 @@ namespace PFRecHit {
     }
 
     // Phase I threshold test corresponding to PFRecHitQTestHCALThresholdVsDepth
-    __global__ void applyDepthThresholdQTests(const uint32_t nRHIn,  // Number of input rechits
-                                              int const* nDepthHB,
-                                              int const* nDepthHE,
-                                              int const* depthHB,  // The following from recHitParamsProduct
-                                              int const* depthHE,
-                                              float const* thresholdE_HB,
-                                              float const* thresholdE_HE,
-                                              int* rh_mask,                   // Mask for rechit index
-                                              const uint32_t* recHits_did,    // Input rechit detIds
-                                              const float* recHits_energy) {  // Input rechit energy
+    // Apply rechit mask and determine output PFRecHit ordering
+    __global__ void applyDepthThresholdQTestsAndMask(
+        const uint32_t nRHIn,  // Number of input rechits
+        int const* nDepthHB,
+        int const* nDepthHE,
+        int const* depthHB,  // The following from recHitParamsProduct
+        int const* depthHE,
+        float const* thresholdE_HB,
+        float const* thresholdE_HE,
+        const uint32_t* recHits_did,  // Input rechit detIds
+        const float* recHits_energy,  // Input rechit energy
+        uint32_t* nPFRHOut,           // Number of passing output PFRecHits
+        uint32_t* nPFRHCleaned,       // Number of cleaned output PFRecHits
+        int* pfrhToInputIdx,          // Mapping of output PFRecHit index -> input rechit index
+        int* inputToPFRHIdx) {        // Mapping of input rechit index -> output PFRecHit index
 
       extern __shared__ uint32_t cleanedList[];
       __shared__ uint32_t cleanedTotal, pos;
