@@ -31,13 +31,12 @@ namespace PFClusterCudaHCAL {
   //int nTopoLoops = 100;
   int nTopoLoops = 35;
 
-  //
   // --- kernel summary --
+  // ECL-CC for topo clustering
   // initializeCudaConstants
   // PFRechitToPFCluster_HCAL_entryPoint
   //   seedingTopoThreshKernel_HCAL: apply seeding/topo-clustering threshold to RecHits, also ensure a peak (outputs: pfrh_isSeed, pfrh_passTopoThresh) [OutputDataGPU]
   //   prepareTopoInputs: prepare "edge" data (outputs: nEdges, pfrh_edgeId, pfrh_edgeList [nEdges dimension])
-  //   topoClusterLinking(KH): run topo clustering (output: pfrh_topoId)
   //   topoClusterContraction: find parent of parent (or parent (of parent ...)) (outputs: pfrh_parent, topoSeedCount, topoSeedOffsets, topoSeedList, seedFracOffsets, pcrhfracind, pcrhfrac)
   //   fillRhfIndex: fill rhfracind (PFCluster RecHitFraction constituent PFRecHit indices)
   //   hcalFastCluster_selection
@@ -70,8 +69,6 @@ namespace PFClusterCudaHCAL {
   //   passingTopoThreshold
   //   passingTopoThreshold
   //   printRhfIndex
-
-
 
   /*
   ECL-CC code: ECL-CC is a connected components graph algorithm. The CUDA
@@ -120,8 +117,14 @@ namespace PFClusterCudaHCAL {
 
   /* initialize with first smaller neighbor ID */
 
-  __global__ void ECLCC_init(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, int*  topL, int* posL, int* topH, int* posH)
-  {
+  __global__ void ECLCC_init(const int nodes,
+                             const int* const __restrict__ nidx,
+                             const int* const __restrict__ nlist,
+                             int* const __restrict__ nstat,
+                             int* topL,
+                             int* posL,
+                             int* topH,
+                             int* posH) {
     const int from = threadIdx.x + blockIdx.x * ThreadsPerBlock;
     const int incr = gridDim.x * ThreadsPerBlock;
 
@@ -131,26 +134,30 @@ namespace PFClusterCudaHCAL {
       int m = v;
       int i = beg;
       while ((m == v) && (i < end)) {
-	m = min(m, nlist[i]);
-	i++;
+        m = min(m, nlist[i]);
+        i++;
       }
       nstat[v] = m;
     }
 
-    if (from == 0) {*topL = 0; *posL = 0; *topH = nodes - 1; *posH = nodes - 1;}
+    if (from == 0) {
+      *topL = 0;
+      *posL = 0;
+      *topH = nodes - 1;
+      *posH = nodes - 1;
+    }
   }
 
   /* intermediate pointer jumping */
 
-  __device__ int representative(const int idx, int* const __restrict__ nstat)
-  {
+  __device__ int representative(const int idx, int* const __restrict__ nstat) {
     int curr = nstat[idx];
     if (curr != idx) {
       int next, prev = idx;
       while (curr > (next = nstat[curr])) {
-	nstat[prev] = next;
-	prev = curr;
-	curr = next;
+        nstat[prev] = next;
+        prev = curr;
+        curr = next;
       }
     }
     return curr;
@@ -158,101 +165,118 @@ namespace PFClusterCudaHCAL {
 
   /* process low-degree vertices at thread granularity and fill worklists */
 
-  __global__ void ECLCC_compute1(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, int* const __restrict__ wl, int* topL, int* topH)
-  {
+  __global__ void ECLCC_compute1(const int nodes,
+                                 const int* const __restrict__ nidx,
+                                 const int* const __restrict__ nlist,
+                                 int* const __restrict__ nstat,
+                                 int* const __restrict__ wl,
+                                 int* topL,
+                                 int* topH) {
     const int from = threadIdx.x + blockIdx.x * ThreadsPerBlock;
     const int incr = gridDim.x * ThreadsPerBlock;
 
     for (int v = from; v < nodes; v += incr) {
       const int vstat = nstat[v];
       if (v != vstat) {
-	const int beg = nidx[v];
-	const int end = nidx[v + 1];
-	int deg = end - beg;
-	if (deg > 16) {
-	  int idx;
-	  if (deg <= 352) {
-	    idx = atomicAdd(&*topL, 1);
-	  } else {
-	    idx = atomicAdd(&*topH, -1);
-	  }
-	  wl[idx] = v;
-	} else {
-	  int vstat = representative(v, nstat);
-	  for (int i = beg; i < end; i++) {
-	    const int nli = nlist[i];
-	    if (v > nli) {
-	      int ostat = representative(nli, nstat);
-	      bool repeat;
-	      do {
-		repeat = false;
-		if (vstat != ostat) {
-		  int ret;
-		  if (vstat < ostat) {
-		    if ((ret = atomicCAS(&nstat[ostat], ostat, vstat)) != ostat) {
-		      ostat = ret;
-		      repeat = true;
-		    }
-		  } else {
-		    if ((ret = atomicCAS(&nstat[vstat], vstat, ostat)) != vstat) {
-		      vstat = ret;
-		      repeat = true;
-		    }
-		  }
-		}
-	      } while (repeat);
-	    }
-	  }
-	}
+        const int beg = nidx[v];
+        const int end = nidx[v + 1];
+        int deg = end - beg;
+        if (deg > 16) {
+          int idx;
+          if (deg <= 352) {
+            idx = atomicAdd(&*topL, 1);
+          } else {
+            idx = atomicAdd(&*topH, -1);
+          }
+          wl[idx] = v;
+        } else {
+          int vstat = representative(v, nstat);
+          for (int i = beg; i < end; i++) {
+            const int nli = nlist[i];
+            if (v > nli) {
+              int ostat = representative(nli, nstat);
+              bool repeat;
+              do {
+                repeat = false;
+                if (vstat != ostat) {
+                  int ret;
+                  if (vstat < ostat) {
+                    if ((ret = atomicCAS(&nstat[ostat], ostat, vstat)) != ostat) {
+                      ostat = ret;
+                      repeat = true;
+                    }
+                  } else {
+                    if ((ret = atomicCAS(&nstat[vstat], vstat, ostat)) != vstat) {
+                      vstat = ret;
+                      repeat = true;
+                    }
+                  }
+                }
+              } while (repeat);
+            }
+          }
+        }
       }
     }
   }
 
   /* process medium-degree vertices at warp granularity */
 
-  __global__ void ECLCC_compute2(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, const int* const __restrict__ wl, int* topL, int* posL)
-  {
+  __global__ void ECLCC_compute2(const int nodes,
+                                 const int* const __restrict__ nidx,
+                                 const int* const __restrict__ nlist,
+                                 int* const __restrict__ nstat,
+                                 const int* const __restrict__ wl,
+                                 int* topL,
+                                 int* posL) {
     const int lane = threadIdx.x % warpsize;
 
     int idx;
-    if (lane == 0) idx = atomicAdd(*&posL, 1);
+    if (lane == 0)
+      idx = atomicAdd(*&posL, 1);
     idx = __shfl_sync(0xffffffff, idx, 0);
     while (idx < *topL) {
       const int v = wl[idx];
       int vstat = representative(v, nstat);
       for (int i = nidx[v] + lane; i < nidx[v + 1]; i += warpsize) {
-	const int nli = nlist[i];
-	if (v > nli) {
-	  int ostat = representative(nli, nstat);
-	  bool repeat;
-	  do {
-	    repeat = false;
-	    if (vstat != ostat) {
-	      int ret;
-	      if (vstat < ostat) {
-		if ((ret = atomicCAS(&nstat[ostat], ostat, vstat)) != ostat) {
-		  ostat = ret;
-		  repeat = true;
-		}
-	      } else {
-		if ((ret = atomicCAS(&nstat[vstat], vstat, ostat)) != vstat) {
-		  vstat = ret;
-		  repeat = true;
-		}
-	      }
-	    }
-	  } while (repeat);
-	}
+        const int nli = nlist[i];
+        if (v > nli) {
+          int ostat = representative(nli, nstat);
+          bool repeat;
+          do {
+            repeat = false;
+            if (vstat != ostat) {
+              int ret;
+              if (vstat < ostat) {
+                if ((ret = atomicCAS(&nstat[ostat], ostat, vstat)) != ostat) {
+                  ostat = ret;
+                  repeat = true;
+                }
+              } else {
+                if ((ret = atomicCAS(&nstat[vstat], vstat, ostat)) != vstat) {
+                  vstat = ret;
+                  repeat = true;
+                }
+              }
+            }
+          } while (repeat);
+        }
       }
-      if (lane == 0) idx = atomicAdd(*&posL, 1);
+      if (lane == 0)
+        idx = atomicAdd(*&posL, 1);
       idx = __shfl_sync(0xffffffff, idx, 0);
     }
   }
 
   /* process high-degree vertices at block granularity */
 
-  __global__ void ECLCC_compute3(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, const int* const __restrict__ wl, int* topH, int* posH)
-  {
+  __global__ void ECLCC_compute3(const int nodes,
+                                 const int* const __restrict__ nidx,
+                                 const int* const __restrict__ nlist,
+                                 int* const __restrict__ nstat,
+                                 const int* const __restrict__ wl,
+                                 int* topH,
+                                 int* posH) {
     __shared__ int vB;
     if (threadIdx.x == 0) {
       const int idx = atomicAdd(&*posH, -1);
@@ -264,33 +288,33 @@ namespace PFClusterCudaHCAL {
       __syncthreads();
       int vstat = representative(v, nstat);
       for (int i = nidx[v] + threadIdx.x; i < nidx[v + 1]; i += ThreadsPerBlock) {
-	const int nli = nlist[i];
-	if (v > nli) {
-	  int ostat = representative(nli, nstat);
-	  bool repeat;
-	  do {
-	    repeat = false;
-	    if (vstat != ostat) {
-	      int ret;
-	      if (vstat < ostat) {
-		if ((ret = atomicCAS(&nstat[ostat], ostat, vstat)) != ostat) {
-		  ostat = ret;
-		  repeat = true;
-		}
-	      } else {
-		if ((ret = atomicCAS(&nstat[vstat], vstat, ostat)) != vstat) {
-		  vstat = ret;
-		  repeat = true;
-		}
-	      }
-	    }
-	  } while (repeat);
-	}
-    __syncthreads();
+        const int nli = nlist[i];
+        if (v > nli) {
+          int ostat = representative(nli, nstat);
+          bool repeat;
+          do {
+            repeat = false;
+            if (vstat != ostat) {
+              int ret;
+              if (vstat < ostat) {
+                if ((ret = atomicCAS(&nstat[ostat], ostat, vstat)) != ostat) {
+                  ostat = ret;
+                  repeat = true;
+                }
+              } else {
+                if ((ret = atomicCAS(&nstat[vstat], vstat, ostat)) != vstat) {
+                  vstat = ret;
+                  repeat = true;
+                }
+              }
+            }
+          } while (repeat);
+        }
+        __syncthreads();
       }
       if (threadIdx.x == 0) {
-	const int idx = atomicAdd(*&posH, -1);
-	vB = (idx > *topH) ? wl[idx] : -1;
+        const int idx = atomicAdd(*&posH, -1);
+        vB = (idx > *topH) ? wl[idx] : -1;
       }
       __syncthreads();
     }
@@ -298,8 +322,10 @@ namespace PFClusterCudaHCAL {
 
   /* link all vertices to sink */
 
-  __global__ void ECLCC_flatten(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
-  {
+  __global__ void ECLCC_flatten(const int nodes,
+                                const int* const __restrict__ nidx,
+                                const int* const __restrict__ nlist,
+                                int* const __restrict__ nstat) {
     const int from = threadIdx.x + blockIdx.x * ThreadsPerBlock;
     const int incr = gridDim.x * ThreadsPerBlock;
 
@@ -307,9 +333,10 @@ namespace PFClusterCudaHCAL {
       int next, vstat = nstat[v];
       const int old = vstat;
       while (vstat > (next = nstat[vstat])) {
-	vstat = next;
+        vstat = next;
       }
-      if (old != vstat) nstat[v] = vstat;
+      if (old != vstat)
+        nstat[v] = vstat;
     }
   }
   //
@@ -3359,11 +3386,11 @@ namespace PFClusterCudaHCAL {
   }
 
   // Contraction in a single block
-  __global__ void pfrh_parent_check(size_t size, int* pfrh_parent, int* pfrh_edgeIdx, int* pfrh_edgeList){
-    for (int i=0; i<size; i++){
-      printf("pfrh_parent %d %d ",i,pfrh_parent[i]);
-      for (int j=pfrh_edgeIdx[i]; j<pfrh_edgeIdx[i+1]; j++)
-	printf("  %5d ",pfrh_edgeList[j]);
+  __global__ void pfrh_parent_check(size_t size, int* pfrh_parent, int* pfrh_edgeIdx, int* pfrh_edgeList) {
+    for (int i = 0; i < size; i++) {
+      printf("pfrh_parent %d %d ", i, pfrh_parent[i]);
+      for (int j = pfrh_edgeIdx[i]; j < pfrh_edgeIdx[i + 1]; j++)
+        printf("  %5d ", pfrh_edgeList[j]);
       printf("\n");
     }
     // std::set<int> s1;
@@ -3376,7 +3403,6 @@ namespace PFClusterCudaHCAL {
     //   {
     // 	printf("s1 %d\n",*it);
     //   }
-
   }
 
   // Contraction in a single block
@@ -3399,7 +3425,7 @@ namespace PFClusterCudaHCAL {
       *pcrhFracSize = 0;
     }
     __syncthreads();
-    
+
     /*
     do {
       volatile bool threadNotDone = false;
@@ -3613,237 +3639,6 @@ namespace PFClusterCudaHCAL {
     return false;
   }
 
-  __global__ void topoClusterLinking(int nRH,
-                                     int* nEdgesIn,
-                                     int* pfrh_parent,
-                                     int* pfrh_edgeId,
-                                     int* pfrh_edgeList,
-                                     int* pfrh_edgeMask,
-                                     const int* pfrh_passTopoThresh,
-                                     int* topoIter) {
-    __shared__ int notDone;  // This is better be bool, but somehow it leads to out of bound
-    __shared__ int iter, gridStride, nEdges;
-
-    int start = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (threadIdx.x == 0) {
-      *topoIter = 0;
-      iter = 0;
-      nEdges = *nEdgesIn;
-      gridStride = blockDim.x * gridDim.x;  // For single block kernel this is the number of threads
-    }
-    __syncthreads();
-
-    // Check if pairs in edgeId,edgeList contain a rh not passing topo threshold
-    // If found, set the mask to 0
-    for (int idx = start; idx < nEdges; idx += gridStride) {
-      if (pfrh_passTopoThresh[pfrh_edgeId[idx]] && pfrh_passTopoThresh[pfrh_edgeList[idx]])
-        pfrh_edgeMask[idx] = 1;
-      else
-        pfrh_edgeMask[idx] = 0;
-    }
-    __syncthreads();  //!!
-
-    do {
-      __syncthreads();  //!!
-
-      if (threadIdx.x == 0) {
-        notDone = 0;
-      }
-      __syncthreads();
-
-      // Odd linking
-      for (int idx = start; idx < nEdges; idx += gridStride) {
-        int i = pfrh_edgeId[idx];  // Get edge topo id
-        if (pfrh_edgeMask[idx] > 0 && isLeftEdge(idx, nEdges, pfrh_edgeId, pfrh_edgeMask)) {
-          pfrh_parent[i] = (int)min(i, pfrh_edgeList[idx]);
-        }
-      }
-      __syncthreads();
-
-      // edgeParent
-      for (int idx = start; idx < nEdges; idx += gridStride) {
-        if (pfrh_edgeMask[idx] > 0) {
-          int id = pfrh_edgeId[idx];          // Get edge topo id
-          int neighbor = pfrh_edgeList[idx];  // Get neighbor topo id
-          pfrh_edgeId[idx] = pfrh_parent[id];
-          pfrh_edgeList[idx] = pfrh_parent[neighbor];
-
-          // edgeMask set to true if elements of edgeId and edgeList are different
-          if (pfrh_edgeId[idx] != pfrh_edgeList[idx]) {
-            pfrh_edgeMask[idx] = 1;
-            notDone = 1;
-          } else {
-            pfrh_edgeMask[idx] = 0;
-          }
-        }
-      }
-
-      __syncthreads();  //!!
-
-      if (threadIdx.x == 0)
-        iter++;
-
-      __syncthreads();
-
-      if (notDone == 0)
-        break;
-
-      __syncthreads();  //!!
-
-      if (threadIdx.x == 0) {
-        notDone = 0;
-      }
-      __syncthreads();
-
-      // Even linking
-      for (int idx = start; idx < nEdges; idx += gridStride) {
-        int i = pfrh_edgeId[idx];  // Get edge topo id
-        //if (pfrh_edgeMask[idx] > 0 && pfrh_passTopoThresh[i] && isRightEdge(idx, nEdges, pfrh_edgeId, pfrh_edgeMask)) {
-        if (pfrh_edgeMask[idx] > 0 && isRightEdge(idx, nEdges, pfrh_edgeId, pfrh_edgeMask)) {
-          pfrh_parent[i] = (int)max(i, pfrh_edgeList[idx]);
-        }
-      }
-      __syncthreads();
-
-      // edgeParent
-      for (int idx = start; idx < nEdges; idx += gridStride) {
-        if (pfrh_edgeMask[idx] > 0) {
-          int id = pfrh_edgeId[idx];          // Get edge topo id
-          int neighbor = pfrh_edgeList[idx];  // Get neighbor topo id
-          pfrh_edgeId[idx] = pfrh_parent[id];
-          pfrh_edgeList[idx] = pfrh_parent[neighbor];
-
-          // edgeMask set to true if elements of edgeId and edgeList are different
-          if (pfrh_edgeId[idx] != pfrh_edgeList[idx]) {
-            pfrh_edgeMask[idx] = 1;
-            notDone = 1;
-          } else {
-            pfrh_edgeMask[idx] = 0;
-          }
-        }
-      }
-
-      __syncthreads();  //!!
-
-      if (threadIdx.x == 0)
-        iter++;
-
-      __syncthreads();
-
-    } while (notDone == 1);
-
-    __syncthreads();  //!!
-
-    if (threadIdx.x == 0)
-      *topoIter = iter;
-  }
-
-  __global__ void topoClusterLinkingKH(int nRH,
-                                       int* nEdgesIn,
-                                       int* pfrh_parent,
-                                       int* pfrh_edgeId,
-                                       int* pfrh_edgeList,
-                                       int* pfrh_edgeMask,
-                                       const int* pfrh_passTopoThresh,
-                                       int* topoIter) {
-    __shared__ int notDone;  // This is better be bool, but somehow it leads to out of bound
-    __shared__ int notDone2;
-    __shared__ int gridStride, nEdges;
-
-    // Initialization
-    int start = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (threadIdx.x == 0) {
-      *topoIter = 0;
-      nEdges = *nEdgesIn;
-      gridStride = blockDim.x * gridDim.x;  // For single block kernel this is the number of threads
-      notDone = 0;
-      notDone2 = 0;
-    }
-
-    __syncthreads();
-
-    // Check if pairs in edgeId,edgeList contain a rh not passing topo threshold
-    // If found, set the mask to 0
-    // But, for now, not using edgeMask hereafter, because the same threshold cut is applied at the PFRecHit level
-    // for (int idx = start; idx < nEdges; idx += gridStride) {
-    //   if (pfrh_passTopoThresh[pfrh_edgeId[idx]] && pfrh_passTopoThresh[pfrh_edgeList[idx]])
-    //     pfrh_edgeMask[idx] = 1;
-    //   else
-    //     pfrh_edgeMask[idx] = 0;
-    // }
-
-    // __syncthreads();
-
-    // First attempt of topo clustering
-    // First edge [set parents to those smaller numbers]
-    for (int idx = start; idx < nEdges; idx += gridStride) {
-      int i = pfrh_edgeId[idx];                                                               // Get edge topo id
-      if (pfrh_edgeMask[idx] > 0 && isLeftEdgeKH(idx, nEdges, pfrh_edgeId, pfrh_edgeMask)) {  // isLeftEdgeKH
-        pfrh_parent[i] = (int)min(i, pfrh_edgeList[idx]);
-      } else {
-        pfrh_parent[i] = i;
-      }
-    }
-
-    __syncthreads();
-
-    //
-    // loop until topo clustering iteration converges
-    for (int ii = 0; ii < 100; ii++) {
-      // for notDone
-      if (threadIdx.x == 0) {
-        notDone2 = 0;
-      }
-
-      // Follow parents of parents .... to contract parent structure
-      do {
-        volatile bool threadNotDone = false;
-        for (int i = threadIdx.x; i < nRH; i += blockDim.x) {
-          int parent = pfrh_parent[i];
-          if (parent >= 0 && parent != pfrh_parent[parent]) {
-            threadNotDone = true;
-            pfrh_parent[i] = pfrh_parent[parent];
-          }
-        }
-        if (threadIdx.x == 0)
-          notDone = 0;
-        __syncthreads();
-
-        atomicAdd(&notDone, (int)threadNotDone);
-        __syncthreads();
-
-      } while (notDone);
-
-      __syncthreads();
-
-      // All rechit pairs in edge id-list have the same topo cluster label?
-      for (int idx = start; idx < nEdges; idx += gridStride) {
-        //for (int idx = 0; idx < nEdges; idx++) {
-        int i = pfrh_edgeId[idx];    // Get edge topo id
-        int j = pfrh_edgeList[idx];  // Get edge neighbor list
-        int parent_target = pfrh_parent[i];
-        int parent_neighbor = pfrh_parent[j];
-        if (parent_target != parent_neighbor) {
-          notDone2 = 1;
-          //printf("hmm. they should have the same parent, but they don't. why... %d %d %d\n",i,j,ii);
-          int min_parent = (int)min(parent_target, parent_neighbor);
-          int max_parent = (int)max(parent_target, parent_neighbor);
-          int idx_max = i;
-          if (parent_neighbor == max_parent)
-            idx_max = j;
-          pfrh_parent[idx_max] = min_parent;
-        }
-      }
-
-      __syncthreads();
-      if (notDone2 == 0)  // if topocluster finding is converged, terminate the for-ii loop
-        break;
-
-    }  // for-loop ii
-  }
-
   __device__ __forceinline__ void sortSwap(int* toSort, int a, int b) {
     const int tmp = min(toSort[a], toSort[b]);
     toSort[b] = max(toSort[a], toSort[b]);
@@ -3949,28 +3744,26 @@ namespace PFClusterCudaHCAL {
     return odata4;
   }
 
-
   __global__ void prepareTopoInputsKH(int nRH,
-                                          int* nEdges,
-                                          const int* pfrh_passTopoThresh,
-                                          const int* pfrh_neighbours,
-                                          int* pfrh_edgeIdx,
-				          int* pfrh_edgeList,
-				          int* pfrh_parent) {
-
+                                      int* nEdges,
+                                      const int* pfrh_passTopoThresh,
+                                      const int* pfrh_neighbours,
+                                      int* pfrh_edgeIdx,
+                                      int* pfrh_edgeList,
+                                      int* pfrh_parent) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
-      *nEdges = nRH*8;
-      pfrh_edgeIdx[nRH]= nRH * 8;
+      *nEdges = nRH * 8;
+      pfrh_edgeIdx[nRH] = nRH * 8;
     }
 
     for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nRH; i += blockDim.x * gridDim.x) {
-      pfrh_edgeIdx[i]= i * 8;
-      pfrh_parent[i]= 0;
+      pfrh_edgeIdx[i] = i * 8;
+      pfrh_parent[i] = 0;
       for (int j = 0; j < 8; j++) {
         if (pfrh_neighbours[i * 8 + j] == -1)
-	  pfrh_edgeList[i * 8 + j] = i;
-	else
-	  pfrh_edgeList[i * 8 + j] = pfrh_neighbours[i * 8 + j];
+          pfrh_edgeList[i * 8 + j] = i;
+        else
+          pfrh_edgeList[i * 8 + j] = pfrh_neighbours[i * 8 + j];
       }
     }
 
@@ -4428,28 +4221,27 @@ namespace PFClusterCudaHCAL {
       float (&timer)[8]) {
     const int threadsPerBlock = 256;
     const int nRH = inputPFRecHits.size;
-    const int blocks = (nRH + threadsPerBlock -1) / threadsPerBlock;
+    const int blocks = (nRH + threadsPerBlock - 1) / threadsPerBlock;
 
     // Combined seeding & topo clustering thresholds, array initialization
-    seedingTopoThreshKernel_HCAL<<<blocks, threadsPerBlock, 0, cudaStream>>>(
-        nRH,
-        inputPFRecHits.pfrh_energy.get(),
-        inputPFRecHits.pfrh_x.get(),
-        inputPFRecHits.pfrh_y.get(),
-        inputPFRecHits.pfrh_z.get(),
-        outputGPU.pfrh_isSeed.get(),
-        outputGPU.pfrh_topoId.get(),
-        outputGPU.pfrh_passTopoThresh.get(),
-        inputPFRecHits.pfrh_layer.get(),
-        inputPFRecHits.pfrh_depth.get(),
-        inputPFRecHits.pfrh_neighbours.get(),
-        scratchGPU.rhcount.get(),
-        outputGPU.topoSeedCount.get(),
-        outputGPU.topoRHCount.get(),
-        outputGPU.seedFracOffsets.get(),
-        outputGPU.topoSeedOffsets.get(),
-        outputGPU.topoSeedList.get(),
-        outputGPU.pfc_iter.get());
+    seedingTopoThreshKernel_HCAL<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH,
+                                                                             inputPFRecHits.pfrh_energy.get(),
+                                                                             inputPFRecHits.pfrh_x.get(),
+                                                                             inputPFRecHits.pfrh_y.get(),
+                                                                             inputPFRecHits.pfrh_z.get(),
+                                                                             outputGPU.pfrh_isSeed.get(),
+                                                                             outputGPU.pfrh_topoId.get(),
+                                                                             outputGPU.pfrh_passTopoThresh.get(),
+                                                                             inputPFRecHits.pfrh_layer.get(),
+                                                                             inputPFRecHits.pfrh_depth.get(),
+                                                                             inputPFRecHits.pfrh_neighbours.get(),
+                                                                             scratchGPU.rhcount.get(),
+                                                                             outputGPU.topoSeedCount.get(),
+                                                                             outputGPU.topoRHCount.get(),
+                                                                             outputGPU.seedFracOffsets.get(),
+                                                                             outputGPU.topoSeedOffsets.get(),
+                                                                             outputGPU.topoSeedList.get(),
+                                                                             outputGPU.pfc_iter.get());
 
     // Topo clustering
     // Fill edgeId, edgeList arrays with rechit neighbors
@@ -4457,29 +4249,45 @@ namespace PFClusterCudaHCAL {
     // prepareTopoInputsSerial<<<1, 1, 4 * (8+4) * sizeof(int), cudaStream>>>(
     //prepareTopoInputs<<<1, 128, 128 * (8 + 4) * sizeof(int), cudaStream>>>(nRH,
     prepareTopoInputsKH<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH,
-                                                                           outputGPU.nEdges.get(),
-                                                                           outputGPU.pfrh_passTopoThresh.get(),
-                                                                           inputPFRecHits.pfrh_neighbours.get(),
-                                                                           scratchGPU.pfrh_edgeIdx.get(),
-                                                                           scratchGPU.pfrh_edgeList.get(),
-                                                                           outputGPU.pfrh_topoId.get());
+                                                                    outputGPU.nEdges.get(),
+                                                                    outputGPU.pfrh_passTopoThresh.get(),
+                                                                    inputPFRecHits.pfrh_neighbours.get(),
+                                                                    scratchGPU.pfrh_edgeIdx.get(),
+                                                                    scratchGPU.pfrh_edgeList.get(),
+                                                                    outputGPU.pfrh_topoId.get());
 
     // Topo clustering
-    //topoClusterLinking<<<1, 512, 0, cudaStream>>>(nRH,
-    //topoClusterLinkingKH<<<1, 512, 0, cudaStream>>>(nRH,
-    //                                                outputGPU.nEdges.get(),
-    //                                                outputGPU.pfrh_topoId.get(),
-    //                                                scratchGPU.pfrh_edgeId.get(),
-    //                                                scratchGPU.pfrh_edgeList.get(),
-    //                                                scratchGPU.pfrh_edgeMask.get(),
-    //                                                outputGPU.pfrh_passTopoThresh.get(),
-    //                                                outputGPU.topoIter.get());
-    
-    ECLCC_init<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.topL.get(), scratchGPU.posL.get(), scratchGPU.topH.get(), scratchGPU.posH.get());
-    ECLCC_compute1<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get(), scratchGPU.topL.get(), scratchGPU.topH.get());
-    ECLCC_compute2<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get(), scratchGPU.topL.get(), scratchGPU.posL.get());
-    ECLCC_compute3<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get(), scratchGPU.topH.get(), scratchGPU.posH.get());
-    ECLCC_flatten<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get());
+    ECLCC_init<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH,
+                                                           scratchGPU.pfrh_edgeIdx.get(),
+                                                           scratchGPU.pfrh_edgeList.get(),
+                                                           outputGPU.pfrh_topoId.get(),
+                                                           scratchGPU.topL.get(),
+                                                           scratchGPU.posL.get(),
+                                                           scratchGPU.topH.get(),
+                                                           scratchGPU.posH.get());
+    ECLCC_compute1<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH,
+                                                               scratchGPU.pfrh_edgeIdx.get(),
+                                                               scratchGPU.pfrh_edgeList.get(),
+                                                               outputGPU.pfrh_topoId.get(),
+                                                               scratchGPU.wl_d.get(),
+                                                               scratchGPU.topL.get(),
+                                                               scratchGPU.topH.get());
+    ECLCC_compute2<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH,
+                                                               scratchGPU.pfrh_edgeIdx.get(),
+                                                               scratchGPU.pfrh_edgeList.get(),
+                                                               outputGPU.pfrh_topoId.get(),
+                                                               scratchGPU.wl_d.get(),
+                                                               scratchGPU.topL.get(),
+                                                               scratchGPU.posL.get());
+    ECLCC_compute3<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH,
+                                                               scratchGPU.pfrh_edgeIdx.get(),
+                                                               scratchGPU.pfrh_edgeList.get(),
+                                                               outputGPU.pfrh_topoId.get(),
+                                                               scratchGPU.wl_d.get(),
+                                                               scratchGPU.topH.get(),
+                                                               scratchGPU.posH.get());
+    ECLCC_flatten<<<blocks, threadsPerBlock, 0, cudaStream>>>(
+        nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get());
 
     topoClusterContraction<<<1, 512, 0, cudaStream>>>(nRH,
                                                       outputGPU.pfrh_topoId.get(),
