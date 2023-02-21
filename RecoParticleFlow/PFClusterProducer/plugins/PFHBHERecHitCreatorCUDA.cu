@@ -145,7 +145,9 @@ namespace PFRecHit {
     // Apply rechit mask and determine output PFRecHit ordering
     __global__ void applyDepthThresholdQTestsAndMask(
         const uint32_t nRHIn,  // Number of input rechits
-        int const* depthHB,    // The following from recHitParamsProduct
+        int const* nDepthHB,
+        int const* nDepthHE,
+        int const* depthHB,  // The following from recHitParamsProduct
         int const* depthHE,
         float const* thresholdE_HB,
         float const* thresholdE_HE,
