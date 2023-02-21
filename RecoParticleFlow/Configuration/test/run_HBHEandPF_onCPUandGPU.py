@@ -213,6 +213,7 @@ process.hltParticleFlowClusterHBHEonGPU.pfClusterBuilder.maxIterations = 50
 #
 # Additional customization
 process.maxEvents.input = -1
+#process.maxEvents.input = 10
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*ParticleFlow*HBHE*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*HbherecoLegacy*_*_*')
