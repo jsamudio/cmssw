@@ -73,18 +73,54 @@ namespace PFClusterCudaHCAL {
 
 
 
-  //
-  // ECL-CC
-  //
+  /*
+  ECL-CC code: ECL-CC is a connected components graph algorithm. The CUDA
+  implementation thereof is quite fast. It operates on graphs stored in
+  binary CSR format.
+  
+  Copyright (c) 2017-2020, Texas State University. All rights reserved.
+  
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+  
+     * Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+     * Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+     * Neither the name of Texas State University nor the names of its
+       contributors may be used to endorse or promote products derived from
+       this software without specific prior written permission.
+  
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  DISCLAIMED. IN NO EVENT SHALL TEXAS STATE UNIVERSITY BE LIABLE FOR ANY
+  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  
+  Authors: Jayadharini Jaiganesh and Martin Burtscher
+  
+  URL: The latest version of this code is available at
+  https://userweb.cs.txstate.edu/~burtscher/research/ECL-CC/.
+  
+  Publication: This work is described in detail in the following paper.
+  Jayadharini Jaiganesh and Martin Burtscher. A High-Performance Connected
+  Components Implementation for GPUs. Proceedings of the 2018 ACM International
+  Symposium on High-Performance Parallel and Distributed Computing, pp. 92-104.
+  June 2018.
+  */
 
   static const int ThreadsPerBlock = 256;
   static const int warpsize = 32;
 
-  static __device__ int topL, posL, topH, posH;
-
   /* initialize with first smaller neighbor ID */
 
-  __global__ void ECLCC_init(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
+  __global__ void ECLCC_init(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, int*  topL, int* posL, int* topH, int* posH)
   {
     const int from = threadIdx.x + blockIdx.x * ThreadsPerBlock;
     const int incr = gridDim.x * ThreadsPerBlock;
@@ -101,7 +137,7 @@ namespace PFClusterCudaHCAL {
       nstat[v] = m;
     }
 
-    if (from == 0) {topL = 0; posL = 0; topH = nodes - 1; posH = nodes - 1;}
+    if (from == 0) {*topL = 0; *posL = 0; *topH = nodes - 1; *posH = nodes - 1;}
   }
 
   /* intermediate pointer jumping */
@@ -122,7 +158,7 @@ namespace PFClusterCudaHCAL {
 
   /* process low-degree vertices at thread granularity and fill worklists */
 
-  __global__ void ECLCC_compute1(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, int* const __restrict__ wl)
+  __global__ void ECLCC_compute1(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, int* const __restrict__ wl, int* topL, int* topH)
   {
     const int from = threadIdx.x + blockIdx.x * ThreadsPerBlock;
     const int incr = gridDim.x * ThreadsPerBlock;
@@ -136,9 +172,9 @@ namespace PFClusterCudaHCAL {
 	if (deg > 16) {
 	  int idx;
 	  if (deg <= 352) {
-	    idx = atomicAdd(&topL, 1);
+	    idx = atomicAdd(&*topL, 1);
 	  } else {
-	    idx = atomicAdd(&topH, -1);
+	    idx = atomicAdd(&*topH, -1);
 	  }
 	  wl[idx] = v;
 	} else {
@@ -174,14 +210,14 @@ namespace PFClusterCudaHCAL {
 
   /* process medium-degree vertices at warp granularity */
 
-  __global__ void ECLCC_compute2(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, const int* const __restrict__ wl)
+  __global__ void ECLCC_compute2(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, const int* const __restrict__ wl, int* topL, int* posL)
   {
     const int lane = threadIdx.x % warpsize;
 
     int idx;
-    if (lane == 0) idx = atomicAdd(&posL, 1);
+    if (lane == 0) idx = atomicAdd(*&posL, 1);
     idx = __shfl_sync(0xffffffff, idx, 0);
-    while (idx < topL) {
+    while (idx < *topL) {
       const int v = wl[idx];
       int vstat = representative(v, nstat);
       for (int i = nidx[v] + lane; i < nidx[v + 1]; i += warpsize) {
@@ -208,19 +244,19 @@ namespace PFClusterCudaHCAL {
 	  } while (repeat);
 	}
       }
-      if (lane == 0) idx = atomicAdd(&posL, 1);
+      if (lane == 0) idx = atomicAdd(*&posL, 1);
       idx = __shfl_sync(0xffffffff, idx, 0);
     }
   }
 
   /* process high-degree vertices at block granularity */
 
-  __global__ void ECLCC_compute3(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, const int* const __restrict__ wl)
+  __global__ void ECLCC_compute3(const int nodes, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat, const int* const __restrict__ wl, int* topH, int* posH)
   {
     __shared__ int vB;
     if (threadIdx.x == 0) {
-      const int idx = atomicAdd(&posH, -1);
-      vB = (idx > topH) ? wl[idx] : -1;
+      const int idx = atomicAdd(&*posH, -1);
+      vB = (idx > *topH) ? wl[idx] : -1;
     }
     __syncthreads();
     while (vB >= 0) {
@@ -250,10 +286,11 @@ namespace PFClusterCudaHCAL {
 	    }
 	  } while (repeat);
 	}
+    __syncthreads();
       }
       if (threadIdx.x == 0) {
-	const int idx = atomicAdd(&posH, -1);
-	vB = (idx > topH) ? wl[idx] : -1;
+	const int idx = atomicAdd(*&posH, -1);
+	vB = (idx > *topH) ? wl[idx] : -1;
       }
       __syncthreads();
     }
@@ -4438,10 +4475,10 @@ namespace PFClusterCudaHCAL {
     //                                                outputGPU.pfrh_passTopoThresh.get(),
     //                                                outputGPU.topoIter.get());
     
-    ECLCC_init<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get());
-    ECLCC_compute1<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get());
-    ECLCC_compute2<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get());
-    ECLCC_compute3<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get());
+    ECLCC_init<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.topL.get(), scratchGPU.posL.get(), scratchGPU.topH.get(), scratchGPU.posH.get());
+    ECLCC_compute1<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get(), scratchGPU.topL.get(), scratchGPU.topH.get());
+    ECLCC_compute2<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get(), scratchGPU.topL.get(), scratchGPU.posL.get());
+    ECLCC_compute3<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get(), scratchGPU.wl_d.get(), scratchGPU.topH.get(), scratchGPU.posH.get());
     ECLCC_flatten<<<blocks, threadsPerBlock, 0, cudaStream>>>(nRH, scratchGPU.pfrh_edgeIdx.get(), scratchGPU.pfrh_edgeList.get(), outputGPU.pfrh_topoId.get());
 
     topoClusterContraction<<<1, 512, 0, cudaStream>>>(nRH,
