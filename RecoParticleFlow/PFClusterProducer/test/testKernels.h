@@ -5,10 +5,8 @@
 
 namespace testPFlow {
 
-  void testPFClusteringParamsEntryPoint(
-    PFClusteringParamsGPU::DeviceProduct const& pfClusParams,
-    cudaStream_t cudaStream
-  );
+  void testPFClusteringParamsEntryPoint(PFClusteringParamsGPU::DeviceProduct const& pfClusParams,
+                                        cudaStream_t cudaStream);
 
 }
 

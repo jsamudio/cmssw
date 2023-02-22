@@ -6,8 +6,7 @@
 
 namespace testPFlowCUDA {
 
-  __global__ void printPFClusteringParamsOnGPU(PFClusteringParamsGPU::DeviceProduct::ConstView params){
-
+  __global__ void printPFClusteringParamsOnGPU(PFClusteringParamsGPU::DeviceProduct::ConstView params) {
     printf("nNeigh: %d\n", params.nNeigh());
     printf("seedPt2ThresholdEB: %4.2f\n", params.seedPt2ThresholdEB());
     printf("seedPt2ThresholdEE: %4.2f\n", params.seedPt2ThresholdEE());
@@ -55,15 +54,13 @@ namespace testPFlowCUDA {
     printf("endcapTimeResConsts_resHighE2: %4.2f\n", params.endcapTimeResConsts_resHighE2());
   }
 
-}
+}  // namespace testPFlowCUDA
 
 namespace testPFlow {
 
-  void testPFClusteringParamsEntryPoint(
-    PFClusteringParamsGPU::DeviceProduct const& pfClusParams,
-    cudaStream_t cudaStream
-  ) {
+  void testPFClusteringParamsEntryPoint(PFClusteringParamsGPU::DeviceProduct const& pfClusParams,
+                                        cudaStream_t cudaStream) {
     testPFlowCUDA::printPFClusteringParamsOnGPU<<<1, 1, 0, cudaStream>>>(pfClusParams.const_view());
   }
 
-}
+}  // namespace testPFlow

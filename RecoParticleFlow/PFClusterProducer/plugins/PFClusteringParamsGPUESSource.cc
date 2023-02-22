@@ -35,8 +35,8 @@ PFClusteringParamsGPUESSource::PFClusteringParamsGPUESSource(edm::ParameterSet c
 }
 
 void PFClusteringParamsGPUESSource::setIntervalFor(const edm::eventsetup::EventSetupRecordKey& iKey,
-                                                       const edm::IOVSyncValue& iTime,
-                                                       edm::ValidityInterval& oInterval) {
+                                                   const edm::IOVSyncValue& iTime,
+                                                   edm::ValidityInterval& oInterval) {
   oInterval = edm::ValidityInterval(edm::IOVSyncValue::beginOfTime(), edm::IOVSyncValue::endOfTime());
 }
 

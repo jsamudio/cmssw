@@ -64,7 +64,6 @@ private:
 
   edm::ESGetToken<PFClusteringParamsGPU, JobConfigurationGPURecord> const pfClusParamsToken_;
 
-  bool initCuda_ = true;
   int nRH_ = 0;
 
   const bool _produceSoA;     // PFClusters in SoA format
@@ -161,7 +160,8 @@ void PFClusterProducerCudaHCAL::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<bool>("produceSoA", true);
   desc.add<bool>("produceLegacy", true);
 
-  desc.add<edm::ESInputTag>("pfClusteringParameters", edm::ESInputTag("pfClusteringParamsGPUESSource", "pfClusParamsOffline"));
+  desc.add<edm::ESInputTag>("pfClusteringParameters",
+                            edm::ESInputTag("pfClusteringParamsGPUESSource", "pfClusParamsOffline"));
 
   // Prevents the producer and navigator parameter sets from throwing an exception
   // TODO: Replace with a proper parameter set description: twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideConfigurationValidationAndHelp
@@ -188,14 +188,9 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   auto const& PFRecHits = ctx.get(PFRecHitsProduct);
   auto cudaStream = ctx.stream();
 
-  if (initCuda_) {
-
-    outputCPU.allocate(cudaConfig_, cudaStream);
-    outputGPU.allocate(cudaConfig_, cudaStream);
-    scratchGPU.allocate(cudaConfig_, cudaStream);
-
-    initCuda_ = false;
-  }
+  outputCPU.allocate(cudaConfig_, cudaStream);
+  outputGPU.allocate(cudaConfig_, cudaStream);
+  scratchGPU.allocate(cudaConfig_, cudaStream);
 
   nRH_ = PFRecHits.size;
   if (nRH_ == 0)
