@@ -1334,7 +1334,7 @@ namespace PFClusterCudaHCAL {
       *pcrhFracSize = 0;
     }
     __syncthreads();
-
+    /*
     do {
       volatile bool threadNotDone = false;
       for (int i = threadIdx.x; i < size; i += blockDim.x) {
@@ -1352,7 +1352,7 @@ namespace PFClusterCudaHCAL {
       __syncthreads();
 
     } while (notDone);
-
+    */
     // Now determine the number of seeds and rechits in each topo cluster
     for (int rhIdx = threadIdx.x; rhIdx < size; rhIdx += blockDim.x) {
       int topoId = pfrh_parent[rhIdx];
