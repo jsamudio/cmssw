@@ -147,6 +147,8 @@ namespace PFRecHit {
     // Apply rechit mask and determine output PFRecHit ordering
     __global__ void applyDepthThresholdQTestsAndMask(
         const uint32_t nRHIn,         // Number of input rechits
+        int const* nDepthHB,
+        int const* nDepthHE,
         float const* thresholdE_HB,   // From recHitParamsProduct
         float const* thresholdE_HE,   // From recHitParamsProduct
         const uint32_t* recHits_did,  // Input rechit detIds
@@ -166,11 +168,16 @@ namespace PFRecHit {
       for (uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; i < nRHIn; i += gridDim.x * blockDim.x) {
         const uint32_t detid = recHits_did[i];
         const uint32_t subdet = (detid >> DetId::kSubdetOffset) & DetId::kSubdetMask;
+        const uint32_t depth = getDepth(detid);
         float threshold = 9999.;
         if (subdet == HcalBarrel) {
-          threshold = thresholdE_HB[getDepth(detid) - 1];
+          if(depth == 0 || depth > *nDepthHB)
+            printf("i = %u\tInvalid depth %u for barrel rechit %u!\n", i, depth, detid);
+          threshold = thresholdE_HB[depth - 1];
         } else if (subdet == HcalEndcap) {
-          threshold = thresholdE_HE[getDepth(detid) - 1];
+          if(depth == 0 || depth > *nDepthHE)
+            printf("i = %u\tInvalid depth %u for endcap rechit %u!\n", i, depth, detid);
+          threshold = thresholdE_HE[depth - 1];
         } else {
           printf("Rechit %u detId %u has invalid subdetector %u!\n", blockIdx.x, detid, subdet);
           return;
@@ -413,6 +420,8 @@ namespace PFRecHit {
       // Apply rechit mask and determine output PFRecHit order
       applyDepthThresholdQTestsAndMask<<<1, threadsPerBlock, 0, cudaStream>>>(
           nRHIn,
+          constantProducts.recHitParametersProduct.nDepthHB,
+          constantProducts.recHitParametersProduct.nDepthHE,
           constantProducts.recHitParametersProduct.thresholdE_HB,
           constantProducts.recHitParametersProduct.thresholdE_HE,
           HBHERecHits_asInput.did.get(),

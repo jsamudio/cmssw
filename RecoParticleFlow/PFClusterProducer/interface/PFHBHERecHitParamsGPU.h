@@ -3,7 +3,9 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/propagate_const_array.h"
+#include "FWCore/Utilities/interface/propagate_const.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
 
 #ifndef __CUDACC__
 #include "HeterogeneousCore/CUDAUtilities/interface/HostAllocator.h"
@@ -14,10 +16,8 @@ class PFHBHERecHitParamsGPU {
 public:
   struct Product {
     ~Product();
-    /*
-    float* thresholdE_HB;
-    float* thresholdE_HE;
-    */
+    edm::propagate_const<cms::cuda::device::unique_ptr<int>> nDepthHB;
+    edm::propagate_const<cms::cuda::device::unique_ptr<int>> nDepthHE;
     edm::propagate_const_array<cms::cuda::device::unique_ptr<float[]>> thresholdE_HB;
     edm::propagate_const_array<cms::cuda::device::unique_ptr<float[]>> thresholdE_HE;
   };
@@ -36,10 +36,14 @@ public:
   //using uint32vec = std::reference_wrapper<std::vector<uint32_t, cms::cuda::HostAllocator<uint32_t>> const>;
   //using floatvec = std::reference_wrapper<std::vector<float, cms::cuda::HostAllocator<float>> const>;
 
+  int const& getValueNDepthHB() const { return nDepthHB_; }
+  int const& getValueNDepthHE() const { return nDepthHE_; }
   std::vector<float, cms::cuda::HostAllocator<float>> const& getValuesThresholdE_HB() const { return thresholdE_HB_; }
   std::vector<float, cms::cuda::HostAllocator<float>> const& getValuesThresholdE_HE() const { return thresholdE_HE_; }
 
 private:
+  int nDepthHB_;
+  int nDepthHE_;
   std::vector<float, cms::cuda::HostAllocator<float>> thresholdE_HB_;
   std::vector<float, cms::cuda::HostAllocator<float>> thresholdE_HE_;
 

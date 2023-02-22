@@ -19,6 +19,7 @@
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
+#include "FWCore/Utilities/interface/ESInputTag.h"
 #include "HeterogeneousCore/CUDACore/interface/ScopedContext.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
@@ -33,6 +34,9 @@
 #include "CudaPFCommon.h"
 #include "DeclsForKernels.h"
 #include "PFClusterCudaHCAL.h"
+
+#include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/PFClusteringParamsGPU.h"
 
 class PFClusterProducerCudaHCAL : public edm::stream::EDProducer<edm::ExternalWork> {
 public:
@@ -58,7 +62,8 @@ private:
 
   edm::EDGetTokenT<cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>> InputPFRecHitSoA_Token_;
 
-  bool initCuda_ = true;
+  edm::ESGetToken<PFClusteringParamsGPU, JobConfigurationGPURecord> const pfClusParamsToken_;
+
   int nRH_ = 0;
 
   const bool _produceSoA;     // PFClusters in SoA format
@@ -72,7 +77,6 @@ private:
   //cms::cuda::ContextState cudaState_;
 
   PFClustering::HCAL::ConfigurationParameters cudaConfig_;
-  PFClustering::common::CudaHCALConstants cudaConstants;
 
   PFClustering::HCAL::OutputDataCPU outputCPU;
   PFClustering::HCAL::OutputDataGPU outputGPU;
@@ -82,6 +86,7 @@ private:
 
 PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& conf)
     : InputPFRecHitSoA_Token_{consumes(conf.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
+      pfClusParamsToken_{esConsumes(conf.getParameter<edm::ESInputTag>("pfClusteringParameters"))},
       _produceSoA{conf.getParameter<bool>("produceSoA")},
       _produceLegacy{conf.getParameter<bool>("produceLegacy")},
       _rechitsLabel{consumes(conf.getParameter<edm::InputTag>("recHitsSource"))} {
@@ -101,9 +106,6 @@ PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& co
   _seedFinder = SeedFinderFactory::get()->create(sfName, sfConf);
 
   const edm::VParameterSet& seedFinderConfs = sfConf.getParameterSetVector("thresholdsByDetector");
-
-  cudaConstants.minFracInCalc = 0.0;
-  cudaConstants.minAllowedNormalization = 0.0;
 
   //setup topo cluster builder
   const edm::ParameterSet& initConf = conf.getParameterSet("initialClusteringStep");
@@ -125,8 +127,6 @@ PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& co
       const edm::ParameterSet& acConf = pfcConf.getParameterSet("positionCalc");
       const std::string& algoac = acConf.getParameter<std::string>("algoName");
       _positionCalc = PFCPositionCalculatorFactory::get()->create(algoac, acConf, cc);
-      cudaConstants.minFracInCalc = (float)acConf.getParameter<double>("minFractionInCalc");
-      cudaConstants.minAllowedNormalization = (float)acConf.getParameter<double>("minAllowedNormalization");
     }
 
     if (pfcConf.exists("allCellsPositionCalc")) {
@@ -148,103 +148,6 @@ PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& co
     _energyCorrector = PFClusterEnergyCorrectorFactory::get()->create(cName, cConf);
   }
 
-  cudaConstants.showerSigma2 = (float)std::pow(pfcConf.getParameter<double>("showerSigma"), 2.);
-  const auto& recHitEnergyNormConf = pfcConf.getParameterSetVector("recHitEnergyNorms");
-  for (const auto& pset : recHitEnergyNormConf) {
-    const std::string& det = pset.getParameter<std::string>("detector");
-    if (det == std::string("HCAL_BARREL1")) {
-      const auto& recHitENorms = pset.getParameter<std::vector<double>>("recHitEnergyNorm");
-      std::copy(recHitENorms.begin(), recHitENorms.end(), cudaConstants.recHitEnergyNormInvEB_vec);
-      for (auto& x : cudaConstants.recHitEnergyNormInvEB_vec)
-        x = std::pow(x, -1);  // Invert these values
-    } else if (det == std::string("HCAL_ENDCAP")) {
-      const auto& recHitENorms = pset.getParameter<std::vector<double>>("recHitEnergyNorm");
-      std::copy(recHitENorms.begin(), recHitENorms.end(), cudaConstants.recHitEnergyNormInvEE_vec);
-      for (auto& x : cudaConstants.recHitEnergyNormInvEE_vec)
-        x = std::pow(x, -1);  // Invert these values
-    } else
-      std::cout << "Unknown detector when parsing recHitEnergyNorm: " << det << std::endl;
-  }
-  //float recHitEnergyNormEB = 0.08;
-  //float recHitEnergyNormEE = 0.3;
-  //float minFracToKeep = 0.0000001;
-  cudaConstants.minFracToKeep = (float)pfcConf.getParameter<double>("minFractionToKeep");
-  cudaConstants.minFracTot = (float)pfcConf.getParameter<double>("minFracTot");
-
-  // Max PFClustering iterations
-  cudaConstants.maxIterations = pfcConf.getParameter<unsigned>("maxIterations");
-
-  cudaConstants.excludeOtherSeeds = pfcConf.getParameter<bool>("excludeOtherSeeds");
-
-  cudaConstants.stoppingTolerance = (float)pfcConf.getParameter<double>("stoppingTolerance");
-
-  cudaConstants.seedPt2ThresholdEB = -1;
-  cudaConstants.seedPt2ThresholdEE = -1;
-  for (const auto& pset : seedFinderConfs) {
-    const std::string& det = pset.getParameter<std::string>("detector");
-    if (det == std::string("HCAL_BARREL1")) {
-      const auto& thresholds = pset.getParameter<std::vector<double>>("seedingThreshold");
-      std::copy(thresholds.begin(), thresholds.end(), cudaConstants.seedEThresholdEB_vec);
-      cudaConstants.seedPt2ThresholdEB =
-          (float)std::pow(pset.getParameter<std::vector<double>>("seedingThresholdPt")[0], 2.0);
-
-    } else if (det == std::string("HCAL_ENDCAP")) {
-      const auto& thresholds = pset.getParameter<std::vector<double>>("seedingThreshold");
-      std::copy(thresholds.begin(), thresholds.end(), cudaConstants.seedEThresholdEE_vec);
-      cudaConstants.seedPt2ThresholdEE =
-          (float)std::pow(pset.getParameter<std::vector<double>>("seedingThresholdPt")[0], 2.0);
-    } else
-      std::cout << "Unknown detector when parsing seedFinder: " << det << std::endl;
-  }
-
-  const auto& topoThresholdConf = initConf.getParameterSetVector("thresholdsByDetector");
-  for (const auto& pset : topoThresholdConf) {
-    const std::string& det = pset.getParameter<std::string>("detector");
-    if (det == std::string("HCAL_BARREL1")) {
-      const auto& thresholds = pset.getParameter<std::vector<double>>("gatheringThreshold");
-      std::copy(thresholds.begin(), thresholds.end(), cudaConstants.topoEThresholdEB_vec);
-    } else if (det == std::string("HCAL_ENDCAP")) {
-      const auto& thresholds = pset.getParameter<std::vector<double>>("gatheringThreshold");
-      std::copy(thresholds.begin(), thresholds.end(), cudaConstants.topoEThresholdEE_vec);
-    } else
-      std::cout << "Unknown detector when parsing initClusteringStep: " << det << std::endl;
-  }
-
-  if (pfcConf.exists("timeResolutionCalcEndcap")) {
-    const edm::ParameterSet& endcapTimeResConf = pfcConf.getParameterSet("timeResolutionCalcEndcap");
-    cudaConstants.endcapTimeResConsts.corrTermLowE = (float)endcapTimeResConf.getParameter<double>("corrTermLowE");
-    cudaConstants.endcapTimeResConsts.threshLowE = (float)endcapTimeResConf.getParameter<double>("threshLowE");
-    cudaConstants.endcapTimeResConsts.noiseTerm = (float)endcapTimeResConf.getParameter<double>("noiseTerm");
-    cudaConstants.endcapTimeResConsts.constantTermLowE2 =
-        (float)std::pow(endcapTimeResConf.getParameter<double>("constantTermLowE"), 2.0);
-    cudaConstants.endcapTimeResConsts.noiseTermLowE = (float)endcapTimeResConf.getParameter<double>("noiseTermLowE");
-    cudaConstants.endcapTimeResConsts.threshHighE = (float)endcapTimeResConf.getParameter<double>("threshHighE");
-    cudaConstants.endcapTimeResConsts.constantTerm2 =
-        (float)std::pow(endcapTimeResConf.getParameter<double>("constantTerm"), 2.0);
-    cudaConstants.endcapTimeResConsts.resHighE2 =
-        (float)std::pow(cudaConstants.endcapTimeResConsts.noiseTerm / cudaConstants.endcapTimeResConsts.threshHighE,
-                        2.0) +
-        cudaConstants.endcapTimeResConsts.constantTerm2;
-  }
-
-  if (pfcConf.exists("timeResolutionCalcBarrel")) {
-    const edm::ParameterSet& barrelTimeResConf = pfcConf.getParameterSet("timeResolutionCalcBarrel");
-    cudaConstants.barrelTimeResConsts.corrTermLowE = (float)barrelTimeResConf.getParameter<double>("corrTermLowE");
-    cudaConstants.barrelTimeResConsts.threshLowE = (float)barrelTimeResConf.getParameter<double>("threshLowE");
-    cudaConstants.barrelTimeResConsts.noiseTerm = (float)barrelTimeResConf.getParameter<double>("noiseTerm");
-    cudaConstants.barrelTimeResConsts.constantTermLowE2 =
-        (float)std::pow(barrelTimeResConf.getParameter<double>("constantTermLowE"), 2.0);
-    cudaConstants.barrelTimeResConsts.noiseTermLowE = (float)barrelTimeResConf.getParameter<double>("noiseTermLowE");
-    cudaConstants.barrelTimeResConsts.threshHighE = (float)barrelTimeResConf.getParameter<double>("threshHighE");
-    cudaConstants.barrelTimeResConsts.constantTerm2 =
-        (float)std::pow(barrelTimeResConf.getParameter<double>("constantTerm"), 2.0);
-    cudaConstants.barrelTimeResConsts.resHighE2 =
-        (float)std::pow(cudaConstants.barrelTimeResConsts.noiseTerm / cudaConstants.barrelTimeResConsts.threshHighE,
-                        2.0) +
-        cudaConstants.barrelTimeResConsts.constantTerm2;
-  }
-  cudaConstants.nNeigh = sfConf.getParameter<int>("nNeighbours");
-
   produces<reco::PFClusterCollection>();
 }
 
@@ -256,6 +159,10 @@ void PFClusterProducerCudaHCAL::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("hltParticleFlowRecHitHBHE"));
   desc.add<bool>("produceSoA", true);
   desc.add<bool>("produceLegacy", true);
+
+  desc.add<edm::ESInputTag>("pfClusteringParameters",
+                            edm::ESInputTag("pfClusteringParamsGPUESSource", "pfClusParamsOffline"));
+
   // Prevents the producer and navigator parameter sets from throwing an exception
   // TODO: Replace with a proper parameter set description: twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideConfigurationValidationAndHelp
   desc.setAllowAnything();
@@ -281,16 +188,9 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   auto const& PFRecHits = ctx.get(PFRecHitsProduct);
   auto cudaStream = ctx.stream();
 
-  if (initCuda_) {
-    // Only allocate Cuda memory on first event
-    PFClusterCudaHCAL::initializeCudaConstants(cudaConstants, cudaStream);
-
-    outputCPU.allocate(cudaConfig_, cudaStream);
-    outputGPU.allocate(cudaConfig_, cudaStream);
-    scratchGPU.allocate(cudaConfig_, cudaStream);
-
-    initCuda_ = false;
-  }
+  outputCPU.allocate(cudaConfig_, cudaStream);
+  outputGPU.allocate(cudaConfig_, cudaStream);
+  scratchGPU.allocate(cudaConfig_, cudaStream);
 
   nRH_ = PFRecHits.size;
   if (nRH_ == 0)
@@ -306,9 +206,11 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   // if (cudaStreamQuery(cudaStream) != cudaSuccess)
   //   cudaCheck(cudaStreamSynchronize(cudaStream));
 
+  auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(cudaStream);
+
   // Calling cuda kernels
   PFClusterCudaHCAL::PFRechitToPFCluster_HCAL_entryPoint(
-      cudaStream, totalNeighbours, PFRecHits, outputGPU, scratchGPU, kernelTimers);
+      cudaStream, pfClusParamsProduct, totalNeighbours, PFRecHits, outputGPU, scratchGPU, kernelTimers);
 
   if (!_produceLegacy)
     return;  // do device->host transfer only when we are producing Legacy data

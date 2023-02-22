@@ -110,6 +110,9 @@ associatePatAlgosToolsTask(process)
 process.load("RecoParticleFlow.PFClusterProducer.pfhbheRecHitParamsGPUESProducer_cfi")
 process.load("RecoParticleFlow.PFClusterProducer.pfhbheTopologyGPUESProducer_cfi")
 
+from RecoParticleFlow.PFClusterProducer.pfClusteringParamsGPUESSource_cfi import pfClusteringParamsGPUESSource as _pfClusteringParamsGPUESSource
+process.pfClusteringParamsGPUESSource = _pfClusteringParamsGPUESSource.clone()
+
 # Automatic addition of the customisation function from HLTrigger.Configuration.customizeHLTforPatatrack
 #from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrack, customiseCommon, customiseHcalLocalReconstruction
 

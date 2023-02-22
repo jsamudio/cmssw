@@ -5,13 +5,12 @@
 
 #include "CUDADataFormats/PFRecHitSoA/interface/PFRecHitCollection.h"
 
+#include "RecoParticleFlow/PFClusterProducer/interface/PFClusteringParamsGPU.h"
+
 #include "CudaPFCommon.h"
 #include "DeclsForKernels.h"
 
 namespace PFClusterCudaHCAL {
-
-  void initializeCudaConstants(const PFClustering::common::CudaHCALConstants& cudaConstants,
-                               const cudaStream_t cudaStream = cudaStreamDefault);
 
   void PFRechitToPFCluster_HCALV2(size_t size,
                                   const float* __restrict__ pfrh_x,
@@ -52,6 +51,7 @@ namespace PFClusterCudaHCAL {
 
   void PFRechitToPFCluster_HCAL_entryPoint(
       cudaStream_t cudaStream,
+      PFClusteringParamsGPU::DeviceProduct const& pfClusParams,
       int nEdges,
       ::hcal::PFRecHitCollection<::pf::common::DevStoragePolicy> const& inputPFRecHits,
       ::PFClustering::HCAL::OutputDataGPU& outputGPU,
