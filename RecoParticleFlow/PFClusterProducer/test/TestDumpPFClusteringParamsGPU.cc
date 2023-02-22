@@ -4,6 +4,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/Utilities/interface/ESInputTag.h"
 #include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
 #include "HeterogeneousCore/CUDACore/interface/ScopedContext.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFClusteringParamsGPU.h"
@@ -26,12 +27,13 @@ private:
   cms::cuda::ContextState cudaState_;
 };
 
-TestDumpPFClusteringParamsGPU::TestDumpPFClusteringParamsGPU(edm::ParameterSet const& ps)
-    : pfClusParamsToken_{esConsumes()} {
+TestDumpPFClusteringParamsGPU::TestDumpPFClusteringParamsGPU(edm::ParameterSet const& iConfig)
+    : pfClusParamsToken_{esConsumes(iConfig.getParameter<edm::ESInputTag>("pfClusteringParameters"))} {
 }
 
 void TestDumpPFClusteringParamsGPU::fillDescriptions(edm::ConfigurationDescriptions& desc) {
   edm::ParameterSetDescription psetDesc;
+  psetDesc.add<edm::ESInputTag>("pfClusteringParameters", edm::ESInputTag("pfClusteringParamsGPUESSource", "pfClusParamsOffline"));
   desc.addWithDefaultLabel(psetDesc);
 }
 

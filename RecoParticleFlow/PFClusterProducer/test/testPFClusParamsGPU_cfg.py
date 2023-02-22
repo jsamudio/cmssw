@@ -1,11 +1,11 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("TEST")
+process = cms.Process('TEST')
 
 ###
 ### EDM Input and job configuration
 ###
-process.source = cms.Source("EmptySource")
+process.source = cms.Source('EmptySource')
 
 # limit the number of events to be processed
 process.maxEvents.input = 50
@@ -18,12 +18,17 @@ process.options.numberOfStreams = 0
 ###
 ### ESModules, EDModules, Sequences, Tasks, Paths, EndPaths and Schedule
 ###
-process.load("Configuration.StandardSequences.Accelerators_cff")
+process.load('Configuration.StandardSequences.Accelerators_cff')
 
 from RecoParticleFlow.PFClusterProducer.pfClusteringParamsGPUESSource_cfi import pfClusteringParamsGPUESSource as _pfClusteringParamsGPUESSource
-process.PFClusteringParamsGPUESSource = _pfClusteringParamsGPUESSource.clone()
+process.PFClusteringParamsGPUESSource = _pfClusteringParamsGPUESSource.clone(
+  appendToDataLabel = 'pfClusParamsOfflineDefault',
+)
 
-process.theProducer = cms.EDProducer("TestDumpPFClusteringParamsGPU")
+from RecoParticleFlow.PFClusterProducer.testDumpPFClusteringParamsGPU_cfi import testDumpPFClusteringParamsGPU as _testDumpPFClusteringParamsGPU
+process.theProducer = _testDumpPFClusteringParamsGPU.clone(
+  pfClusteringParameters = 'PFClusteringParamsGPUESSource:pfClusParamsOfflineDefault',
+)
 
 process.theSequence = cms.Sequence( process.theProducer )
 

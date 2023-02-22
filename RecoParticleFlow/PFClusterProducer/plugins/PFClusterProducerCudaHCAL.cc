@@ -19,6 +19,7 @@
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
+#include "FWCore/Utilities/interface/ESInputTag.h"
 #include "HeterogeneousCore/CUDACore/interface/ScopedContext.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
@@ -86,7 +87,7 @@ private:
 
 PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& conf)
     : InputPFRecHitSoA_Token_{consumes(conf.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
-      pfClusParamsToken_{esConsumes()},
+      pfClusParamsToken_{esConsumes(conf.getParameter<edm::ESInputTag>("pfClusteringParameters"))},
       _produceSoA{conf.getParameter<bool>("produceSoA")},
       _produceLegacy{conf.getParameter<bool>("produceLegacy")},
       _rechitsLabel{consumes(conf.getParameter<edm::InputTag>("recHitsSource"))} {
@@ -159,6 +160,9 @@ void PFClusterProducerCudaHCAL::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("hltParticleFlowRecHitHBHE"));
   desc.add<bool>("produceSoA", true);
   desc.add<bool>("produceLegacy", true);
+
+  desc.add<edm::ESInputTag>("pfClusteringParameters", edm::ESInputTag("pfClusteringParamsGPUESSource", "pfClusParamsOffline"));
+
   // Prevents the producer and navigator parameter sets from throwing an exception
   // TODO: Replace with a proper parameter set description: twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideConfigurationValidationAndHelp
   desc.setAllowAnything();

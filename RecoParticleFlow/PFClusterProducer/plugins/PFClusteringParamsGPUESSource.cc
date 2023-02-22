@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 #include <memory>
 
@@ -28,6 +29,7 @@ private:
 };
 
 PFClusteringParamsGPUESSource::PFClusteringParamsGPUESSource(edm::ParameterSet const& pset) : pset_{pset} {
+  // the fwk automatically uses "appendToDataLabel" as product label of the ESProduct
   setWhatProduced(this);
   findingRecord<JobConfigurationGPURecord>();
 }
@@ -40,6 +42,7 @@ void PFClusteringParamsGPUESSource::setIntervalFor(const edm::eventsetup::EventS
 
 void PFClusteringParamsGPUESSource::fillDescriptions(edm::ConfigurationDescriptions& desc) {
   edm::ParameterSetDescription psetDesc;
+  psetDesc.add<std::string>("appendToDataLabel", "pfClusParamsOffline");
   PFClusteringParamsGPU::fillDescription(psetDesc);
   desc.addWithDefaultLabel(psetDesc);
 }
