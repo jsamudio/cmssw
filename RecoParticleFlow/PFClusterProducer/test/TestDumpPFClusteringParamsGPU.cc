@@ -28,18 +28,18 @@ private:
 };
 
 TestDumpPFClusteringParamsGPU::TestDumpPFClusteringParamsGPU(edm::ParameterSet const& iConfig)
-    : pfClusParamsToken_{esConsumes(iConfig.getParameter<edm::ESInputTag>("pfClusteringParameters"))} {
-}
+    : pfClusParamsToken_{esConsumes(iConfig.getParameter<edm::ESInputTag>("pfClusteringParameters"))} {}
 
 void TestDumpPFClusteringParamsGPU::fillDescriptions(edm::ConfigurationDescriptions& desc) {
   edm::ParameterSetDescription psetDesc;
-  psetDesc.add<edm::ESInputTag>("pfClusteringParameters", edm::ESInputTag("pfClusteringParamsGPUESSource", "pfClusParamsOffline"));
+  psetDesc.add<edm::ESInputTag>("pfClusteringParameters",
+                                edm::ESInputTag("pfClusteringParamsGPUESSource", "pfClusParamsOffline"));
   desc.addWithDefaultLabel(psetDesc);
 }
 
 void TestDumpPFClusteringParamsGPU::acquire(edm::Event const& event,
-                             edm::EventSetup const& setup,
-                             edm::WaitingTaskWithArenaHolder holder) {
+                                            edm::EventSetup const& setup,
+                                            edm::WaitingTaskWithArenaHolder holder) {
   cms::cuda::ScopedContextAcquire ctx{event.streamID(), std::move(holder), cudaState_};
   auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(ctx.stream());
   testPFlow::testPFClusteringParamsEntryPoint(pfClusParamsProduct, ctx.stream());

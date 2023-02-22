@@ -20,7 +20,7 @@
 namespace edm {
   class ParameterSet;
   class ParameterSetDescription;
-}
+}  // namespace edm
 
 class PFClusteringParamsGPU {
 public:
@@ -81,4 +81,4 @@ private:
 #endif
 };
 
-#endif // RecoParticleFlow_PFClusterProducer_PFClusteringParamsGPU_h
+#endif  // RecoParticleFlow_PFClusterProducer_PFClusteringParamsGPU_h

@@ -7,12 +7,13 @@
 
 #include <cmath>
 
-PFClusteringParamsGPU::PFClusteringParamsGPU(edm::ParameterSet const& iConfig)
- : params_(7) { setParameterValues(iConfig); }
+PFClusteringParamsGPU::PFClusteringParamsGPU(edm::ParameterSet const& iConfig) : params_(7) {
+  setParameterValues(iConfig);
+}
 
 PFClusteringParamsGPU::DeviceProduct const& PFClusteringParamsGPU::getProduct(cudaStream_t cudaStream) const {
-  auto const& ret = product_.dataForCurrentDeviceAsync(
-      cudaStream, [this](DeviceProduct& product, cudaStream_t cudaStream) {
+  auto const& ret =
+      product_.dataForCurrentDeviceAsync(cudaStream, [this](DeviceProduct& product, cudaStream_t cudaStream) {
         product = DeviceProduct(params_->metadata().size(), cudaStream);
         cudaCheck(cudaMemcpyAsync(product.buffer().get(),
                                   params_.const_buffer().get(),
@@ -37,14 +38,18 @@ void PFClusteringParamsGPU::setParameterValues(edm::ParameterSet const& iConfig)
     auto const& thresholds = pset.getParameter<std::vector<double>>("seedingThreshold");
     if (det == "HCAL_BARREL1") {
       if (thresholds.size() != kMaxDepth_barrel)
-        throw cms::Exception("InvalidConfiguration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel << ") for \"\" vector of det = \"" << det << "\"";
+        throw cms::Exception("InvalidConfiguration")
+            << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel << ") for \"\" vector of det = \""
+            << det << "\"";
       view.seedPt2ThresholdEB() = seedPt2Threshold;
       for (size_t idx = 0; idx < thresholds.size(); ++idx) {
         view.seedEThresholdEB_vec()[idx] = thresholds[idx];
       }
     } else if (det == "HCAL_ENDCAP") {
       if (thresholds.size() != kMaxDepth_endcap)
-        throw cms::Exception("InvalidConfiguration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap << ") for \"\" vector of det = \"" << det << "\"";
+        throw cms::Exception("InvalidConfiguration")
+            << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap << ") for \"\" vector of det = \""
+            << det << "\"";
       view.seedPt2ThresholdEE() = seedPt2Threshold;
       for (size_t idx = 0; idx < thresholds.size(); ++idx) {
         view.seedEThresholdEE_vec()[idx] = thresholds[idx];
@@ -62,13 +67,17 @@ void PFClusteringParamsGPU::setParameterValues(edm::ParameterSet const& iConfig)
     auto const& thresholds = pset.getParameter<std::vector<double>>("gatheringThreshold");
     if (det == "HCAL_BARREL1") {
       if (thresholds.size() != kMaxDepth_barrel)
-        throw cms::Exception("InvalidConfiguration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel << ") for \"\" vector of det = \"" << det << "\"";
+        throw cms::Exception("InvalidConfiguration")
+            << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel << ") for \"\" vector of det = \""
+            << det << "\"";
       for (size_t idx = 0; idx < thresholds.size(); ++idx) {
         view.topoEThresholdEB_vec()[idx] = thresholds[idx];
       }
     } else if (det == "HCAL_ENDCAP") {
       if (thresholds.size() != kMaxDepth_endcap)
-        throw cms::Exception("InvalidConfiguration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap << ") for \"\" vector of det = \"" << det << "\"";
+        throw cms::Exception("InvalidConfiguration")
+            << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap << ") for \"\" vector of det = \""
+            << det << "\"";
       for (size_t idx = 0; idx < thresholds.size(); ++idx) {
         view.topoEThresholdEE_vec()[idx] = thresholds[idx];
       }
@@ -78,7 +87,7 @@ void PFClusteringParamsGPU::setParameterValues(edm::ParameterSet const& iConfig)
   }
 
   // pfClusterBuilder
-  auto const & pfClusterPSet = iConfig.getParameterSet("pfClusterBuilder");
+  auto const& pfClusterPSet = iConfig.getParameterSet("pfClusterBuilder");
   view.showerSigma2() = std::pow(pfClusterPSet.getParameter<double>("showerSigma"), 2.);
   view.minFracToKeep() = pfClusterPSet.getParameter<double>("minFractionToKeep");
   view.minFracTot() = pfClusterPSet.getParameter<double>("minFracTot");
@@ -95,13 +104,17 @@ void PFClusteringParamsGPU::setParameterValues(edm::ParameterSet const& iConfig)
     auto const& det = pset.getParameter<std::string>("detector");
     if (det == "HCAL_BARREL1") {
       if (recHitNorms.size() != kMaxDepth_barrel)
-        throw cms::Exception("InvalidConfiguration") << "Invalid size (" << recHitNorms.size() << " != " << kMaxDepth_barrel << ") for \"\" vector of det = \"" << det << "\"";
+        throw cms::Exception("InvalidConfiguration")
+            << "Invalid size (" << recHitNorms.size() << " != " << kMaxDepth_barrel << ") for \"\" vector of det = \""
+            << det << "\"";
       for (size_t idx = 0; idx < recHitNorms.size(); ++idx) {
         view.recHitEnergyNormInvEB_vec()[idx] = 1. / recHitNorms[idx];
       }
     } else if (det == "HCAL_ENDCAP") {
       if (recHitNorms.size() != kMaxDepth_endcap)
-        throw cms::Exception("InvalidConfiguration") << "Invalid size (" << recHitNorms.size() << " != " << kMaxDepth_endcap << ") for \"\" vector of det = \"" << det << "\"";
+        throw cms::Exception("InvalidConfiguration")
+            << "Invalid size (" << recHitNorms.size() << " != " << kMaxDepth_endcap << ") for \"\" vector of det = \""
+            << det << "\"";
       for (size_t idx = 0; idx < recHitNorms.size(); ++idx) {
         view.recHitEnergyNormInvEE_vec()[idx] = 1. / recHitNorms[idx];
       }
@@ -114,23 +127,27 @@ void PFClusteringParamsGPU::setParameterValues(edm::ParameterSet const& iConfig)
   view.barrelTimeResConsts_corrTermLowE() = barrelTimeResConf.getParameter<double>("corrTermLowE");
   view.barrelTimeResConsts_threshLowE() = barrelTimeResConf.getParameter<double>("threshLowE");
   view.barrelTimeResConsts_noiseTerm() = barrelTimeResConf.getParameter<double>("noiseTerm");
-  view.barrelTimeResConsts_constantTermLowE2() = std::pow(barrelTimeResConf.getParameter<double>("constantTermLowE"), 2.);
+  view.barrelTimeResConsts_constantTermLowE2() =
+      std::pow(barrelTimeResConf.getParameter<double>("constantTermLowE"), 2.);
   view.barrelTimeResConsts_noiseTermLowE() = barrelTimeResConf.getParameter<double>("noiseTermLowE");
   view.barrelTimeResConsts_threshHighE() = barrelTimeResConf.getParameter<double>("threshHighE");
   view.barrelTimeResConsts_constantTerm2() = std::pow(barrelTimeResConf.getParameter<double>("constantTerm"), 2.);
-  view.barrelTimeResConsts_resHighE2() = std::pow(view.barrelTimeResConsts_noiseTerm() / view.barrelTimeResConsts_threshHighE(), 2.)
-    + view.barrelTimeResConsts_constantTerm2();
+  view.barrelTimeResConsts_resHighE2() =
+      std::pow(view.barrelTimeResConsts_noiseTerm() / view.barrelTimeResConsts_threshHighE(), 2.) +
+      view.barrelTimeResConsts_constantTerm2();
 
   auto const& endcapTimeResConf = pfClusterPSet.getParameterSet("timeResolutionCalcEndcap");
   view.endcapTimeResConsts_corrTermLowE() = endcapTimeResConf.getParameter<double>("corrTermLowE");
   view.endcapTimeResConsts_threshLowE() = endcapTimeResConf.getParameter<double>("threshLowE");
   view.endcapTimeResConsts_noiseTerm() = endcapTimeResConf.getParameter<double>("noiseTerm");
-  view.endcapTimeResConsts_constantTermLowE2() = std::pow(endcapTimeResConf.getParameter<double>("constantTermLowE"), 2.);
+  view.endcapTimeResConsts_constantTermLowE2() =
+      std::pow(endcapTimeResConf.getParameter<double>("constantTermLowE"), 2.);
   view.endcapTimeResConsts_noiseTermLowE() = endcapTimeResConf.getParameter<double>("noiseTermLowE");
   view.endcapTimeResConsts_threshHighE() = endcapTimeResConf.getParameter<double>("threshHighE");
   view.endcapTimeResConsts_constantTerm2() = std::pow(endcapTimeResConf.getParameter<double>("constantTerm"), 2.);
-  view.endcapTimeResConsts_resHighE2() = std::pow(view.endcapTimeResConsts_noiseTerm() / view.endcapTimeResConsts_threshHighE(), 2.)
-    + view.endcapTimeResConsts_constantTerm2();
+  view.endcapTimeResConsts_resHighE2() =
+      std::pow(view.endcapTimeResConsts_noiseTerm() / view.endcapTimeResConsts_threshHighE(), 2.) +
+      view.endcapTimeResConsts_constantTerm2();
 }
 
 void PFClusteringParamsGPU::fillDescription(edm::ParameterSetDescription& desc) {
@@ -148,7 +165,8 @@ void PFClusteringParamsGPU::fillDescription(edm::ParameterSetDescription& desc) 
       vDefaults[0].addParameter<std::vector<double>>("seedingThreshold", {0.125, 0.25, 0.35, 0.35});
       vDefaults[0].addParameter<double>("seedingThresholdPt", 0.);
       vDefaults[1].addParameter<std::string>("detector", "HCAL_ENDCAP");
-      vDefaults[1].addParameter<std::vector<double>>("seedingThreshold", {0.1375, 0.275, 0.275, 0.275, 0.275, 0.275, 0.275});
+      vDefaults[1].addParameter<std::vector<double>>("seedingThreshold",
+                                                     {0.1375, 0.275, 0.275, 0.275, 0.275, 0.275, 0.275});
       vDefaults[1].addParameter<double>("seedingThresholdPt", 0.);
       foo.addVPSet("thresholdsByDetector", validator, vDefaults);
     }
