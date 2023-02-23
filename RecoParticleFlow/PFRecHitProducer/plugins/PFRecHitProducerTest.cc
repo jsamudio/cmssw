@@ -19,6 +19,8 @@
 #include <string>
 #include <utility>
 
+#define DEBUG false
+
 class PFRecHitProducerTest : public DQMEDAnalyzer {
 public:
   PFRecHitProducerTest(edm::ParameterSet const& conf);
@@ -46,7 +48,7 @@ PFRecHitProducerTest::PFRecHitProducerTest(const edm::ParameterSet& conf)
      {}
 
 PFRecHitProducerTest::~PFRecHitProducerTest() {
-  printf("PFRecHitProducerTest has compared %u events and found %u problems\n", num_events, num_errors);
+  fprintf(stderr, "PFRecHitProducerTest has compared %u events and found %u problems\n", num_events, num_errors);
 }
 
 void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup const& c) {
@@ -89,16 +91,17 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
             || pfRecHitsCPU[i].energy() != pfRecHitsAlpaka[j].energy())
             error = true;
         }
-        if(!detId_found)
-          error = true;
       }
+      if(!detId_found)
+        error = true;
     }
   }
 
   if(error)
   {
-    //if(num_errors == 0)
-    //  DumpEvent(pfRecHitsCPU, pfRecHitsAlpaka);
+    // When enabling this, need to set number of threads to 1 to get useful output
+    if(DEBUG && num_errors == 0)
+      DumpEvent(pfRecHitsCPU, pfRecHitsAlpaka);
     num_errors++;
   }
   num_events++;
