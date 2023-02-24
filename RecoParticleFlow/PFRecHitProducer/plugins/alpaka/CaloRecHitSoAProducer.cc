@@ -7,8 +7,8 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "DataFormats/Common/interface/SortedCollection.h"
 #include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
-#include "DataFormats/ParticleFlowReco/interface/CaloRecHitHostCollection.h"
-#include "DataFormats/ParticleFlowReco/interface/alpaka/CaloRecHitDeviceCollection.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/CaloRecHitHostCollection.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/CaloRecHitDeviceCollection.h"
 
 #define DEBUG false
 

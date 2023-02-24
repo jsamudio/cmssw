@@ -12,7 +12,7 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
-#include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/PFRecHitHostCollection.h"
 
 #include <cmath>
 #include <iostream>
