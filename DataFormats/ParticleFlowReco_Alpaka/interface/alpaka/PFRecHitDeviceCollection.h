@@ -3,7 +3,7 @@
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "DataFormats/ParticleFlowReco/interface/PFRecHitSoA.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/PFRecHitSoA.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   using PFRecHitDeviceCollection = PortableCollection<PFRecHitSoA>;

@@ -129,6 +129,7 @@ setattr(process.MessageLogger.cerr, args.logLevel,
 if args.logLevel == 'DEBUG':
   process.MessageLogger.debugModules = ['*']
 
+>>>>>>> jsamudio/PFRecHitAndCluster_GPU_13_0_0_pre4_stable
 # dump content of cms.Process to python file
 if args.dumpPython != None:
   open(args.dumpPython, 'w').write(process.dumpPython())

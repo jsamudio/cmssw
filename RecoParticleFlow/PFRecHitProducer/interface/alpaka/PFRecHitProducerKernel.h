@@ -1,8 +1,8 @@
 #ifndef RecoParticleFlow_PFRecHitProducer_PFRecHitProducerKernel_h
 #define RecoParticleFlow_PFRecHitProducer_PFRecHitProducerKernel_h
 
-#include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitDeviceCollection.h"
-#include "DataFormats/ParticleFlowReco/interface/alpaka/CaloRecHitDeviceCollection.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/PFRecHitDeviceCollection.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/CaloRecHitDeviceCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
