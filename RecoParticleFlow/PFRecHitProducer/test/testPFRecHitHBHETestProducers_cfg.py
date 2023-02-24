@@ -23,8 +23,8 @@ parser.add_argument('-r', '--run', type=int, default=361054,
 parser.add_argument('-d', '--dumpPython', type=str, default=None,
                     help='Path to file containing output of process.dumpPython() (disabled by default)')
 
-parser.add_argument('-v', '--logVerbosityLevel', type=str, default='WARNING',
-                    help='Value of process.MessageLogger.cerr.threshold (examples: "INFO", "DEBUG") (default: "WARNING")')
+parser.add_argument('-v', '--logVerbosityLevel', type=str, default='FWKINFO',
+                    help='Value of process.MessageLogger.cerr.threshold (default: "FWKINFO"; examples: "INFO", "DEBUG")')
 
 argv = sys.argv[:]
 if '--' in argv: argv.remove('--')
@@ -73,7 +73,9 @@ process.pfRecHitHBHETopologyAlpakaESRcdESSource = cms.ESSource('EmptyESSource',
 
 from RecoParticleFlow.PFRecHitProducer.pfRecHitHBHEParamsESProducer_cfi import pfRecHitHBHEParamsESProducer as _pfRecHitHBHEParamsESProducer
 process.pfRecHitHBHEParamsESProducer = _pfRecHitHBHEParamsESProducer.clone(
-  appendToDataLabel = args.esProductLabel
+  appendToDataLabel = args.esProductLabel,
+  energyThresholdsHB = [0.1, 0.2, 0.3, 0.4],
+  energyThresholdsHE = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1],
 )
 
 from RecoParticleFlow.PFRecHitProducer.pfRecHitHBHETopologyESProducer_cfi import pfRecHitHBHETopologyESProducer as _pfRecHitHBHETopologyESProducer
@@ -119,14 +121,14 @@ process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 1 # only report every Nth event start
 process.MessageLogger.cerr.FwkReport.limit = -1      # max number of reported messages (all if -1)
 process.MessageLogger.cerr.enableStatistics = False  # enable "MessageLogger Summary" message
-process.MessageLogger.cerr.threshold = args.logLevel
-setattr(process.MessageLogger.cerr, args.logLevel,
+process.MessageLogger.cerr.threshold = args.logVerbosityLevel
+setattr(process.MessageLogger.cerr, args.logVerbosityLevel,
   cms.untracked.PSet(
     reportEvery = cms.untracked.int32(1), # every event!
     limit = cms.untracked.int32(-1)       # no limit! (default is limit=0, i.e. no messages reported)
   )
 )
-if args.logLevel == 'DEBUG':
+if args.logVerbosityLevel == 'DEBUG':
   process.MessageLogger.debugModules = ['*']
 
 # dump content of cms.Process to python file
