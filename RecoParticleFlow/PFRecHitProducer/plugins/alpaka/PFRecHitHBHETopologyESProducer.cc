@@ -38,6 +38,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     edm::ESGetToken<HcalTopology, HcalRecNumberingRecord> hcalToken_;
     edm::ESGetToken<CaloGeometry, CaloGeometryRecord> geomToken_;
 
+    constexpr static const char* kProducerName = "PFRecHitHBHETopologyESProducer";
+
+    auto logDebug() const {
+      return LogTrace(kProducerName) << "[" << kProducerName << "] ";
+    }
+
   public:
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
@@ -63,8 +69,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       auto const denseIdMin = *std::min_element(denseIds.begin(), denseIds.end());
       auto const productSize = denseIdMax - denseIdMin + 1;
 
-      LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer] denseIds.size() = " << denseIds.size();
-      LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer] productSize = " << productSize;
+      logDebug() << "denseIds.size() = " << denseIds.size();
+      logDebug() << "productSize = " << productSize;
 
       auto product = std::make_unique<PFRecHitHBHETopologyAlpakaESDataHost>(productSize, cms::alpakatools::host());
       auto view = product->view();
@@ -80,19 +86,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         else if (hid.subdet() == HcalEndcap)
           pos = hcalEndcapGeo->getGeometry(detid)->getPosition();
         else
-          edm::LogWarning("PFRecHitHBHETopologyESProducer") << "Unexpected subdetector found for detId "
-            << hid.rawId() << ": " << hid.subdet();
+          edm::LogWarning(kProducerName) << "Unexpected subdetector found for detId: rawId="
+            << hid.rawId() << " subdet=" << hid.subdet();
 
         auto const index = denseId - denseIdMin;
         view.positionX()[index] = pos.x();
         view.positionY()[index] = pos.y();
         view.positionZ()[index] = pos.z();
-
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer] detId="
-          << detid << " rawId=" << hid.rawId() << " subdet=" << hid.subdet() << " index=" << index;
-
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   position: x="
-          << pos.x() << " y=" << pos.y() << " z=" << pos.z();
 
         auto neigh = navicore.get()->getNeighbours(denseId);
 
@@ -124,14 +124,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         view.neighbour6()[index] = neighbours_tmp[6];
         view.neighbour7()[index] = neighbours_tmp[7];
 
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[0]: " << neighbours_tmp[0];
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[1]: " << neighbours_tmp[1];
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[2]: " << neighbours_tmp[2];
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[3]: " << neighbours_tmp[3];
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[4]: " << neighbours_tmp[4];
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[5]: " << neighbours_tmp[5];
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[6]: " << neighbours_tmp[6];
-        LogDebug("PFRecHitHBHETopologyESProducer") << "[PFRecHitHBHETopologyESProducer]   neighbour[7]: " << neighbours_tmp[7];
+        logDebug() << "detId: rawId=" << hid.rawId() << " subdet=" << hid.subdet() << " index=" << index;
+        logDebug() << "  position: x=" << pos.x() << " y=" << pos.y() << " z=" << pos.z();
+        for (uint32_t idx = 0; idx < 8; ++idx) {
+          logDebug() << "  neighbour[" << idx << "]: " << neighbours_tmp[idx];
+        }
       }
 
       navicore.release();

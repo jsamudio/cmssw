@@ -23,6 +23,9 @@ parser.add_argument('-r', '--run', type=int, default=361054,
 parser.add_argument('-d', '--dumpPython', type=str, default=None,
                     help='Path to file containing output of process.dumpPython() (disabled by default)')
 
+parser.add_argument('-v', '--logVerbosityLevel', type=str, default='WARNING',
+                    help='Value of process.MessageLogger.cerr.threshold (examples: "INFO", "DEBUG") (default: "WARNING")')
+
 argv = sys.argv[:]
 if '--' in argv: argv.remove('--')
 args, unknown = parser.parse_known_args(argv)
@@ -103,7 +106,7 @@ else:
   process.testPath = cms.Path( process.testSequence , process.testTask )
 
 process.output = cms.OutputModule('PoolOutputModule',
-  fileName = cms.untracked.string('testAlpaka.root'),
+  fileName = cms.untracked.string('tmp.root'),
   outputCommands = cms.untracked.vstring(
     'drop *',
     'keep *_testPFRecHitHBHETestProducer*_*_*',
@@ -111,6 +114,22 @@ process.output = cms.OutputModule('PoolOutputModule',
 )
 process.testEndPath = cms.EndPath( process.output )
 
+## MessageLogger
+process.load('FWCore.MessageLogger.MessageLogger_cfi')
+process.MessageLogger.cerr.FwkReport.reportEvery = 1 # only report every Nth event start
+process.MessageLogger.cerr.FwkReport.limit = -1      # max number of reported messages (all if -1)
+process.MessageLogger.cerr.enableStatistics = False  # enable "MessageLogger Summary" message
+process.MessageLogger.cerr.threshold = args.logLevel
+setattr(process.MessageLogger.cerr, args.logLevel,
+  cms.untracked.PSet(
+    reportEvery = cms.untracked.int32(1), # every event!
+    limit = cms.untracked.int32(-1)       # no limit! (default is limit=0, i.e. no messages reported)
+  )
+)
+if args.logLevel == 'DEBUG':
+  process.MessageLogger.debugModules = ['*']
+
+>>>>>>> jsamudio/PFRecHitAndCluster_GPU_13_0_0_pre4_stable
 # dump content of cms.Process to python file
 if args.dumpPython != None:
   open(args.dumpPython, 'w').write(process.dumpPython())
