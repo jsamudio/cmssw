@@ -1327,7 +1327,9 @@ namespace PFClusterCudaHCAL {
                                          int* pcrhfracind,
                                          float* pcrhfrac,
                                          int* pcrhFracSize,
-                                         int* nTopoId) {
+                                         int* nTopoId,
+                                         int* scratchTopoSeedCount,
+                                         int* scratchTopoRHCount) {
     __shared__ int totalSeedOffset, totalSeedFracOffset;
     if (threadIdx.x == 0) {
       *nTopoId = 0;
@@ -1335,6 +1337,8 @@ namespace PFClusterCudaHCAL {
       totalSeedOffset = 0;
       totalSeedFracOffset = 0;
       *pcrhFracSize = 0;
+      scratchTopoSeedCount = 0;
+      scratchTopoRHCount = 0;
     }
     __syncthreads();
     /*
@@ -1361,20 +1365,23 @@ namespace PFClusterCudaHCAL {
       int topoId = pfrh_parent[rhIdx];
       if (topoId > -1) {
         // Valid topo cluster
-        atomicAdd(&topoRHCount[topoId], 1);
+        atomicAdd(&scratchTopoRHCount[topoId], 1);
         if (pfrh_isSeed[rhIdx]) {
-          atomicAdd(&topoSeedCount[topoId], 1);
+          atomicAdd(&scratchTopoSeedCount[topoId], 1);
         }
       }
     }
     __syncthreads();
 
+    int increment = 0;
     // Determine offsets for topo ID seed array
     for (int topoId = threadIdx.x; topoId < size; topoId += blockDim.x) {
-      if (topoSeedCount[topoId] > 0) {
+      if (scratchTopoSeedCount[topoId] > 0) {
         // This is a valid topo ID
-        int offset = atomicAdd(&totalSeedOffset, topoSeedCount[topoId]);
+        int offset = atomicAdd(&totalSeedOffset, scratchTopoSeedCount[topoId]);
         topoSeedOffsets[topoId] = offset;
+        topoSeedCount[increment] = scratchTopoSeedCount[topoId];
+        topoRHCount[increment++] = scratchTopoRHCount[topoId];
         atomicAdd(&*nTopoId, 1);
       }
     }
@@ -1398,7 +1405,7 @@ namespace PFClusterCudaHCAL {
       int topoId = pfrh_parent[rhIdx];
       if (pfrh_isSeed[rhIdx] && topoId > -1) {
         // Allot the total number of rechits for this topo cluster for rh fractions
-        int offset = atomicAdd(&totalSeedFracOffset, topoRHCount[topoId]);
+        int offset = atomicAdd(&totalSeedFracOffset, scratchTopoRHCount[topoId]);
 
         // Add offset for this PF cluster seed
         seedFracOffsets[rhIdx] = offset;
@@ -1738,7 +1745,9 @@ namespace PFClusterCudaHCAL {
                                                       outputGPU.pcrh_fracInd.get(),
                                                       outputGPU.pcrh_frac.get(),
                                                       outputGPU.pcrhFracSize.get(),
-                                                      scratchGPU.nTopoId.get());
+                                                      scratchGPU.nTopoId.get(),
+                                                      scratchGPU.scratchTopoSeedCount.get(),
+                                                      scratchGPU.scratchTopoRHCount.get());
 
     dim3 grid((nRH + 31) / 32, (nRH + 31) / 32);
     dim3 block(32, 32);
@@ -1756,7 +1765,7 @@ namespace PFClusterCudaHCAL {
                                                  scratchGPU.rhcount.get(),
                                                  outputGPU.pcrh_fracInd.get());
 
-    hcalFastCluster_selection<<<nRH, threadsPerBlock, 0, cudaStream>>>(pfClusParams.const_view(),
+    hcalFastCluster_selection<<<h_nTopo, threadsPerBlock, 0, cudaStream>>>(pfClusParams.const_view(),
                                                            nRH,
                                                            inputPFRecHits.pfrh_x.get(),
                                                            inputPFRecHits.pfrh_y.get(),
