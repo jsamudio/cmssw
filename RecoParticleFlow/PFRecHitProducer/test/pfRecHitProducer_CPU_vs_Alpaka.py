@@ -146,10 +146,8 @@ if 'MessageLogger' in process.__dict__:
     process.MessageLogger.cerr.FastReport = cms.untracked.PSet( limit = cms.untracked.int32( 10000000 ) )
 
 #####################################
-## Configure CPU and GPU producers ##
+##    Legacy PFRecHit producer     ##
 #####################################
-
-# CPU producer
 process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
     navigator = cms.PSet(
         hcalEnums = cms.vint32(1, 2),
@@ -184,26 +182,44 @@ process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
     ))
 )
 
-# Alpaka producer
-alpaka_backend_str = "alpaka_serial_sync::%s"
-#alpaka_backend_str = "alpaka_cuda_async::%s"
-#alpaka_backend_str = "%s@alpaka"
+
+#####################################
+##    Alpaka PFRecHit producer     ##
+#####################################
+alpaka_backend_str = "alpaka_serial_sync::%s"   # Execute on CPU
+#alpaka_backend_str = "alpaka_cuda_async::%s"    # Execute using CUDA
+#alpaka_backend_str = "%s@alpaka"                # Let framework choose
+
+# Convert legacy CaloRecHits to CaloRecHitSoA
 process.hltParticleFlowRecHitToSoA = cms.EDProducer(alpaka_backend_str % "CaloRecHitSoAProducer",
     src = cms.InputTag("hltHbhereco")
 )
-process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpaka",
-    src = cms.InputTag("hltParticleFlowRecHitToSoA")
+
+# Construct PFRecHitsSoA
+process.jobConfAlpakaRcdESSource = cms.ESSource('EmptyESSource',
+    recordName = cms.string('JobConfigurationAlpakaRecord'),
+    iovIsRunNotTime = cms.bool(True),
+    firstValid = cms.vuint32(1)
 )
+process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitHBHEParamsESProducer",
+    energyThresholdsHB = cms.vdouble( 0.1, 0.2, 0.3, 0.3 ),
+    energyThresholdsHE = cms.vdouble( 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 )
+)
+#process.pfRecHitHBHETopologyESProducer cms.ESProducer(alpaka_backend_str % "PFRecHitHBHETopologyESProducer",
+#    hcalEnums = cms.vint32(1, 2)
+#)
+process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpaka",
+    src = cms.InputTag("hltParticleFlowRecHitToSoA"),
+    params = cms.ESInputTag("hltParticleFlowRecHitParamsESProducer:")
+)
+
+# Compare legacy PFRecHits to PFRecHitsSoA
 from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
 process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest",
     recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
     pfRecHitsSourceCPU = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
     pfRecHitsSourceAlpaka = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka")
 )
-#process.hltParticleFlowRecHitHBHEAlpaka = cms.EDProducer("alpaka_serial_sync::PFHBHERecHitProducerAlpaka",
-#    navigator = process.hltParticleFlowRecHitHBHE.navigator,
-#    src = cms.InputTag("hltHbherecoFromGPU")
-#)
 
 #
 # Additional customization
@@ -222,12 +238,8 @@ process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowPFRecHit
 # Path/sequence definitions
 process.HBHEPFCPUGPUTask = cms.Path(
     process.hltHcalDigis
-    #+process.hltHcalDigisGPU
     +process.hltHbherecoLegacy
-    #+process.hltHbherecoGPU
-    #+process.hltHbherecoFromGPU
     +process.hltParticleFlowRecHitHBHE      # Construct PFRecHits on CPU
-    #+process.hltParticleFlowRecHitHBHEAlpaka
     +process.hltParticleFlowRecHitToSoA     # Convert legacy CaloRecHits to SoA and copy to device
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU

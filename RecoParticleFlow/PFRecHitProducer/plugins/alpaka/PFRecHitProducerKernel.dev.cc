@@ -1,7 +1,5 @@
 #include <alpaka/alpaka.hpp>
 
-#include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/PFRecHitDeviceCollection.h"
-#include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/CaloRecHitDeviceCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 
@@ -49,6 +47,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
+                                  const PFRecHitHBHEParamsAlpakaESDataDevice::ConstView params,
                                   const CaloRecHitDeviceCollection::ConstView recHits, int32_t num_recHits,
                                   PFRecHitDeviceCollection::View pfRecHits) const {
       // global index of the thread within the grid
@@ -59,11 +58,24 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (thread == 0) {
         num_pfRecHits = 0;
       }
-      alpaka::syncBlockThreads(acc);
 
-      // TODO get these from config via ESProducer
-      const float thresholdE_HB[4] = {0.1, 0.2, 0.3, 0.3};
-      const float thresholdE_HE[7] = {0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2};
+      const float thresholdE_HB[4] = {
+        params[0].energyThresholds(),
+        params[1].energyThresholds(),
+        params[2].energyThresholds(),
+        params[3].energyThresholds()
+      };
+      const float thresholdE_HE[7] = {
+        params[4].energyThresholds(),
+        params[5].energyThresholds(),
+        params[6].energyThresholds(),
+        params[7].energyThresholds(),
+        params[8].energyThresholds(),
+        params[9].energyThresholds(),
+        params[10].energyThresholds()
+      };
+
+      alpaka::syncBlockThreads(acc);
 
       // make a strided loop over the kernel grid, covering up to "size" elements
       for (int32_t i : elements_with_stride(acc, num_recHits)) {
@@ -108,7 +120,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   };
 
-  void PFRecHitProducerKernel::execute(Queue& queue, const CaloRecHitDeviceCollection& recHits, PFRecHitDeviceCollection& pfRecHits) const {
+  void PFRecHitProducerKernel::execute(Queue& queue,
+    const PFRecHitHBHEParamsAlpakaESDataDevice& params,
+    const CaloRecHitDeviceCollection& recHits,
+    PFRecHitDeviceCollection& pfRecHits) const {
     // use 64 items per group (this value is arbitrary, but it's a reasonable starting point)
     const uint32_t items = 64;
 
@@ -120,7 +135,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     //   - elements within a single thread on a CPU backend
     auto workDiv = make_workdiv<Acc1D>(groups, items);
 
-    alpaka::exec<Acc1D>(queue, workDiv, PFRecHitProducerKernelImpl{}, recHits.view(), recHits->metadata().size(), pfRecHits.view());
+    alpaka::exec<Acc1D>(queue, workDiv, PFRecHitProducerKernelImpl{}, params.view(), recHits.view(), recHits->metadata().size(), pfRecHits.view());
   }
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
