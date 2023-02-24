@@ -19,6 +19,7 @@ using PFClustering::common::PFLayer;
 constexpr const float PI_F = 3.141592654f;
 
 // Number of neighbors considered for topo clustering
+constexpr const int nNT = 8;
 
 namespace PFClusterCudaHCAL {
   //
@@ -1313,8 +1314,6 @@ namespace PFClusterCudaHCAL {
   }
 
   // Contraction in a single block
-
-  __device__ int nTopo;
   __global__ void topoClusterContraction(size_t size,
                                          int* pfrh_parent,
                                          int* pfrh_isSeed,
@@ -1326,12 +1325,10 @@ namespace PFClusterCudaHCAL {
                                          int* topoSeedList,
                                          int* pcrhfracind,
                                          float* pcrhfrac,
-                                         int* pcrhFracSize,
-                                         int* nTopoId) {
-    __shared__ int totalSeedOffset, totalSeedFracOffset;
+                                         int* pcrhFracSize) {
+    __shared__ int notDone, totalSeedOffset, totalSeedFracOffset;
     if (threadIdx.x == 0) {
-      *nTopoId = 0;
-      nTopo = 0;
+      notDone = 0;
       totalSeedOffset = 0;
       totalSeedFracOffset = 0;
       *pcrhFracSize = 0;
@@ -1375,7 +1372,6 @@ namespace PFClusterCudaHCAL {
         // This is a valid topo ID
         int offset = atomicAdd(&totalSeedOffset, topoSeedCount[topoId]);
         topoSeedOffsets[topoId] = offset;
-        atomicAdd(&*nTopoId, 1);
       }
     }
     __syncthreads();
@@ -1409,7 +1405,6 @@ namespace PFClusterCudaHCAL {
     __syncthreads();
 
     if (threadIdx.x == 0) {
-      nTopo = *nTopoId;
       *pcrhFracSize = totalSeedFracOffset;
       if (*pcrhFracSize > 200000)  // DeclsForKernels.h maxPFCFracs
         printf("At the end of topoClusterContraction, found large *pcrhFracSize = %d\n", *pcrhFracSize);
@@ -1668,7 +1663,7 @@ namespace PFClusterCudaHCAL {
         nRH,
         inputPFRecHits.pfrh_energy.get(),
         inputPFRecHits.pfrh_x.get(),
-        inputPFRecHits.pfrh_y.get(), 
+        inputPFRecHits.pfrh_y.get(),
         inputPFRecHits.pfrh_z.get(),
         outputGPU.pfrh_isSeed.get(),
         outputGPU.pfrh_topoId.get(),
@@ -1737,15 +1732,10 @@ namespace PFClusterCudaHCAL {
                                                       outputGPU.topoSeedList.get(),
                                                       outputGPU.pcrh_fracInd.get(),
                                                       outputGPU.pcrh_frac.get(),
-                                                      outputGPU.pcrhFracSize.get(),
-                                                      scratchGPU.nTopoId.get());
+                                                      outputGPU.pcrhFracSize.get());
 
     dim3 grid((nRH + 31) / 32, (nRH + 31) / 32);
     dim3 block(32, 32);
-
-    typeof(nTopo) h_nTopo;
-
-    cudaCheck(cudaMemcpyFromSymbolAsync(&h_nTopo, nTopo, sizeof(int), 0, cudaMemcpyDeviceToHost, cudaStream));
 
     fillRhfIndex<<<grid, block, 0, cudaStream>>>(nRH,
                                                  outputGPU.pfrh_topoId.get(),
@@ -1756,7 +1746,7 @@ namespace PFClusterCudaHCAL {
                                                  scratchGPU.rhcount.get(),
                                                  outputGPU.pcrh_fracInd.get());
 
-    hcalFastCluster_selection<<<nRH, threadsPerBlock, 0, cudaStream>>>(pfClusParams.const_view(),
+    hcalFastCluster_selection<<<nRH, 256, 0, cudaStream>>>(pfClusParams.const_view(),
                                                            nRH,
                                                            inputPFRecHits.pfrh_x.get(),
                                                            inputPFRecHits.pfrh_y.get(),

@@ -1,8 +1,0 @@
-#ifndef RecoParticleFlow_PFRecHitProducer_interface_JobConfigurationAlpakaRecord_h
-#define RecoParticleFlow_PFRecHitProducer_interface_JobConfigurationAlpakaRecord_h
-
-#include "FWCore/Framework/interface/EventSetupRecordImplementation.h"
-
-class JobConfigurationAlpakaRecord : public edm::eventsetup::EventSetupRecordImplementation<JobConfigurationAlpakaRecord> {};
-
-#endif  // RecoParticleFlow_PFRecHitProducer_interface_JobConfigurationAlpakaRecord_h
