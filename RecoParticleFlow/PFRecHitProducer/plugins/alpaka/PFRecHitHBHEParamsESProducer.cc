@@ -10,22 +10,15 @@
 #include "RecoParticleFlow/PFRecHitProducer/interface/JobConfigurationAlpakaRecord.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitHBHEParamsAlpakaESData.h"
 
+#include <array>
+
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFRecHitHBHEParamsESProducer : public ESProducer {
   public:
     PFRecHitHBHEParamsESProducer(edm::ParameterSet const& iConfig) :
-        energyThresholdsHB_(iConfig.getParameter<std::vector<double>>("energyThresholdsHB")),
-        energyThresholdsHE_(iConfig.getParameter<std::vector<double>>("energyThresholdsHE")) {
-
-      if (energyThresholdsHB_.size() != kMaxDepthHB) {
-        throw cms::Exception("InvalidConfiguration") << "\"energyThresholdsHB\" must be a cms.vdouble() of size " << kMaxDepthHB;
-      }
-
-      if (energyThresholdsHE_.size() != kMaxDepthHE) {
-        throw cms::Exception("InvalidConfiguration") << "\"energyThresholdsHE\" must be a cms.vdouble() of size " << kMaxDepthHE;
-      }
-
+        energyThresholdsHB_(iConfig.getParameter<std::array<double, kMaxDepthHB>>("energyThresholdsHB")),
+        energyThresholdsHE_(iConfig.getParameter<std::array<double, kMaxDepthHE>>("energyThresholdsHE")) {
       setWhatProduced(this);
     }
 
@@ -52,8 +45,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     constexpr static uint8_t kMaxDepthHB = 4;
     constexpr static uint8_t kMaxDepthHE = 7;
 
-    std::vector<double> energyThresholdsHB_;
-    std::vector<double> energyThresholdsHE_;
+    std::array<double, kMaxDepthHB> energyThresholdsHB_;
+    std::array<double, kMaxDepthHE> energyThresholdsHE_;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
