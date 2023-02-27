@@ -137,22 +137,16 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   auto const& PFRecHits = ctx.get(PFRecHitsProduct);
   auto cudaStream = ctx.stream();
 
-  outputCPU.allocate(cudaConfig_, cudaStream);
-  outputGPU.allocate(cudaConfig_, cudaStream);
-  scratchGPU.allocate(cudaConfig_, cudaStream);
-
   nRH_ = PFRecHits.size;
   if (nRH_ == 0)
     return;
   if (nRH_ > 4000)
     std::cout << "nRH(PFRecHitSize)>4000: " << nRH_ << std::endl;
 
-  const int numbytes_int = nRH_ * sizeof(int);
+  // Allocate scratchGPU data
+  scratchGPU.allocate(cudaConfig_, nRH_, cudaStream);
 
   float kernelTimers[8] = {0.0};
-
-  // if (cudaStreamQuery(cudaStream) != cudaSuccess)
-  //   cudaCheck(cudaStreamSynchronize(cudaStream));
 
   auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(cudaStream);
 
@@ -166,6 +160,8 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   //
   // --- Data transfers for array
   //
+
+  outputCPU.allocate(nRH_, cudaStream);
 
   // Data transfer from GPU
   if (cudaStreamQuery(cudaStream) != cudaSuccess)
@@ -187,9 +183,15 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   // Total size of allocated rechit fraction arrays (includes some extra padding for rechits that don't end up passing cuts)
   const Int_t nFracs = outputCPU.pcrhFracSize[0];
 
+  // allocate outputCPU - will go away soon and we will use tmpPFClusters + OutputPFClusterSoA_Token_ + outputGPU2.PFClusters
+  outputCPU.allocate_rhfrac(nRHFracs_h, cudaStream);
+  // CPU side
+
   //
-  // --- Traditional ones from Mark
+  // --- Traditional SoA from Mark
   //
+
+  const int numbytes_int = nRH_ * sizeof(int);
 
   cudaCheck(cudaMemcpyAsync(
       outputCPU.topoSeedCount.get(), outputGPU.topoSeedCount.get(), numbytes_int, cudaMemcpyDeviceToHost, cudaStream));
@@ -220,7 +222,7 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   //   cudaCheck(cudaStreamSynchronize(cudaStream));
 
   //
-  // --- Newer SoA
+  // --- Newer SoA with proper length
   //
 
   // --- SoA transfers -----
