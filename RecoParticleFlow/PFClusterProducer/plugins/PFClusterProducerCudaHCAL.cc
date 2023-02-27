@@ -23,6 +23,7 @@
 #include "FWCore/Utilities/interface/ESInputTag.h"
 #include "HeterogeneousCore/CUDACore/interface/ScopedContext.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/copyAsync.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFCPositionCalculatorBase.h"
@@ -167,9 +168,6 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   if (cudaStreamQuery(cudaStream) != cudaSuccess)
     cudaCheck(cudaStreamSynchronize(cudaStream));
 
-  cudaCheck(cudaMemcpyAsync(
-      outputCPU.pcrhFracSize.get(), outputGPU.pcrhFracSize.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
-
   int nTopos_h;
   int nSeeds_h;
   int nRHFracs_h;
@@ -177,49 +175,30 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   cudaCheck(cudaMemcpyAsync(&nSeeds_h, scratchGPU.nSeeds.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
   cudaCheck(cudaMemcpyAsync(&nRHFracs_h, scratchGPU.nRHFracs.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
 
+  cms::cuda::copyAsync(outputCPU.pcrhFracSize, outputGPU.pcrhFracSize, 1, cudaStream);
+
   if (cudaStreamQuery(cudaStream) != cudaSuccess)
     cudaCheck(cudaStreamSynchronize(cudaStream));
 
   // Total size of allocated rechit fraction arrays (includes some extra padding for rechits that don't end up passing cuts)
   const Int_t nFracs = outputCPU.pcrhFracSize[0];
+  // same as
 
   // allocate outputCPU - will go away soon and we will use tmpPFClusters + OutputPFClusterSoA_Token_ + outputGPU2.PFClusters
   outputCPU.allocate_rhfrac(nRHFracs_h, cudaStream);
-  // CPU side
+  // CPU side nRHFracs_h. Keep both for now.
 
   //
   // --- Traditional SoA from Mark
   //
 
-  const int numbytes_int = nRH_ * sizeof(int);
-
-  cudaCheck(cudaMemcpyAsync(
-      outputCPU.topoSeedCount.get(), outputGPU.topoSeedCount.get(), numbytes_int, cudaMemcpyDeviceToHost, cudaStream));
-
-  cudaCheck(cudaMemcpyAsync(
-      outputCPU.topoRHCount.get(), outputGPU.topoRHCount.get(), numbytes_int, cudaMemcpyDeviceToHost, cudaStream));
-
-  cudaCheck(cudaMemcpyAsync(outputCPU.seedFracOffsets.get(),
-                            outputGPU.seedFracOffsets.get(),
-                            numbytes_int,
-                            cudaMemcpyDeviceToHost,
-                            cudaStream));
-
-  cudaCheck(cudaMemcpyAsync(outputCPU.pcrh_fracInd.get(),
-                            outputGPU.pcrh_fracInd.get(),
-                            sizeof(int) * nFracs,
-                            cudaMemcpyDeviceToHost,
-                            cudaStream));
-
-  cudaCheck(cudaMemcpyAsync(
-      outputCPU.pcrh_frac.get(), outputGPU.pcrh_frac.get(), sizeof(float) * nFracs, cudaMemcpyDeviceToHost, cudaStream));
-  cudaCheck(cudaMemcpyAsync(
-      outputCPU.pfrh_isSeed.get(), outputGPU.pfrh_isSeed.get(), numbytes_int, cudaMemcpyDeviceToHost, cudaStream));
-  cudaCheck(cudaMemcpyAsync(
-      outputCPU.pfrh_topoId.get(), outputGPU.pfrh_topoId.get(), numbytes_int, cudaMemcpyDeviceToHost, cudaStream));
-
-  // if (cudaStreamQuery(cudaStream) != cudaSuccess)
-  //   cudaCheck(cudaStreamSynchronize(cudaStream));
+  cms::cuda::copyAsync(outputCPU.topoSeedCount, outputGPU.topoSeedCount, nRH_, cudaStream);
+  cms::cuda::copyAsync(outputCPU.topoRHCount, outputGPU.topoRHCount, nRH_, cudaStream);
+  cms::cuda::copyAsync(outputCPU.seedFracOffsets, outputGPU.seedFracOffsets, nRH_, cudaStream);
+  cms::cuda::copyAsync(outputCPU.pfrh_isSeed, outputGPU.pfrh_isSeed, nRH_, cudaStream);
+  cms::cuda::copyAsync(outputCPU.pfrh_topoId, outputGPU.pfrh_topoId, nRH_, cudaStream);
+  cms::cuda::copyAsync(outputCPU.pcrh_fracInd, outputGPU.pcrh_fracInd, nRHFracs_h, cudaStream);
+  cms::cuda::copyAsync(outputCPU.pcrh_frac, outputGPU.pcrh_frac, nRHFracs_h, cudaStream);
 
   //
   // --- Newer SoA with proper length
@@ -227,18 +206,9 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
 
   // --- SoA transfers -----
   // Copy back PFCluster SoA data to CPU
-  /*
-  auto lambdaToTransferSize = [&ctx](auto& dest, auto* src, auto size) {
-    using vector_type = typename std::remove_reference<decltype(dest)>::type;
-    using src_data_type = typename std::remove_pointer<decltype(src)>::type;
-    using type = typename vector_type::value_type;
-    static_assert(std::is_same<src_data_type, type>::value && "Dest and Src data types do not match");
-    cudaCheck(cudaMemcpyAsync(dest.data(), src, size * sizeof(type), cudaMemcpyDeviceToHost, ctx.stream()));
-  };
-  */
 
-  // tmpPFClusters.resize(10);
-  // tmpPFClusters.resizeRecHitFrac(nFracs);
+  tmpPFClusters.resize(nSeeds_h);
+  tmpPFClusters.resizeRecHitFrac(nFracs);
   //lambdaToTransferSize(tmpPFClusters.pfc_rhfrac, outputGPU.pcrh_fracInd.get(), nFracs);
 }
 
