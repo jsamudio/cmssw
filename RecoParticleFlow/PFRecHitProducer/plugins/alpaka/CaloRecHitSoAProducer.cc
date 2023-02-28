@@ -15,22 +15,19 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class CaloRecHitSoAProducer : public global::EDProducer<> {
   public:
-    CaloRecHitSoAProducer(edm::ParameterSet const& config) :
-      recHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
-      deviceToken(produces())
-    {}
+    CaloRecHitSoAProducer(edm::ParameterSet const& config)
+        : recHitsToken(consumes(config.getParameter<edm::InputTag>("src"))), deviceToken(produces()) {}
 
     void produce(edm::StreamID sid, device::Event& event, device::EventSetup const&) const override {
       const edm::SortedCollection<HBHERecHit>& recHits = event.get(recHitsToken);
       const int32_t num_recHits = recHits.size();
-      if(DEBUG)
+      if (DEBUG)
         printf("Found %d recHits\n", num_recHits);
 
       CaloRecHitHostCollection hostProduct{num_recHits, event.queue()};
       auto& view = hostProduct.view();
 
-      for(int i = 0; i < num_recHits; i++)
-      {
+      for (int i = 0; i < num_recHits; i++) {
         const HBHERecHit& rh = recHits[i];
         view[i].detId() = rh.id().rawId();
         view[i].energy() = rh.energy();

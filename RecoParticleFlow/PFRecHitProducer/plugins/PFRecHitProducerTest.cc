@@ -24,11 +24,12 @@ public:
   PFRecHitProducerTest(edm::ParameterSet const& conf);
   ~PFRecHitProducerTest() override;
   void analyze(edm::Event const& e, edm::EventSetup const& c) override;
-  void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override {};
+  void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override{};
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  void DumpEvent(const reco::PFRecHitCollection& pfRecHitsCPU, const PFRecHitHostCollection::ConstView& pfRecHitsAlpaka);
+  void DumpEvent(const reco::PFRecHitCollection& pfRecHitsCPU,
+                 const PFRecHitHostCollection::ConstView& pfRecHitsAlpaka);
 
   edm::EDGetTokenT<edm::SortedCollection<HBHERecHit>> recHitsToken;
   edm::EDGetTokenT<reco::PFRecHitCollection> pfRecHitsTokenCPU;
@@ -42,8 +43,7 @@ PFRecHitProducerTest::PFRecHitProducerTest(const edm::ParameterSet& conf)
       pfRecHitsTokenCPU(
           consumes<reco::PFRecHitCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceCPU"))),
       pfRecHitsTokenAlpaka(
-          consumes<PFRecHitHostCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceAlpaka")))
-     {}
+          consumes<PFRecHitHostCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceAlpaka"))) {}
 
 PFRecHitProducerTest::~PFRecHitProducerTest() {
   printf("PFRecHitProducerTest has compared %u events and found %u problems\n", num_events, num_errors);
@@ -63,40 +63,35 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
   edm::Handle<PFRecHitHostCollection> pfRecHitsAlpakaSoA;
   event.getByToken(pfRecHitsTokenCPU, pfRecHitsCPUlegacy);
   event.getByToken(pfRecHitsTokenAlpaka, pfRecHitsAlpakaSoA);
-  
+
   const reco::PFRecHitCollection& pfRecHitsCPU = *pfRecHitsCPUlegacy;
   const PFRecHitHostCollection::ConstView& pfRecHitsAlpaka = pfRecHitsAlpakaSoA->const_view();
 
   bool error = false;
-  if(pfRecHitsCPU.size() != pfRecHitsAlpaka.size())
+  if (pfRecHitsCPU.size() != pfRecHitsAlpaka.size())
     error = true;
-  else
-  {
-    for (size_t i = 0; i < pfRecHitsCPU.size(); i++)
-    {
+  else {
+    for (size_t i = 0; i < pfRecHitsCPU.size(); i++) {
       const uint32_t detId = pfRecHitsCPU[i].detId();
       bool detId_found = false;
-      for (size_t j = 0; j < pfRecHitsAlpaka.size(); j++)
-      {
-        if(detId == pfRecHitsAlpaka[j].detId())
-        {
-          if(detId_found)
+      for (size_t j = 0; j < pfRecHitsAlpaka.size(); j++) {
+        if (detId == pfRecHitsAlpaka[j].detId()) {
+          if (detId_found)
             error = true;
           detId_found = true;
-          if(pfRecHitsCPU[i].depth() != pfRecHitsAlpaka[j].depth()
-            || pfRecHitsCPU[i].layer() != pfRecHitsAlpaka[j].layer()
-            || pfRecHitsCPU[i].time() != pfRecHitsAlpaka[j].time()
-            || pfRecHitsCPU[i].energy() != pfRecHitsAlpaka[j].energy())
+          if (pfRecHitsCPU[i].depth() != pfRecHitsAlpaka[j].depth() ||
+              pfRecHitsCPU[i].layer() != pfRecHitsAlpaka[j].layer() ||
+              pfRecHitsCPU[i].time() != pfRecHitsAlpaka[j].time() ||
+              pfRecHitsCPU[i].energy() != pfRecHitsAlpaka[j].energy())
             error = true;
         }
-        if(!detId_found)
+        if (!detId_found)
           error = true;
       }
     }
   }
 
-  if(error)
-  {
+  if (error) {
     //if(num_errors == 0)
     //  DumpEvent(pfRecHitsCPU, pfRecHitsAlpaka);
     num_errors++;
@@ -104,7 +99,8 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
   num_events++;
 }
 
-void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCPU, const PFRecHitHostCollection::ConstView& pfRecHitsAlpaka) {
+void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCPU,
+                                     const PFRecHitHostCollection::ConstView& pfRecHitsAlpaka) {
   printf("Found %zd/%d pfRecHits with CPU/Alpaka\n", pfRecHitsCPU.size(), pfRecHitsAlpaka.size());
   for (size_t i = 0; i < pfRecHitsCPU.size(); i++)
     printf("CPU %4lu %u %d %d %u : %f %f (%f,%f,%f)\n",
@@ -125,7 +121,7 @@ void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCP
            pfRecHitsAlpaka[i].detId(),
            pfRecHitsAlpaka[i].depth(),
            pfRecHitsAlpaka[i].layer(),
-           -1,//pfRecHitsAlpaka[i].neighbours().size(),
+           -1,  //pfRecHitsAlpaka[i].neighbours().size(),
            pfRecHitsAlpaka[i].time(),
            pfRecHitsAlpaka[i].energy(),
            0.,  //pfRecHitsGPU->at(i).position().x(),
