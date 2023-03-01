@@ -69,6 +69,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       auto const denseIdMin = *std::min_element(denseIds.begin(), denseIds.end());
       auto const productSize = denseIdMax - denseIdMin + 1;
 
+      logDebug() << "denseIdMax = " << denseIdMax;
+      logDebug() << "denseIdMin = " << denseIdMin;
       logDebug() << "denseIds.size() = " << denseIds.size();
       logDebug() << "productSize = " << productSize;
 

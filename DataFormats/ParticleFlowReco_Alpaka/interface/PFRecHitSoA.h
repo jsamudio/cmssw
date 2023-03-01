@@ -18,6 +18,9 @@ GENERATE_SOA_LAYOUT(PFRecHitSoALayout,
   SOA_COLUMN(int, depth),
   SOA_COLUMN(PFLayer::Layer, layer),
   SOA_EIGEN_COLUMN(Vec8, neighbours),
+  SOA_COLUMN(float, x),
+  SOA_COLUMN(float, y),
+  SOA_COLUMN(float, z),
   SOA_SCALAR(uint32_t, size)
 )
 

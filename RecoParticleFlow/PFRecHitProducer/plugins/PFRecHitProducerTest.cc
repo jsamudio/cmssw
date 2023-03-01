@@ -97,6 +97,9 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
     }
   }
 
+  //if(num_events == 0)
+  //  DumpEvent(pfRecHitsCPU, pfRecHitsAlpaka);
+
   if(error)
   {
     // When enabling this, need to set number of threads to 1 to get useful output
@@ -118,9 +121,9 @@ void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCP
            pfRecHitsCPU[i].neighbours().size(),
            pfRecHitsCPU[i].time(),
            pfRecHitsCPU[i].energy(),
-           0.,  //pfRecHitsCPU[i].position().x(),
-           0.,  //pfRecHitsCPU[i].position().y(),
-           0.   //pfRecHitsCPU[i].position().z()
+           pfRecHitsCPU[i].position().x(),
+           pfRecHitsCPU[i].position().y(),
+           pfRecHitsCPU[i].position().z()
     );
   for (size_t i = 0; i < pfRecHitsAlpaka.size(); i++)
     printf("Alpaka %4lu %u %d %d %u : %f %f (%f,%f,%f)\n",
@@ -131,9 +134,9 @@ void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCP
            -1,//pfRecHitsAlpaka[i].neighbours().size(),
            pfRecHitsAlpaka[i].time(),
            pfRecHitsAlpaka[i].energy(),
-           0.,  //pfRecHitsGPU->at(i).position().x(),
-           0.,  //pfRecHitsGPU->at(i).position().y(),
-           0.   //pfRecHitsGPU->at(i).position().z()
+           pfRecHitsAlpaka[i].x(),
+           pfRecHitsAlpaka[i].y(),
+           pfRecHitsAlpaka[i].z()
     );
 }
 

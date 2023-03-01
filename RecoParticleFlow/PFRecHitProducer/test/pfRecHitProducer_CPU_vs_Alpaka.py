@@ -201,16 +201,22 @@ process.jobConfAlpakaRcdESSource = cms.ESSource('EmptyESSource',
     iovIsRunNotTime = cms.bool(True),
     firstValid = cms.vuint32(1)
 )
+process.pfRecHitHBHETopologyAlpakaESRcdESSource = cms.ESSource('EmptyESSource',
+  recordName = cms.string('PFRecHitHBHETopologyAlpakaESRcd'),
+  iovIsRunNotTime = cms.bool(True),
+  firstValid = cms.vuint32(1)
+)
 process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitHBHEParamsESProducer",
     energyThresholdsHB = cms.vdouble( 0.1, 0.2, 0.3, 0.3 ),
     energyThresholdsHE = cms.vdouble( 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 )
 )
-#process.pfRecHitHBHETopologyESProducer cms.ESProducer(alpaka_backend_str % "PFRecHitHBHETopologyESProducer",
-#    hcalEnums = cms.vint32(1, 2)
-#)
+process.hltParticleFlowRecHitTopologyESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitHBHETopologyESProducer",
+    hcalEnums = cms.vint32(1, 2)
+)
 process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpaka",
     src = cms.InputTag("hltParticleFlowRecHitToSoA"),
-    params = cms.ESInputTag("hltParticleFlowRecHitParamsESProducer:")
+    params = cms.ESInputTag("hltParticleFlowRecHitParamsESProducer:"),
+    topology = cms.ESInputTag("hltParticleFlowRecHitTopologyESProducer:")
 )
 
 # Compare legacy PFRecHits to PFRecHitsSoA
