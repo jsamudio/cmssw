@@ -17,27 +17,29 @@ namespace hcal {
     PFClusterCollection& operator=(PFClusterCollection&&) = default;
 
     typename StoragePolicy::template StorageSelector<int>::type pfc_depth;
-    typename StoragePolicy::template StorageSelector<int>::type pfc_seedIdx;
+    typename StoragePolicy::template StorageSelector<int>::type pfc_seedRHIdx;
+    typename StoragePolicy::template StorageSelector<int>::type pfc_topoId;
     typename StoragePolicy::template StorageSelector<int>::type pfc_rhfracOffset;
     typename StoragePolicy::template StorageSelector<int>::type pfc_rhfracSize;
 
-    typename StoragePolicy::template StorageSelector<float>::type pfc_time;
+    //typename StoragePolicy::template StorageSelector<float>::type pfc_time;
     typename StoragePolicy::template StorageSelector<float>::type pfc_energy;
     typename StoragePolicy::template StorageSelector<float>::type pfc_x;
     typename StoragePolicy::template StorageSelector<float>::type pfc_y;
     typename StoragePolicy::template StorageSelector<float>::type pfc_z;
 
-    typename StoragePolicy::template StorageSelector<int>::type pfc_rhfrac;
+    typename StoragePolicy::template StorageSelector<float>::type pfc_rhfrac;
     typename StoragePolicy::template StorageSelector<int>::type pfc_rhfracIdx;
 
     template <typename U = typename StoragePolicy::TagType>
     typename std::enable_if<std::is_same<U, ::pf::common::tags::Vec>::value, void>::type resize(size_t size) {
       pfc_depth.resize(size);
-      pfc_seedIdx.resize(size);
+      pfc_seedRHIdx.resize(size);
+      pfc_topoId.resize(size);
       pfc_rhfracOffset.resize(size);
       pfc_rhfracSize.resize(size);
 
-      pfc_time.resize(size);
+      //pfc_time.resize(size);
       pfc_energy.resize(size);
       pfc_x.resize(size);
       pfc_y.resize(size);
