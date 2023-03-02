@@ -149,11 +149,12 @@ namespace PFClustering {
 
       void allocate(size_t Num_clusters, cudaStream_t cudaStream) {
         PFClusters.pfc_depth = cms::cuda::make_device_unique<int[]>(Num_clusters, cudaStream);
-        PFClusters.pfc_seedIdx = cms::cuda::make_device_unique<int[]>(Num_clusters, cudaStream);
+        PFClusters.pfc_seedRHIdx = cms::cuda::make_device_unique<int[]>(Num_clusters, cudaStream);
+        PFClusters.pfc_topoId = cms::cuda::make_device_unique<int[]>(Num_clusters, cudaStream);
         PFClusters.pfc_rhfracOffset = cms::cuda::make_device_unique<int[]>(Num_clusters, cudaStream);
-        PFClusters.pfc_rhfracSize = cms::cuda::make_device_unique<int[]>(Num_clusters * 8, cudaStream);
+        PFClusters.pfc_rhfracSize = cms::cuda::make_device_unique<int[]>(Num_clusters, cudaStream);
 
-        PFClusters.pfc_time = cms::cuda::make_device_unique<float[]>(Num_clusters, cudaStream);
+        //PFClusters.pfc_time = cms::cuda::make_device_unique<float[]>(Num_clusters, cudaStream);
         PFClusters.pfc_energy = cms::cuda::make_device_unique<float[]>(Num_clusters, cudaStream);
         PFClusters.pfc_x = cms::cuda::make_device_unique<float[]>(Num_clusters, cudaStream);
         PFClusters.pfc_y = cms::cuda::make_device_unique<float[]>(Num_clusters, cudaStream);
@@ -161,7 +162,7 @@ namespace PFClustering {
       }
 
       void allocate_rhfrac(size_t Num_recHitFracs, cudaStream_t cudaStream) {
-        PFClusters.pfc_rhfrac = cms::cuda::make_device_unique<int[]>(Num_recHitFracs, cudaStream);
+        PFClusters.pfc_rhfrac = cms::cuda::make_device_unique<float[]>(Num_recHitFracs, cudaStream);
         PFClusters.pfc_rhfracIdx = cms::cuda::make_device_unique<int[]>(Num_recHitFracs, cudaStream);
       }
     };
@@ -270,6 +271,7 @@ namespace PFClustering {
       cms::cuda::device::unique_ptr<int[]> topoIds;
       cms::cuda::device::unique_ptr<int> nRHFracs;
       cms::cuda::device::unique_ptr<int> nSeeds;
+      cms::cuda::device::unique_ptr<int[]> rhIdxToSeedIdx;
 
       cms::cuda::device::unique_ptr<float[]> pcrh_fracSum;
       cms::cuda::device::unique_ptr<float4[]> pfc_prevPos4;
@@ -290,6 +292,7 @@ namespace PFClustering {
         topoIds = cms::cuda::make_device_unique<int[]>(nRH, cudaStream);
         nSeeds = cms::cuda::make_device_unique<int>(cudaStream);
         nRHFracs = cms::cuda::make_device_unique<int>(cudaStream);
+        rhIdxToSeedIdx = cms::cuda::make_device_unique<int[]>(nRH, cudaStream);
 
         pcrh_fracSum = cms::cuda::make_device_unique<float[]>(nRH, cudaStream);
         pfc_prevPos4 = cms::cuda::make_device_unique<float4[]>(nRH, cudaStream);
