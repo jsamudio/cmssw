@@ -1804,17 +1804,21 @@ namespace PFClusterCudaHCAL {
 
     int nTopos_h;
     int nSeeds_h;
-    int nRHTopo_h;
+    int nRHTopo_h[nRH];
+    int nSeedsTopo_h[nRH];
     int nRHFracs_h;
     cudaCheck(cudaMemcpyAsync(&nTopos_h, scratchGPU.nTopos.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
     cudaCheck(cudaMemcpyAsync(&nSeeds_h, scratchGPU.nSeeds.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
-    cudaCheck(
-        cudaMemcpyAsync(&nRHTopo_h, outputGPU.topoRHCount.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
+    cudaCheck(cudaMemcpyAsync(&nRHTopo_h, outputGPU.topoRHCount.get(), nRH*sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
+    cudaCheck(cudaMemcpyAsync(&nSeedsTopo_h, outputGPU.topoSeedCount.get(), nRH*sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
     cudaCheck(cudaMemcpyAsync(&nRHFracs_h, scratchGPU.nRHFracs.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
+
+    int nRHTopoMax = *std::max_element(nRHTopo_h, nRHTopo_h + (nRH-1));
+    int nSeedsTopoMax = *std::max_element(nSeedsTopo_h, nSeedsTopo_h + (nRH-1));
+    //printf("rhmax: %d\n\nseedmax: %d\n\n", nRHTopoMax, nSeedsTopoMax);
 
     // Now we know the number of PFClusters accurately. Also, we have max total RecHitFractions (which reduces further at the end).
     outputGPU2.allocate((uint32_t)nSeeds_h, cudaStream);
-    outputGPU2.allocate((uint32_t)nRHTopo_h, cudaStream);
     outputGPU2.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
     outputGPU.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
 
@@ -1832,13 +1836,19 @@ namespace PFClusterCudaHCAL {
                                                  outputGPU.pcrh_fracInd.get(),
                                                  outputGPU.pcrh_frac.get());
 
+    int sharedMem =
+        nSeedsTopoMax*sizeof(float4)+
+        nSeedsTopoMax*sizeof(float4)+
+        nSeedsTopoMax*sizeof(float)+
+        (nRHTopoMax-nSeedsTopoMax)*sizeof(float)+
+        nSeedsTopoMax*sizeof(int)+
+        (nRHTopoMax-nSeedsTopoMax)*sizeof(int);
+    printf("shared memory: %d\n vs.\n nSeedsMem: %d\n", sharedMem, memSize);
     // grid -> topo cluster
     // thread -> pfrechits in each topo cluster
     hcalFastCluster_selection<<<nTopos_h,
                                 threadsPerBlock,
-                                nSeeds_h * sizeof(float4) + nSeeds_h * sizeof(float4) + nSeeds_h * sizeof(float) +
-                                    (nRHTopo_h - nSeeds_h) * sizeof(float) + nSeeds_h * sizeof(int) +
-                                    (nRHTopo_h - nSeeds_h) * sizeof(int),
+                                sharedMem,
                                 cudaStream>>>(pfClusParams.const_view(),
                                               nRH,
                                               inputPFRecHits.pfrh_x.get(),
