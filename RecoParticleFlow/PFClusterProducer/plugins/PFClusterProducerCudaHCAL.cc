@@ -50,9 +50,12 @@ private:
   void acquire(edm::Event const&, edm::EventSetup const&, edm::WaitingTaskWithArenaHolder) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
 
-  edm::EDGetTokenT<cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>> InputPFRecHitSoA_Token_;
-  edm::EDPutTokenT<cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>>
-      OutputPFClusterSoA_Token_;
+  //edm::EDGetTokenT<cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>> InputPFRecHitSoA_Token_;
+  using IProductType = cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>;
+  edm::EDGetTokenT<IProductType> InputPFRecHitSoA_Token_;
+  //edm::EDPutTokenT<cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>>
+  using OProductType = cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>;
+  edm::EDPutTokenT<OProductType> OutputPFClusterSoA_Token_;
 
   edm::ESGetToken<PFClusteringParamsGPU, JobConfigurationGPURecord> const pfClusParamsToken_;
 
@@ -77,6 +80,7 @@ private:
 
 PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& conf)
     : InputPFRecHitSoA_Token_{consumes(conf.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
+      OutputPFClusterSoA_Token_{produces<OProductType>(conf.getParameter<std::string>("PFClustersGPUOut"))},
       pfClusParamsToken_{esConsumes(conf.getParameter<edm::ESInputTag>("pfClusteringParameters"))},
       _produceSoA{conf.getParameter<bool>("produceSoA")},
       _produceLegacy{conf.getParameter<bool>("produceLegacy")},
@@ -134,7 +138,7 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   //cms::cuda::ScopedContextAcquire ctx{event.streamID(), std::move(holder), cudaState_};
   //cms::cuda::ScopedContextAcquire ctx{event.streamID(), std::move(holder)};
   auto const& PFRecHitsProduct = event.get(InputPFRecHitSoA_Token_);
-  cms::cuda::ScopedContextAcquire ctx{PFRecHitsProduct, std::move(holder)};
+  cms::cuda::ScopedContextAcquire ctx{PFRecHitsProduct, std::move(holder), cudaState_};
   auto const& PFRecHits = ctx.get(PFRecHitsProduct);
   auto cudaStream = ctx.stream();
 
@@ -231,11 +235,11 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
 }
 
 void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup& setup) {
-  /*
   cms::cuda::ScopedContextProduce ctx{cudaState_};
   if (_produceSoA)
-    ctx.emplace(event, OutputPFClusterSoA_Token_, std::move(outputGPU2.PFClusters)); // SoA "PFClusters" still need to be defined.
-  */
+    ctx.emplace(event,
+                OutputPFClusterSoA_Token_,
+                std::move(outputGPU2.PFClusters));  // SoA "PFClusters" still need to be defined.
 
   if (_produceLegacy) {
     auto pfClustersFromCuda = std::make_unique<reco::PFClusterCollection>();
