@@ -1843,7 +1843,6 @@ namespace PFClusterCudaHCAL {
         (nRHTopoMax-nSeedsTopoMax)*sizeof(float)+
         nSeedsTopoMax*sizeof(int)+
         (nRHTopoMax-nSeedsTopoMax)*sizeof(int);
-    printf("shared memory: %d\n vs.\n nSeedsMem: %d\n", sharedMem, memSize);
     // grid -> topo cluster
     // thread -> pfrechits in each topo cluster
     hcalFastCluster_selection<<<nTopos_h,
