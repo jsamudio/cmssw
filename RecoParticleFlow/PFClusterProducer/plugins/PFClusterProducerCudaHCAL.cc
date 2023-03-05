@@ -186,11 +186,9 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
 
   // Total size of allocated rechit fraction arrays (includes some extra padding for rechits that don't end up passing cuts)
   const Int_t nFracs = outputCPU.pcrhFracSize[0];
-  // same as
 
   // allocate outputCPU - will go away soon and we will use tmpPFClusters + OutputPFClusterSoA_Token_ + outputGPU2.PFClusters
-  outputCPU.allocate_rhfrac(nRHFracs_h, cudaStream);
-  // CPU side nRHFracs_h. Keep both for now.
+  outputCPU.allocate_rhfrac(nFracs, cudaStream);
 
   //
   // --- Traditional SoA from Mark
@@ -201,8 +199,8 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   cms::cuda::copyAsync(outputCPU.seedFracOffsets, outputGPU.seedFracOffsets, nRH_, cudaStream);
   cms::cuda::copyAsync(outputCPU.pfrh_isSeed, outputGPU.pfrh_isSeed, nRH_, cudaStream);
   cms::cuda::copyAsync(outputCPU.pfrh_topoId, outputGPU.pfrh_topoId, nRH_, cudaStream);
-  cms::cuda::copyAsync(outputCPU.pcrh_fracInd, outputGPU.pcrh_fracInd, nRHFracs_h, cudaStream);
-  cms::cuda::copyAsync(outputCPU.pcrh_frac, outputGPU.pcrh_frac, nRHFracs_h, cudaStream);
+  cms::cuda::copyAsync(outputCPU.pcrh_fracInd, outputGPU.pcrh_fracInd, nFracs, cudaStream);
+  cms::cuda::copyAsync(outputCPU.pcrh_frac, outputGPU.pcrh_frac, nFracs, cudaStream);
 
   //
   // --- Newer SoA with proper length
@@ -212,7 +210,7 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   // Copy back PFCluster SoA data to CPU
 
   tmpPFClusters.resize(nSeeds_h);
-  tmpPFClusters.resizeRecHitFrac(nFracs);
+  tmpPFClusters.resizeRecHitFrac(nRHFracs_h);
   auto lambdaToTransferSize = [&ctx](auto& dest, auto* src, auto size) {
     using vector_type = typename std::remove_reference<decltype(dest)>::type;
     using src_data_type = typename std::remove_pointer<decltype(src)>::type;
@@ -229,8 +227,8 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   lambdaToTransferSize(tmpPFClusters.pfc_x, outputGPU2.PFClusters.pfc_x.get(), nSeeds_h);
   lambdaToTransferSize(tmpPFClusters.pfc_y, outputGPU2.PFClusters.pfc_y.get(), nSeeds_h);
   lambdaToTransferSize(tmpPFClusters.pfc_z, outputGPU2.PFClusters.pfc_z.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfrac, outputGPU2.PFClusters.pfc_rhfrac.get(), nFracs);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfracIdx, outputGPU2.PFClusters.pfc_rhfracIdx.get(), nFracs);
+  lambdaToTransferSize(tmpPFClusters.pfc_rhfrac, outputGPU2.PFClusters.pfc_rhfrac.get(), nRHFracs_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_rhfracIdx, outputGPU2.PFClusters.pfc_rhfracIdx.get(), nRHFracs_h);
   //cms::cuda::copyAsync(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx, nSeeds_h, cudaStream);
 }
 

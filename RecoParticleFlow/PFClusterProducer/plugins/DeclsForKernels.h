@@ -269,9 +269,12 @@ namespace PFClustering {
 
       cms::cuda::device::unique_ptr<int> nTopos;
       cms::cuda::device::unique_ptr<int[]> topoIds;
+      cms::cuda::device::unique_ptr<int> nRHFracs_tmp;  // temporary value before contraction
       cms::cuda::device::unique_ptr<int> nRHFracs;
       cms::cuda::device::unique_ptr<int> nSeeds;
       cms::cuda::device::unique_ptr<int[]> rhIdxToSeedIdx;
+
+      //cms::cuda::host::unique_ptr<int[]> pcrh_fracSeedInd;
 
       cms::cuda::device::unique_ptr<float[]> pcrh_fracSum;
       cms::cuda::device::unique_ptr<float4[]> pfc_prevPos4;
@@ -291,12 +294,19 @@ namespace PFClustering {
         nTopos = cms::cuda::make_device_unique<int>(cudaStream);
         topoIds = cms::cuda::make_device_unique<int[]>(nRH, cudaStream);
         nSeeds = cms::cuda::make_device_unique<int>(cudaStream);
+        nRHFracs_tmp = cms::cuda::make_device_unique<int>(cudaStream);
         nRHFracs = cms::cuda::make_device_unique<int>(cudaStream);
         rhIdxToSeedIdx = cms::cuda::make_device_unique<int[]>(nRH, cudaStream);
 
         pcrh_fracSum = cms::cuda::make_device_unique<float[]>(nRH, cudaStream);
         pfc_prevPos4 = cms::cuda::make_device_unique<float4[]>(nRH, cudaStream);
       }
+
+      /*
+      void allocate_rhfrac(size_t Num_recHitFracs, cudaStream_t cudaStream) {
+        pcrh_fracSeedInd = cms::cuda::make_device_unique<int[]>(Num_recHitFracs, cudaStream);
+      }
+      */
     };
   }  // namespace HCAL
 
