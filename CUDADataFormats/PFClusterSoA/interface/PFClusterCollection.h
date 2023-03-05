@@ -28,8 +28,9 @@ namespace hcal {
     typename StoragePolicy::template StorageSelector<float>::type pfc_y;
     typename StoragePolicy::template StorageSelector<float>::type pfc_z;
 
-    typename StoragePolicy::template StorageSelector<float>::type pfc_rhfrac;
-    typename StoragePolicy::template StorageSelector<int>::type pfc_rhfracIdx;
+    typename StoragePolicy::template StorageSelector<float>::type pcrh_frac;
+    typename StoragePolicy::template StorageSelector<int>::type pcrh_pfrhIdx;
+    typename StoragePolicy::template StorageSelector<int>::type pcrh_pfcIdx;
 
     template <typename U = typename StoragePolicy::TagType>
     typename std::enable_if<std::is_same<U, ::pf::common::tags::Vec>::value, void>::type resize(size_t size) {
@@ -48,8 +49,9 @@ namespace hcal {
 
     template <typename U = typename StoragePolicy::TagType>
     typename std::enable_if<std::is_same<U, ::pf::common::tags::Vec>::value, void>::type resizeRecHitFrac(size_t size) {
-      pfc_rhfracIdx.resize(size);
-      pfc_rhfrac.resize(size);
+      pcrh_frac.resize(size);
+      pcrh_pfrhIdx.resize(size);
+      pcrh_pfcIdx.resize(size);
     }
 
   };  // struct PFClusterCollection

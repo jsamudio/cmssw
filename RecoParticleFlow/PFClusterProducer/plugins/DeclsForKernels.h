@@ -162,8 +162,9 @@ namespace PFClustering {
       }
 
       void allocate_rhfrac(size_t Num_recHitFracs, cudaStream_t cudaStream) {
-        PFClusters.pfc_rhfrac = cms::cuda::make_device_unique<float[]>(Num_recHitFracs, cudaStream);
-        PFClusters.pfc_rhfracIdx = cms::cuda::make_device_unique<int[]>(Num_recHitFracs, cudaStream);
+        PFClusters.pcrh_frac = cms::cuda::make_device_unique<float[]>(Num_recHitFracs, cudaStream);
+        PFClusters.pcrh_pfrhIdx = cms::cuda::make_device_unique<int[]>(Num_recHitFracs, cudaStream);
+        PFClusters.pcrh_pfcIdx = cms::cuda::make_device_unique<int[]>(Num_recHitFracs, cudaStream);
       }
     };
 
@@ -274,7 +275,7 @@ namespace PFClustering {
       cms::cuda::device::unique_ptr<int> nSeeds;
       cms::cuda::device::unique_ptr<int[]> rhIdxToSeedIdx;
 
-      //cms::cuda::host::unique_ptr<int[]> pcrh_fracSeedInd;
+      cms::cuda::device::unique_ptr<short[]> pcrh_pfcIdx;
 
       cms::cuda::device::unique_ptr<float[]> pcrh_fracSum;
       cms::cuda::device::unique_ptr<float4[]> pfc_prevPos4;
@@ -302,11 +303,9 @@ namespace PFClustering {
         pfc_prevPos4 = cms::cuda::make_device_unique<float4[]>(nRH, cudaStream);
       }
 
-      /*
       void allocate_rhfrac(size_t Num_recHitFracs, cudaStream_t cudaStream) {
-        pcrh_fracSeedInd = cms::cuda::make_device_unique<int[]>(Num_recHitFracs, cudaStream);
+        pcrh_pfcIdx = cms::cuda::make_device_unique<short[]>(Num_recHitFracs, cudaStream);
       }
-      */
     };
   }  // namespace HCAL
 

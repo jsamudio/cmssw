@@ -227,8 +227,9 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   lambdaToTransferSize(tmpPFClusters.pfc_x, outputGPU2.PFClusters.pfc_x.get(), nSeeds_h);
   lambdaToTransferSize(tmpPFClusters.pfc_y, outputGPU2.PFClusters.pfc_y.get(), nSeeds_h);
   lambdaToTransferSize(tmpPFClusters.pfc_z, outputGPU2.PFClusters.pfc_z.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfrac, outputGPU2.PFClusters.pfc_rhfrac.get(), nRHFracs_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfracIdx, outputGPU2.PFClusters.pfc_rhfracIdx.get(), nRHFracs_h);
+  lambdaToTransferSize(tmpPFClusters.pcrh_frac, outputGPU2.PFClusters.pcrh_frac.get(), nRHFracs_h);
+  lambdaToTransferSize(tmpPFClusters.pcrh_pfrhIdx, outputGPU2.PFClusters.pcrh_pfrhIdx.get(), nRHFracs_h);
+  lambdaToTransferSize(tmpPFClusters.pcrh_pfcIdx, outputGPU2.PFClusters.pcrh_pfcIdx.get(), nRHFracs_h);
   //cms::cuda::copyAsync(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx, nSeeds_h, cudaStream);
 }
 
@@ -268,9 +269,9 @@ void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup
       int offset = tmpPFClusters.pfc_rhfracOffset[i];
       for (int k = offset; k < (offset + tmpPFClusters.pfc_rhfracSize[i]);
            k++) {  // Looping over PFRecHits in the same topo cluster
-        if (tmpPFClusters.pfc_rhfracIdx[k] > -1 && tmpPFClusters.pfc_rhfrac[k] > 0.0) {
-          const reco::PFRecHitRef& refhit = reco::PFRecHitRef(rechitsHandle, tmpPFClusters.pfc_rhfracIdx[k]);
-          temp.addRecHitFraction(reco::PFRecHitFraction(refhit, tmpPFClusters.pfc_rhfrac[k]));
+        if (tmpPFClusters.pcrh_pfrhIdx[k] > -1 && tmpPFClusters.pcrh_frac[k] > 0.0) {
+          const reco::PFRecHitRef& refhit = reco::PFRecHitRef(rechitsHandle, tmpPFClusters.pcrh_pfrhIdx[k]);
+          temp.addRecHitFraction(reco::PFRecHitFraction(refhit, tmpPFClusters.pcrh_frac[k]));
         }
       }
       // Now PFRecHitFraction of this PFCluster is set. Now compute calculateAndSetPosition (energy, position etc)
