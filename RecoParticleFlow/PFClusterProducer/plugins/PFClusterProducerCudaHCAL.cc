@@ -111,7 +111,8 @@ PFClusterProducerCudaHCAL::~PFClusterProducerCudaHCAL() {}
 void PFClusterProducerCudaHCAL::fillDescriptions(edm::ConfigurationDescriptions& cdesc) {
   edm::ParameterSetDescription desc;
 
-  desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("hltParticleFlowRecHitHBHE"));
+  desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("particleFlowRecHitHBHE"));
+  desc.add<std::string>("PFClustersGPUOut", "");
   desc.add<bool>("produceSoA", true);
   desc.add<bool>("produceLegacy", true);
 
