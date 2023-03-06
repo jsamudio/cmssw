@@ -439,7 +439,6 @@ namespace PFClusterCudaHCAL {
       topoSeedOffsets[i] = -1;
       topoSeedList[i] = -1;
       pfcIter[i] = -1;
-      *nSeeds = 0;
 
       int layer = pfrh_layer[i];
       int depthOffset = pfrh_depth[i] - 1;
@@ -1413,7 +1412,7 @@ namespace PFClusterCudaHCAL {
                                          int* topoSeedList,
                                          int* pcrhFracSize,
                                          int* nRHFracs,
-                                         //int* nSeeds,
+                                         int* nSeeds,
                                          int* nTopos,
                                          int* topoIds,
                                          int* rhIdxToSeedIdx,
@@ -1423,16 +1422,17 @@ namespace PFClusterCudaHCAL {
                                          int* pfc_rhfracOffset,
                                          int* pfc_rhfracSize) {
     __shared__ int totalSeedOffset, totalSeedFracOffset;
+    // rhCount, topoRHCount, topoSeedCount initialized earlier
     if (threadIdx.x == 0) {
       *nTopos = 0;
-      //*nSeeds = 0;
       *nRHFracs = 0;
       totalSeedOffset = 0;
       totalSeedFracOffset = 0;
       *pcrhFracSize = 0;
     }
     __syncthreads();
-    // Now determine the number of seeds and rechits in each topo cluster
+    // Now determine the number of seeds and rechits in each topo cluster [topoRHCount, topoSeedCount]
+    // Also get the list of topoIds (smallest rhIdx of each topo cluser)
     for (int rhIdx = threadIdx.x; rhIdx < size; rhIdx += blockDim.x) {
       rhIdxToSeedIdx[rhIdx] = -1;
       int topoId = pfrh_parent[rhIdx];
@@ -1452,7 +1452,7 @@ namespace PFClusterCudaHCAL {
     }
     __syncthreads();
 
-    // Determine offsets for topo ID seed array
+    // Determine offsets for topo ID seed array [topoSeedOffsets]
     for (int topoId = threadIdx.x; topoId < size; topoId += blockDim.x) {
       if (topoSeedCount[topoId] > 0) {
         // This is a valid topo ID
@@ -1462,13 +1462,16 @@ namespace PFClusterCudaHCAL {
     }
     __syncthreads();
 
-    // Fill arrays of seed indicies per topo ID and seed rechit index for seed
+    // Fill arrays of rechit indicies for each seed [topoSeedList] and rhIdx->seedIdx conversion for each seed [rhIdxToSeedIdx]
+    // Also fill pfc_seedRHIdx, pfc_topoId, pfc_depth
     for (int rhIdx = threadIdx.x; rhIdx < size; rhIdx += blockDim.x) {
       int topoId = pfrh_parent[rhIdx];
       if (topoId > -1 && pfrh_isSeed[rhIdx]) {
         // Valid topo cluster and this rhIdx corresponds to a seed
         int k = atomicAdd(&rhCount[topoId], 1);
         int seedIdx = topoSeedOffsets[topoId] + k;
+        if (seedIdx >= *nSeeds)
+          printf("Warning(contraction) %8d > %8d should not happen \n", seedIdx, *nSeeds);
         topoSeedList[seedIdx] = rhIdx;
         rhIdxToSeedIdx[rhIdx] = seedIdx;
         pfc_seedRHIdx[seedIdx] = rhIdx;          // PFCluster seedIdx
@@ -1862,6 +1865,7 @@ namespace PFClusterCudaHCAL {
     outputGPU.allocate(nRH, cudaStream);
 
     // Combined seeding & topo clustering thresholds, array initialization
+    cudaCheck(cudaMemsetAsync(scratchGPU.nSeeds.get(), 0, sizeof(int), cudaStream));
     seedingTopoThreshKernel_HCAL<<<(nRH + threadsPerBlock - 1) / threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(
         pfClusParams.const_view(),
         nRH,
@@ -1895,7 +1899,6 @@ namespace PFClusterCudaHCAL {
 
     int nSeeds_h;
     cudaCheck(cudaMemcpyAsync(&nSeeds_h, scratchGPU.nSeeds.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
-    HBHEPFClusters_asOutput.allocate((uint32_t)nSeeds_h, cudaStream);
 
     // Topo clustering
     // Fill edgeIdx, edgeList arrays with rechit neighbors
@@ -1958,6 +1961,8 @@ namespace PFClusterCudaHCAL {
     cudaEventRecord(start, cudaStream);
 #endif
 
+    HBHEPFClusters_asOutput.allocate((uint32_t)nSeeds_h, cudaStream);
+
     topoClusterContraction<<<1, 512, 0, cudaStream>>>(nRH,
                                                       HBHEPFRecHits_asInput.pfrh_depth.get(),
                                                       outputGPU.pfrh_topoId.get(),
@@ -1970,6 +1975,7 @@ namespace PFClusterCudaHCAL {
                                                       outputGPU.topoSeedList.get(),
                                                       outputGPU.pcrhFracSize.get(),
                                                       scratchGPU.nRHFracs_tmp.get(),
+                                                      scratchGPU.nSeeds.get(),
                                                       scratchGPU.nTopos.get(),
                                                       scratchGPU.topoIds.get(),
                                                       scratchGPU.rhIdxToSeedIdx.get(),
