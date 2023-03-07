@@ -6,7 +6,7 @@
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFRecHitSoA.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using PFRecHitDeviceCollection = PortableCollection<PFRecHitSoA>;
+  using PFRecHitDeviceCollection = PortableCollection<reco::PFRecHitSoA>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #endif

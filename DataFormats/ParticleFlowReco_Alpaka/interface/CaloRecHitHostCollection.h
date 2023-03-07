@@ -4,6 +4,8 @@
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/CaloRecHitSoA.h"
 
-using CaloRecHitHostCollection = PortableHostCollection<CaloRecHitSoA>;
+namespace reco {
+  using CaloRecHitHostCollection = PortableHostCollection<CaloRecHitSoA>;
+}
 
 #endif

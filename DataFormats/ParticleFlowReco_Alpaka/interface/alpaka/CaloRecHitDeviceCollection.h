@@ -6,7 +6,7 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using CaloRecHitDeviceCollection = PortableCollection<CaloRecHitSoA>;
+  using CaloRecHitDeviceCollection = PortableCollection<reco::CaloRecHitSoA>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #endif

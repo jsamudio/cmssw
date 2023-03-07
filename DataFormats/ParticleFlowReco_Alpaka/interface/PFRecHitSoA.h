@@ -7,21 +7,24 @@
 
 #include "DataFormats/ParticleFlowReco/interface/PFLayer.h"
 
-using PFRecHitsNeighbours = std::array<uint32_t, 8>;
-GENERATE_SOA_LAYOUT(PFRecHitSoALayout,
-  SOA_COLUMN(uint32_t, detId),
-  SOA_COLUMN(float, energy),
-  SOA_COLUMN(float, time),
-  SOA_COLUMN(int, depth),
-  SOA_COLUMN(PFLayer::Layer, layer),
-  SOA_COLUMN(uint32_t, num_neighbours),
-  SOA_COLUMN(PFRecHitsNeighbours, neighbours),
-  SOA_COLUMN(float, x),
-  SOA_COLUMN(float, y),
-  SOA_COLUMN(float, z),
-  SOA_SCALAR(uint32_t, size)
-)
+namespace reco {
+  
+  using PFRecHitsNeighbours = std::array<uint32_t, 8>;
+  GENERATE_SOA_LAYOUT(PFRecHitSoALayout,
+    SOA_COLUMN(uint32_t, detId),
+    SOA_COLUMN(float, energy),
+    SOA_COLUMN(float, time),
+    SOA_COLUMN(int, depth),
+    SOA_COLUMN(PFLayer::Layer, layer),
+    SOA_COLUMN(uint32_t, num_neighbours),
+    SOA_COLUMN(PFRecHitsNeighbours, neighbours),
+    SOA_COLUMN(float, x),
+    SOA_COLUMN(float, y),
+    SOA_COLUMN(float, z),
+    SOA_SCALAR(uint32_t, size)
+  )
 
-using PFRecHitSoA = PFRecHitSoALayout<>;
+  using PFRecHitSoA = PFRecHitSoALayout<>;
+}
 
 #endif
