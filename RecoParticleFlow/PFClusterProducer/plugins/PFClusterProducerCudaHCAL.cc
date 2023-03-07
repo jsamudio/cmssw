@@ -50,10 +50,8 @@ private:
   void acquire(edm::Event const&, edm::EventSetup const&, edm::WaitingTaskWithArenaHolder) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
 
-  //edm::EDGetTokenT<cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>> InputPFRecHitSoA_Token_;
   using IProductType = cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>;
   edm::EDGetTokenT<IProductType> InputPFRecHitSoA_Token_;
-  //edm::EDPutTokenT<cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>>
   using OProductType = cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>;
   edm::EDPutTokenT<OProductType> OutputPFClusterSoA_Token_;
 
@@ -170,31 +168,37 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   outputCPU.allocate(nRH_, cudaStream);
 
   // Data transfer from GPU
+  /*
   if (cudaStreamQuery(cudaStream) != cudaSuccess)
     cudaCheck(cudaStreamSynchronize(cudaStream));
+  */
 
-  int nTopos_h;
+  //int nTopos_h;
   int nSeeds_h;
   int nRHFracs_h;
-  cudaCheck(cudaMemcpyAsync(&nTopos_h, scratchGPU.nTopos.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
+  //cudaCheck(cudaMemcpyAsync(&nTopos_h, scratchGPU.nTopos.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
   cudaCheck(cudaMemcpyAsync(&nSeeds_h, scratchGPU.nSeeds.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
   cudaCheck(cudaMemcpyAsync(&nRHFracs_h, scratchGPU.nRHFracs.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
 
-  cms::cuda::copyAsync(outputCPU.pcrhFracSize, outputGPU.pcrhFracSize, 1, cudaStream);
+  // cms::cuda::copyAsync(outputCPU.pcrhFracSize, outputGPU.pcrhFracSize, 1, cudaStream);
 
-  if (cudaStreamQuery(cudaStream) != cudaSuccess)
-    cudaCheck(cudaStreamSynchronize(cudaStream));
+  // const Int_t nFracs2 = outputCPU.pcrhFracSize[0];
+
+  // if (cudaStreamQuery(cudaStream) != cudaSuccess)
+  //   cudaCheck(cudaStreamSynchronize(cudaStream));
 
   // Total size of allocated rechit fraction arrays (includes some extra padding for rechits that don't end up passing cuts)
-  const Int_t nFracs = outputCPU.pcrhFracSize[0];
+  //const Int_t nFracs = outputCPU.pcrhFracSize[0];
+  //std::cout << nRHFracs_h << " " << nFracs << " " << nFracs2 << std::endl;
 
   // allocate outputCPU - will go away soon and we will use tmpPFClusters + OutputPFClusterSoA_Token_ + outputGPU2.PFClusters
-  outputCPU.allocate_rhfrac(nFracs, cudaStream);
+  //outputCPU.allocate_rhfrac(nFracs, cudaStream);
 
   //
   // --- Traditional SoA from Mark
   //
 
+  /*
   cms::cuda::copyAsync(outputCPU.topoSeedCount, outputGPU.topoSeedCount, nRH_, cudaStream);
   cms::cuda::copyAsync(outputCPU.topoRHCount, outputGPU.topoRHCount, nRH_, cudaStream);
   cms::cuda::copyAsync(outputCPU.seedFracOffsets, outputGPU.seedFracOffsets, nRH_, cudaStream);
@@ -202,6 +206,7 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   cms::cuda::copyAsync(outputCPU.pfrh_topoId, outputGPU.pfrh_topoId, nRH_, cudaStream);
   cms::cuda::copyAsync(outputCPU.pcrh_fracInd, outputGPU.pcrh_fracInd, nFracs, cudaStream);
   cms::cuda::copyAsync(outputCPU.pcrh_frac, outputGPU.pcrh_frac, nFracs, cudaStream);
+  */
 
   //
   // --- Newer SoA with proper length

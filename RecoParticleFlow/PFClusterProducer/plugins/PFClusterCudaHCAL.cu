@@ -1518,7 +1518,7 @@ namespace PFClusterCudaHCAL {
                                int* rhCount,
                                int* rhIdxToSeedIdx,
                                int* pcrhfracind,
-                               short* pcrhfracpfcind,
+                               int* pcrhfracpfcind,
                                float* pcrhfrac) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;  // i is the seed index
     int j = threadIdx.y + blockIdx.y * blockDim.y;  // j is NOT a seed
@@ -1961,6 +1961,8 @@ namespace PFClusterCudaHCAL {
     cudaEventRecord(start, cudaStream);
 #endif
 
+    // if (cudaStreamQuery(cudaStream) != cudaSuccess)
+    //   cudaCheck(cudaStreamSynchronize(cudaStream));
     HBHEPFClusters_asOutput.allocate((uint32_t)nSeeds_h, cudaStream);
 
     topoClusterContraction<<<1, 512, 0, cudaStream>>>(nRH,
@@ -1974,7 +1976,7 @@ namespace PFClusterCudaHCAL {
                                                       outputGPU.topoSeedOffsets.get(),
                                                       outputGPU.topoSeedList.get(),
                                                       outputGPU.pcrhFracSize.get(),
-                                                      scratchGPU.nRHFracs_tmp.get(),
+                                                      scratchGPU.nRHFracs.get(),
                                                       scratchGPU.nSeeds.get(),
                                                       scratchGPU.nTopos.get(),
                                                       scratchGPU.topoIds.get(),
@@ -1986,14 +1988,17 @@ namespace PFClusterCudaHCAL {
                                                       HBHEPFClusters_asOutput.PFClusters.pfc_rhfracSize.get());
 
     int nTopos_h;
-    int nRHFracs_tmp_h;
+    int nRHFracs_h;
     cudaCheck(cudaMemcpyAsync(&nTopos_h, scratchGPU.nTopos.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
-    cudaCheck(cudaMemcpyAsync(
-        &nRHFracs_tmp_h, scratchGPU.nRHFracs_tmp.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
+    cudaCheck(cudaMemcpyAsync(&nRHFracs_h, scratchGPU.nRHFracs.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
+
+    // if (cudaStreamQuery(cudaStream) != cudaSuccess)
+    //   cudaCheck(cudaStreamSynchronize(cudaStream));
 
     // Now we know the number of PFClusters accurately. Also, we have max total RecHitFractions (which reduces further at the end).
-    outputGPU.allocate_rhfrac((uint32_t)nRHFracs_tmp_h, cudaStream);
-    scratchGPU.allocate_rhfrac((uint32_t)nRHFracs_tmp_h, cudaStream);
+    outputGPU.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
+    HBHEPFClusters_asOutput.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
+    //scratchGPU.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
 
 #ifdef DEBUG_ENABLE
     cudaEventRecord(stop, cudaStream);
@@ -2016,9 +2021,12 @@ namespace PFClusterCudaHCAL {
                                                  outputGPU.seedFracOffsets.get(),
                                                  scratchGPU.rhcount.get(),
                                                  scratchGPU.rhIdxToSeedIdx.get(),
-                                                 outputGPU.pcrh_fracInd.get(),
-                                                 scratchGPU.pcrh_pfcIdx.get(),
-                                                 outputGPU.pcrh_frac.get());
+                                                 HBHEPFClusters_asOutput.PFClusters.pcrh_pfrhIdx.get(),
+                                                 HBHEPFClusters_asOutput.PFClusters.pcrh_pfcIdx.get(),
+                                                 HBHEPFClusters_asOutput.PFClusters.pcrh_frac.get());
+    // outputGPU.pcrh_fracInd.get(),
+    // scratchGPU.pcrh_pfcIdx.get(),
+    // outputGPU.pcrh_frac.get());
 
 #ifdef DEBUG_ENABLE
     cudaEventRecord(stop, cudaStream);
@@ -2043,8 +2051,10 @@ namespace PFClusterCudaHCAL {
         HBHEPFRecHits_asInput.pfrh_layer.get(),
         HBHEPFRecHits_asInput.pfrh_depth.get(),
         HBHEPFRecHits_asInput.pfrh_neighbours.get(),
-        outputGPU.pcrh_frac.get(),
-        outputGPU.pcrh_fracInd.get(),
+        HBHEPFClusters_asOutput.PFClusters.pcrh_frac.get(),
+        HBHEPFClusters_asOutput.PFClusters.pcrh_pfrhIdx.get(),
+        // outputGPU.pcrh_frac.get(),
+        // outputGPU.pcrh_fracInd.get(),
         scratchGPU.topoIds.get(),
         scratchGPU.pcrh_fracSum.get(),
         scratchGPU.rhcount.get(),
@@ -2075,6 +2085,8 @@ namespace PFClusterCudaHCAL {
     printf("\nhcalFastCluster_selection took %f ms\n", timer[5]);
     cudaEventRecord(start, cudaStream);
 #endif
+
+    /*
 
     // Determine the final reduced rhFraction size
     const int blocks2 = (nRHFracs_tmp_h + threadsPerBlock - 1) / threadsPerBlock;
@@ -2118,6 +2130,8 @@ namespace PFClusterCudaHCAL {
     printf("\nrhFractionContraction took %f ms\n", timer[7]);
     cudaEventRecord(start, cudaStream);
 #endif
+
+    */
   }
 
 }  // namespace PFClusterCudaHCAL
