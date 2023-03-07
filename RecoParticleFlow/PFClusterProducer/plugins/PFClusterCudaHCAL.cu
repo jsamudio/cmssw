@@ -84,6 +84,7 @@ namespace PFClusterCudaHCAL {
   */
 
   static const int ThreadsPerBlock = 256;
+  static const int threadsPerBlockForClustering = 512;
   static const int warpsize = 32;
 
   /* initialize with first smaller neighbor ID */
@@ -685,8 +686,8 @@ namespace PFClusterCudaHCAL {
     __shared__ float tol, diff2, rhENormInv;
     __shared__ bool notDone, debug;
     __shared__ float4 clusterPos[100], prevClusterPos[100];
-    __shared__ float clusterEnergy[100], rhFracSum[256];
-    __shared__ int seeds[100], rechits[256];
+    __shared__ float clusterEnergy[100], rhFracSum[threadsPerBlockForClustering];
+    __shared__ int seeds[100], rechits[threadsPerBlockForClustering];
 
     if (threadIdx.x == 0) {
       nRHNotSeed = nRHTopo - nSeeds + 1;  // 1 + (# rechits per topoId that are NOT seeds)
@@ -1341,7 +1342,7 @@ namespace PFClusterCudaHCAL {
                                             pfc_x,
                                             pfc_y,
                                             pfc_z);
-      } else if (nSeeds <= 100 && nRHTopo - nSeeds < 256) {
+      } else if (nSeeds <= 100 && nRHTopo - nSeeds < threadsPerBlockForClustering) {
         dev_hcalFastCluster_optimizedComplex(pfClusParams,
                                              topoId,
                                              nSeeds,
@@ -1862,8 +1863,6 @@ namespace PFClusterCudaHCAL {
     cudaEventRecord(start, cudaStream);
 #endif
 
-    outputGPU.allocate(nRH, cudaStream);
-
     // Combined seeding & topo clustering thresholds, array initialization
     cudaCheck(cudaMemsetAsync(scratchGPU.nSeeds.get(), 0, sizeof(int), cudaStream));
     seedingTopoThreshKernel_HCAL<<<(nRH + threadsPerBlock - 1) / threadsPerBlock, threadsPerBlock, 0, cudaStream>>>(
@@ -1995,7 +1994,7 @@ namespace PFClusterCudaHCAL {
     // if (cudaStreamQuery(cudaStream) != cudaSuccess)
     //   cudaCheck(cudaStreamSynchronize(cudaStream));
 
-    // Now we know the number of PFClusters accurately. Also, we have max total RecHitFractions (which reduces further at the end).
+    // Now we know the number of PFClusters accurately. Also, we have max total RecHitFractions.
     outputGPU.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
     HBHEPFClusters_asOutput.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
     //scratchGPU.allocate_rhfrac((uint32_t)nRHFracs_h, cudaStream);
@@ -2039,7 +2038,7 @@ namespace PFClusterCudaHCAL {
 
     // grid -> topo cluster
     // thread -> pfrechits in each topo cluster
-    hcalFastCluster_selection<<<nTopos_h, threadsPerBlock, 0, cudaStream>>>(
+    hcalFastCluster_selection<<<nTopos_h, threadsPerBlockForClustering, 0, cudaStream>>>(
         pfClusParams.const_view(),
         nRH,
         HBHEPFRecHits_asInput.pfrh_x.get(),
@@ -2076,6 +2075,7 @@ namespace PFClusterCudaHCAL {
         HBHEPFClusters_asOutput.PFClusters.pfc_z.get());
 
     HBHEPFClusters_asOutput.PFClusters.size = nSeeds_h;
+    HBHEPFClusters_asOutput.PFClusters.sizeCleaned = nRHFracs_h;  // Hacky use of sizeCleaned for recHitFractions
 
 #ifdef DEBUG_ENABLE
     cudaEventRecord(stop, cudaStream);
