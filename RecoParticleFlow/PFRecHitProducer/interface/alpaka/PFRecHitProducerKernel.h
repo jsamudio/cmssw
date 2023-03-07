@@ -11,7 +11,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFRecHitProducerKernel {
   public:
-    void execute(Queue& queue,
+    void execute(const Device& device, Queue& queue,
       const PFRecHitHBHEParamsAlpakaESDataDevice& params,
       const PFRecHitHBHETopologyAlpakaESDataDevice& topology,
       const CaloRecHitDeviceCollection& recHits,

@@ -103,13 +103,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const PFRecHitHBHEParamsAlpakaESDataDevice::ConstView params,
+                                  const PFRecHitHBHETopologyAlpakaESDataDevice::ConstView topology,
                                   const CaloRecHitDeviceCollection::ConstView recHits, int32_t num_recHits,
-                                  PFRecHitDeviceCollection::View pfRecHits) const {
+                                  PFRecHitDeviceCollection::View pfRecHits,
+                                  uint32_t* __restrict__ denseId2pfRecHit) const {
       // global index of the thread within the grid
       const int32_t thread = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0u];
 
       // set this only once in the whole kernel grid
-      int& num_pfRecHits = alpaka::declareSharedVar<int,__COUNTER__>(acc);
+      uint32_t& num_pfRecHits = alpaka::declareSharedVar<uint32_t,__COUNTER__>(acc);
       if (thread == 0) {
         num_pfRecHits = 0;
       }
@@ -129,6 +131,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         params[9].energyThresholds(),
         params[10].energyThresholds()
       };
+      //const float* thresholdE_HB = params.energyThresholds();     // length 4
+      //const float* thresholdE_HE = params.energyThresholds() + 4; // length 7
 
       alpaka::syncBlockThreads(acc);
 
@@ -149,7 +153,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         }
 
         if (energy >= threshold) {
-          const int32_t j = alpaka::atomicAdd(acc, &num_pfRecHits, 1, alpaka::hierarchy::Blocks{});
+          const uint32_t j = alpaka::atomicAdd(acc, &num_pfRecHits, 1u, alpaka::hierarchy::Blocks{});
           pfRecHits[j].detId() = detId;
           pfRecHits[j].energy() = recHits[i].energy();
           pfRecHits[j].time() = recHits[i].time();
@@ -162,6 +166,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             pfRecHits[j].layer() = PFLayer::HCAL_ENDCAP;
           else
             pfRecHits[j].layer() = PFLayer::NONE;
+
+          const uint32_t denseId_raw = detId2denseId(detId) ;
+          if(topology.denseId_min() <= denseId_raw && denseId_raw <= topology.denseId_max())
+            denseId2pfRecHit[denseId_raw - topology.denseId_min()] = j;
+          else
+            printf("detId %u leads to invalid denseId %u. Allowed range [%u,%u]\n",
+              detId, denseId_raw, topology.denseId_min(), topology.denseId_max());
         }
       }
 
@@ -180,7 +191,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const PFRecHitHBHETopologyAlpakaESDataDevice::ConstView topology,
                                   const CaloRecHitDeviceCollection::ConstView recHits, int32_t num_recHits,
-                                  PFRecHitDeviceCollection::View pfRecHits) const {
+                                  PFRecHitDeviceCollection::View pfRecHits,
+                                  const uint32_t* __restrict__ denseId2pfRecHit) const {
       const int num_pfRecHits = pfRecHits.size();
 
       for (int32_t i : elements_with_stride(acc, num_pfRecHits)) {
@@ -190,28 +202,50 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         pfRecHits[i].y() = topology[denseId].positionY();
         pfRecHits[i].z() = topology[denseId].positionZ();
 
-        // TODO associate real neighbour information
-        pfRecHits[i].num_neighbours() = 4;
-        pfRecHits[i].neighbours() = {{1,2,3,4,5,6,7,8}};
+        pfRecHits[i].num_neighbours() = 0;
+        for(uint32_t n = 0; n < 8; n++)
+        {
+          const uint32_t denseId_neighbour = topology[denseId].neighbours()[n];
+          if(denseId_neighbour != 0xffffffff)
+          {
+            const uint32_t pfRecHit_neighbour = denseId2pfRecHit[denseId_neighbour];
+            if(pfRecHit_neighbour != 0xffffffff)
+              pfRecHits[i].neighbours()[pfRecHits[i].num_neighbours()++] = pfRecHit_neighbour;
+          }
+        }
       }
     }
   };
 
 
-  void PFRecHitProducerKernel::execute(Queue& queue,
+  void PFRecHitProducerKernel::execute(const Device& device, Queue& queue,
     const PFRecHitHBHEParamsAlpakaESDataDevice& params,
     const PFRecHitHBHETopologyAlpakaESDataDevice& topology,
     const CaloRecHitDeviceCollection& recHits,
     PFRecHitDeviceCollection& pfRecHits) const {
+
+    // TODO copy these from device or use ESProduct on host
+    const uint32_t denseId_min = 0, denseId_max = 25000;
+    //alpaka::memcpy(queue, &denseId_min, topology.view().denseId_min(), 1);
+    //auto event = alpaka::Event<Queue>(device);
+    //alpaka::wait(event);
+    //printf("denseId range: %u %u\n", denseId_min, denseId_max);
+    
+    // TODO keep this buffer between events
+    auto denseId2pfRecHit = cms::alpakatools::make_device_buffer<uint32_t[]>(queue, denseId_max - denseId_min + 1);
+
+    // Reset denseId -> pfRecHit index map
+    alpaka::memset(queue, denseId2pfRecHit, 0xff);
+
     // Run first kernel with 1 block and 64 threads/elements.
     // Since this kernel does not do a lot of computation, but needs
     // to use atomic operations to ensure unique PFRecHit indices,
     // it is better use just a single block.
     alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(1, 64), PFRecHitProducerKernelImpl1{},
-      params.view(), recHits.view(), recHits->metadata().size(), pfRecHits.view());
+      params.view(), topology.view(), recHits.view(), recHits->metadata().size(), pfRecHits.view(), denseId2pfRecHit.data());
 
     alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(1, 64), PFRecHitProducerKernelImpl2{},
-      topology.view(), recHits.view(), recHits->metadata().size(), pfRecHits.view());
+      topology.view(), recHits.view(), recHits->metadata().size(), pfRecHits.view(), denseId2pfRecHit.data());
   }
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

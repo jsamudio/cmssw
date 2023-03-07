@@ -79,8 +79,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       view.denseId_min() = denseIdMin;
       view.denseId_max() = denseIdMax;
 
-      std::vector<int> neighbours_tmp(8, -1);
-
       for (auto const denseId : denseIds) {
         DetId const detid = topo.denseId2detId(denseId);
         HcalDetId const hid = HcalDetId(detid);
@@ -101,7 +99,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         auto neigh = navicore.get()->getNeighbours(denseId);
 
         for (uint32_t n = 0; n < 8; ++n) {
-          neighbours_tmp[n] = -1;
+          view.neighbours()[index][n] = 0xffffffff;
 
           // cmssdt.cern.ch/lxr/source/RecoParticleFlow/PFClusterProducer/interface/PFHCALDenseIdNavigator.h#0087
           // Order: CENTER(NONE),SOUTH,SOUTHEAST,SOUTHWEST,EAST,WEST,NORTHEAST,NORTHWEST,NORTH
@@ -116,22 +114,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           if (neighDenseId < denseIdMin or neighDenseId > denseIdMax)
             continue;
 
-          neighbours_tmp[n] = neighDenseId - denseIdMin;
+          view.neighbours()[index][n] = neighDenseId - denseIdMin;
         }
-
-        view.neighbour0()[index] = neighbours_tmp[0];
-        view.neighbour1()[index] = neighbours_tmp[1];
-        view.neighbour2()[index] = neighbours_tmp[2];
-        view.neighbour3()[index] = neighbours_tmp[3];
-        view.neighbour4()[index] = neighbours_tmp[4];
-        view.neighbour5()[index] = neighbours_tmp[5];
-        view.neighbour6()[index] = neighbours_tmp[6];
-        view.neighbour7()[index] = neighbours_tmp[7];
 
         logDebug() << "detId: rawId=" << hid.rawId() << " subdet=" << hid.subdet() << " index=" << index;
         logDebug() << "  position: x=" << pos.x() << " y=" << pos.y() << " z=" << pos.z();
         for (uint32_t idx = 0; idx < 8; ++idx) {
-          logDebug() << "  neighbour[" << idx << "]: " << neighbours_tmp[idx];
+          logDebug() << "  neighbour[" << idx << "]: " << view.neighbours()[index][idx];
         }
       }
 

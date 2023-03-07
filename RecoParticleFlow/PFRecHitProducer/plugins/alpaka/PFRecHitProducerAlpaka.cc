@@ -33,7 +33,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
 
       PFRecHitProducerKernel kernel{};
-      kernel.execute(event.queue(), params, topology, recHits, pfRecHits);
+      kernel.execute(event.device(), event.queue(), params, topology, recHits, pfRecHits);
 
       event.emplace(pfRecHitsToken, std::move(pfRecHits));
     }
