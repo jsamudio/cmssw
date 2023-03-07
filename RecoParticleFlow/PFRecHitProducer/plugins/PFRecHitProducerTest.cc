@@ -88,7 +88,11 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
           if(pfRecHitsCPU[i].depth() != pfRecHitsAlpaka[j].depth()
             || pfRecHitsCPU[i].layer() != pfRecHitsAlpaka[j].layer()
             || pfRecHitsCPU[i].time() != pfRecHitsAlpaka[j].time()
-            || pfRecHitsCPU[i].energy() != pfRecHitsAlpaka[j].energy())
+            || pfRecHitsCPU[i].energy() != pfRecHitsAlpaka[j].energy()
+            || pfRecHitsCPU[i].position().x() != pfRecHitsAlpaka[i].x()
+            || pfRecHitsCPU[i].position().y() != pfRecHitsAlpaka[i].y()
+            || pfRecHitsCPU[i].position().z() != pfRecHitsAlpaka[i].z()
+            )
             error = true;
         }
       }
@@ -113,31 +117,42 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
 void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCPU, const PFRecHitHostCollection::ConstView& pfRecHitsAlpaka) {
   printf("Found %zd/%d pfRecHits with CPU/Alpaka\n", pfRecHitsCPU.size(), pfRecHitsAlpaka.size());
   for (size_t i = 0; i < pfRecHitsCPU.size(); i++)
-    printf("CPU %4lu %u %d %d %u : %f %f (%f,%f,%f)\n",
+  {
+    reco::PFRecHit::Neighbours neighbours = pfRecHitsCPU[i].neighbours();
+    printf("CPU %4lu detId:%u depth:%d layer:%d time:%f energy:%f pos:%f,%f,%f neighbours:%u(",
            i,
            pfRecHitsCPU[i].detId(),
            pfRecHitsCPU[i].depth(),
            pfRecHitsCPU[i].layer(),
-           pfRecHitsCPU[i].neighbours().size(),
            pfRecHitsCPU[i].time(),
            pfRecHitsCPU[i].energy(),
            pfRecHitsCPU[i].position().x(),
            pfRecHitsCPU[i].position().y(),
-           pfRecHitsCPU[i].position().z()
+           pfRecHitsCPU[i].position().z(),
+           neighbours.size()
     );
+    for(reco::PFRecHit::Neighbours::Pointer p = neighbours.begin(); p < neighbours.end(); p++)
+      printf("%s%u", (p == neighbours.begin()) ? "" : ",", *p);
+    printf(")\n");
+  }
   for (size_t i = 0; i < pfRecHitsAlpaka.size(); i++)
-    printf("Alpaka %4lu %u %d %d %u : %f %f (%f,%f,%f)\n",
+  {
+    printf("Alpaka %4lu detId:%u depth:%d layer:%d time:%f energy:%f pos:%f,%f,%f neighbours:%u(",
            i,
            pfRecHitsAlpaka[i].detId(),
            pfRecHitsAlpaka[i].depth(),
            pfRecHitsAlpaka[i].layer(),
-           -1,//pfRecHitsAlpaka[i].neighbours().size(),
            pfRecHitsAlpaka[i].time(),
            pfRecHitsAlpaka[i].energy(),
            pfRecHitsAlpaka[i].x(),
            pfRecHitsAlpaka[i].y(),
-           pfRecHitsAlpaka[i].z()
+           pfRecHitsAlpaka[i].z(),
+           pfRecHitsAlpaka[i].num_neighbours()
     );
+    for(size_t j = 0; j < pfRecHitsAlpaka[i].num_neighbours(); j++)
+      printf("%s%u", (j == 0) ? "" : ",", pfRecHitsAlpaka[i].neighbours()[j]);
+    printf(")\n");
+  }
 }
 
 void PFRecHitProducerTest::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

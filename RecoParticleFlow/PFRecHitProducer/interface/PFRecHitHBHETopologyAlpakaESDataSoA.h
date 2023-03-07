@@ -18,7 +18,9 @@ namespace reco {
                       SOA_COLUMN(int32_t, neighbour4),
                       SOA_COLUMN(int32_t, neighbour5),
                       SOA_COLUMN(int32_t, neighbour6),
-                      SOA_COLUMN(int32_t, neighbour7))
+                      SOA_COLUMN(int32_t, neighbour7),
+                      SOA_SCALAR(uint32_t, denseId_min),
+                      SOA_SCALAR(uint32_t, denseId_max))
 
   using PFRecHitHBHETopologyAlpakaESDataSoA = PFRecHitHBHETopologyAlpakaESDataSoALayout<>;
 

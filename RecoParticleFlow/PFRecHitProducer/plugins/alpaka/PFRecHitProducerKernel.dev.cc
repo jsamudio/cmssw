@@ -184,11 +184,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const int num_pfRecHits = pfRecHits.size();
 
       for (int32_t i : elements_with_stride(acc, num_pfRecHits)) {
-        const uint32_t denseId = detId2denseId(pfRecHits[i].detId());
+        const uint32_t denseId = detId2denseId(pfRecHits[i].detId()) - topology.denseId_min();
 
         pfRecHits[i].x() = topology[denseId].positionX();
         pfRecHits[i].y() = topology[denseId].positionY();
         pfRecHits[i].z() = topology[denseId].positionZ();
+
+        // TODO associate real neighbour information
+        pfRecHits[i].num_neighbours() = 4;
+        pfRecHits[i].neighbours() = {{1,2,3,4,5,6,7,8}};
       }
     }
   };

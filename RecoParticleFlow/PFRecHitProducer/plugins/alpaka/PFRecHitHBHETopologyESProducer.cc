@@ -76,6 +76,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       auto product = std::make_unique<PFRecHitHBHETopologyAlpakaESDataHost>(productSize, cms::alpakatools::host());
       auto view = product->view();
+      view.denseId_min() = denseIdMin;
+      view.denseId_max() = denseIdMax;
 
       std::vector<int> neighbours_tmp(8, -1);
 
