@@ -248,9 +248,9 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowRecHitHBHE      # Construct PFRecHits on CPU
     +process.hltParticleFlowRecHitToSoA     # Convert legacy CaloRecHits to SoA and copy to device
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
-    +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
+    #+process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
 )
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
 
-process.options.numberOfThreads = cms.untracked.uint32(8)
+process.options.numberOfThreads = cms.untracked.uint32(1)#8)

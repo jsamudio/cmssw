@@ -35,7 +35,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       PFRecHitProducerKernel kernel{};
       kernel.execute(event.device(), event.queue(), params, topology, recHits, pfRecHits);
 
-      event.emplace(pfRecHitsToken, std::move(pfRecHits));
+      // When uncommenting this line, there is a ~50% chance the program will segfault
+      //event.emplace(pfRecHitsToken, std::move(pfRecHits));
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
