@@ -101,8 +101,9 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
             std::vector<uint32_t> neighbours_cpu(pfRecHitNeighbours.begin(), pfRecHitNeighbours.end());
             std::sort(neighbours_cpu.begin(), neighbours_cpu.end());
 
-            std::vector<uint32_t> neighbours_alpaka(pfRecHitsAlpaka[j].neighbours().begin(), pfRecHitsAlpaka[j].neighbours().end());
-            neighbours_alpaka.resize(pfRecHitsAlpaka[j].num_neighbours());
+            std::vector<uint32_t> neighbours_alpaka(pfRecHitsAlpaka[j].num_neighbours());
+            for(size_t k = 0; k < pfRecHitsAlpaka[j].num_neighbours(); k++)
+              neighbours_alpaka[k] = pfRecHitsAlpaka[i].neighbours()(k);
             std::sort(neighbours_alpaka.begin(), neighbours_alpaka.end());
 
             if(neighbours_cpu.size() != neighbours_alpaka.size())
@@ -157,8 +158,9 @@ void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCP
   }
   for (size_t i = 0; i < pfRecHitsAlpaka.size(); i++)
   {
-    std::vector<uint32_t> neighbours(pfRecHitsAlpaka[i].neighbours().begin(), pfRecHitsAlpaka[i].neighbours().end());
-    neighbours.resize(pfRecHitsAlpaka[i].num_neighbours());
+    std::vector<uint32_t> neighbours(pfRecHitsAlpaka[i].num_neighbours());
+    for(size_t k = 0; k < pfRecHitsAlpaka[i].num_neighbours(); k++)
+      neighbours[k] = pfRecHitsAlpaka[i].neighbours()(k);
     std::sort(neighbours.begin(), neighbours.end());
     printf("Alpaka %4lu detId:%u depth:%d layer:%d time:%f energy:%f pos:%f,%f,%f neighbours:%lu(",
            i,

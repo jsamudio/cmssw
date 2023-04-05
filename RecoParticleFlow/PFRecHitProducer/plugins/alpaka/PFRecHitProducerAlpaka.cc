@@ -9,9 +9,9 @@
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/CaloRecHitDeviceCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitHBHEParamsAlpakaESData.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitHBHETopologyAlpakaESData.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitProducerKernel.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/JobConfigurationAlpakaRecord.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitHBHETopologyAlpakaESRcd.h"
+#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitProducerKernel.h"
 
 #define DEBUG false
 
@@ -35,8 +35,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       PFRecHitProducerKernel kernel{};
       kernel.execute(event.device(), event.queue(), params, topology, recHits, pfRecHits);
 
-      // When uncommenting this line, there is a ~50% chance the program will segfault
-      //event.emplace(pfRecHitsToken, std::move(pfRecHits));
+      event.emplace(pfRecHitsToken, std::move(pfRecHits));
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

@@ -205,12 +205,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         pfRecHits[i].num_neighbours() = 0;
         for(uint32_t n = 0; n < 8; n++)
         {
-          const uint32_t denseId_neighbour = topology[denseId].neighbours()[n];
+          const uint32_t denseId_neighbour = topology[denseId].neighbours()(n);
           if(denseId_neighbour != 0xffffffff)
           {
             const uint32_t pfRecHit_neighbour = denseId2pfRecHit[denseId_neighbour];
             if(pfRecHit_neighbour != 0xffffffff)
-              pfRecHits[i].neighbours()[pfRecHits[i].num_neighbours()++] = pfRecHit_neighbour;
+              pfRecHits[i].neighbours()(pfRecHits[i].num_neighbours()++) = pfRecHit_neighbour;
           }
         }
       }
