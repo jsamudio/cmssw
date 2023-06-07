@@ -1,14 +1,34 @@
 <lcgdict>
-  <class name="hcal::PFClusterCollection<pf::common::VecStoragePolicy<std::allocator>>"/>
-  <class name="edm::Wrapper<hcal::PFClusterCollection<pf::common::VecStoragePolicy<std::allocator>>>"/>
+    <class name="reco::PFClusterHostCollection"/>
+    <read
+    sourceClass="reco::PFClusterHostCollection"
+    targetClass="reco::PFClusterHostCollection"
+    version="[1-]"
+    source="reco::PFClusterSoA layout_;"
+    target="buffer_"
+    embed="false">
+    <![CDATA[
+        reco::PFClusterHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
+    ]]>
+    </read>
+    <class name="edm::Wrapper<reco::PFClusterHostCollection>" splitLevel="0"/>
 
-  <class name="hcal::PFClusterCollection<pf::common::VecStoragePolicy<pf::common::CUDAHostAllocatorAlias>>"/>
-  <class name="edm::Wrapper<hcal::PFClusterCollection<pf::common::VecStoragePolicy<pf::common::CUDAHostAllocatorAlias>>>"/>
+    <class name="reco::PFClusterDeviceCollection" persistent="false"/>
+    <class name="edm::Wrapper<reco::PFClusterDeviceCollection>" persistent="false"/>
 
-  <class name="cms::cuda::Product<hcal::PFClusterCollection<pf::common::ViewStoragePolicy>>" persistent="false" />
-  <class name="edm::Wrapper<cms::cuda::Product<hcal::PFClusterCollection<pf::common::ViewStoragePolicy>>>" persistent="false" />
+    <class name="cms::cuda::Product<reco::PFClusterDeviceCollection>" persistent="false"/>
+    <class name="edm::Wrapper<cms::cuda::Product<reco::PFClusterDeviceCollection>>" persistent="false"/>
+    <class name="hcal::PFClusterCollection<pf::common::VecStoragePolicy<std::allocator>>"/>
+    <class name="edm::Wrapper<hcal::PFClusterCollection<pf::common::VecStoragePolicy<std::allocator>>>"/>
 
-  <class name="cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>" persistent="false" />
-  <class name="edm::Wrapper<cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>>" persistent="false" />
+    <class name="hcal::PFClusterCollection<pf::common::VecStoragePolicy<pf::common::CUDAHostAllocatorAlias>>"/>
+    <class name="edm::Wrapper<hcal::PFClusterCollection<pf::common::VecStoragePolicy<pf::common::CUDAHostAllocatorAlias>>>"/>
+
+    <class name="cms::cuda::Product<hcal::PFClusterCollection<pf::common::ViewStoragePolicy>>" persistent="false" />
+    <class name="edm::Wrapper<cms::cuda::Product<hcal::PFClusterCollection<pf::common::ViewStoragePolicy>>>" persistent="false" />
+
+    <class name="cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>" persistent="false" />
+    <class name="edm::Wrapper<cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>>" persistent="false" />
+
 
 </lcgdict>

@@ -10,12 +10,15 @@
 #include "CudaPFCommon.h"
 #include "DeclsForKernels.h"
 
+#include "CUDADataFormats/PFClusterSoA/interface/PFClusterDeviceCollection.h"
+
 namespace PFClusterCudaHCAL {
 
   void PFRechitToPFCluster_HCAL_entryPoint(cudaStream_t cudaStream,
                                            PFClusteringParamsGPU::DeviceProduct const&,
                                            ::hcal::PFRecHitCollection<::pf::common::DevStoragePolicy> const&,
-                                           ::PFClustering::HCAL::OutputPFClusterDataGPU&,
+                                           //::PFClustering::HCAL::OutputPFClusterDataGPU&,
+                                           reco::PFClusterDeviceCollection&,
                                            ::PFClustering::HCAL::OutputDataGPU&,
                                            ::PFClustering::HCAL::ScratchDataGPU&,
                                            float (&timer)[8]);

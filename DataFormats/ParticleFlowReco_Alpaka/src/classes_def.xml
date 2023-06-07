@@ -1,0 +1,6 @@
+<lcgdict>
+<selection>
+    <class name="reco::PFClusterSoA"/>
+    <class name="reco::PFClusterSoA::View"/>
+</selection>
+</lcgdict>

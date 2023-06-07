@@ -35,6 +35,9 @@
 #include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFClusteringParamsGPU.h"
 
+#include "CUDADataFormats/PFClusterSoA/interface/PFClusterDeviceCollection.h"
+#include "CUDADataFormats/PFClusterSoA/interface/PFClusterHostCollection.h"
+
 class PFClusterProducerCudaHCAL : public edm::stream::EDProducer<edm::ExternalWork> {
 public:
   PFClusterProducerCudaHCAL(const edm::ParameterSet&);
@@ -74,6 +77,10 @@ private:
   PFClustering::HCAL::OutputDataGPU outputGPU;
   PFClustering::HCAL::OutputPFClusterDataGPU outputGPU2;
   PFClustering::HCAL::ScratchDataGPU scratchGPU;
+
+  // PFCluster Portable Collection
+  reco::PFClusterHostCollection clusters_h_;
+  reco::PFClusterDeviceCollection clustersGPU;
 
   cms::cuda::ContextState cudaState_;
 };
@@ -159,7 +166,8 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
 
   // Calling cuda kernels
   PFClusterCudaHCAL::PFRechitToPFCluster_HCAL_entryPoint(
-      cudaStream, pfClusParamsProduct, PFRecHits, outputGPU2, outputGPU, scratchGPU, kernelTimers);
+      //cudaStream, pfClusParamsProduct, PFRecHits, outputGPU2, outputGPU, scratchGPU, kernelTimers);
+      cudaStream, pfClusParamsProduct, PFRecHits, clustersGPU, outputGPU, scratchGPU, kernelTimers);
 
   if (!_produceLegacy)
     return;  // do device->host transfer only when we are producing Legacy data
@@ -242,6 +250,8 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   lambdaToTransferSize(tmpPFClusters.pcrh_pfrhIdx, outputGPU2.PFClusters.pcrh_pfrhIdx.get(), nRHFracs_h);
   //lambdaToTransferSize(tmpPFClusters.pcrh_pfcIdx, outputGPU2.PFClusters.pcrh_pfcIdx.get(), nRHFracs_h);
   //cms::cuda::copyAsync(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx, nSeeds_h, cudaStream);
+  
+  clusters_h_ = reco::PFClusterHostCollection(tmpPFClusters.size, ctx.stream());
 }
 
 void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup& setup) {

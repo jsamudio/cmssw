@@ -55,4 +55,6 @@
 
 #include "DataFormats/ParticleFlowReco/interface/HGCalMultiCluster.h"
 
+#include "DataFormats/ParticleFlowReco/interface/PFClusterSoA.h"
+
 #include <map>

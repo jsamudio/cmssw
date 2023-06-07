@@ -1,9 +1,8 @@
-<export>
- <lib name="1"/>
-</export>
-<use name="DataFormats/Common"/>
+<use name="rootcore"/>
 <use name="CUDADataFormats/Common"/>
+<use name="DataFormats/Common"/>
+<use name="DataFormats/ParticleFlowReco"/>
 <use name="HeterogeneousCore/CUDAUtilities"/>
-
-
-
+<export>
+      <lib name="1"/>
+</export>

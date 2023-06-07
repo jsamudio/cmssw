@@ -1847,7 +1847,8 @@ namespace PFClusterCudaHCAL {
       cudaStream_t cudaStream,
       PFClusteringParamsGPU::DeviceProduct const& pfClusParams,
       ::hcal::PFRecHitCollection<::pf::common::DevStoragePolicy> const& HBHEPFRecHits_asInput,
-      ::PFClustering::HCAL::OutputPFClusterDataGPU& HBHEPFClusters_asOutput,
+      //::PFClustering::HCAL::OutputPFClusterDataGPU& HBHEPFClusters_asOutput,
+      reco::PFClusterDeviceCollection& HBHEPFClusters_asOutput,
       ::PFClustering::HCAL::OutputDataGPU& outputGPU,
       ::PFClustering::HCAL::ScratchDataGPU& scratchGPU,
       float (&timer)[8]) {
