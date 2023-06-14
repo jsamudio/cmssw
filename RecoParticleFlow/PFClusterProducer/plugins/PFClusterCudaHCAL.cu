@@ -1421,7 +1421,8 @@ namespace PFClusterCudaHCAL {
                                          int* pfc_depth,
                                          int* pfc_topoId,
                                          int* pfc_rhfracOffset,
-                                         int* pfc_rhfracSize) {
+                                         int* pfc_rhfracSize,
+                                         reco::PFClusterDeviceCollection::View view){
     __shared__ int totalSeedOffset, totalSeedFracOffset;
     // rhCount, topoRHCount, topoSeedCount initialized earlier
     if (threadIdx.x == 0) {
@@ -1847,10 +1848,10 @@ namespace PFClusterCudaHCAL {
       cudaStream_t cudaStream,
       PFClusteringParamsGPU::DeviceProduct const& pfClusParams,
       ::hcal::PFRecHitCollection<::pf::common::DevStoragePolicy> const& HBHEPFRecHits_asInput,
-      //::PFClustering::HCAL::OutputPFClusterDataGPU& HBHEPFClusters_asOutput,
-      reco::PFClusterDeviceCollection& HBHEPFClusters_asOutput,
+      ::PFClustering::HCAL::OutputPFClusterDataGPU& HBHEPFClusters_asOutput,
       ::PFClustering::HCAL::OutputDataGPU& outputGPU,
       ::PFClustering::HCAL::ScratchDataGPU& scratchGPU,
+      reco::PFClusterDeviceCollection& portableGPU,
       float (&timer)[8]) {
     const int threadsPerBlock = 256;
     const int nRH = HBHEPFRecHits_asInput.size;
@@ -1985,7 +1986,8 @@ namespace PFClusterCudaHCAL {
                                                       HBHEPFClusters_asOutput.PFClusters.pfc_depth.get(),
                                                       HBHEPFClusters_asOutput.PFClusters.pfc_topoId.get(),
                                                       HBHEPFClusters_asOutput.PFClusters.pfc_rhfracOffset.get(),
-                                                      HBHEPFClusters_asOutput.PFClusters.pfc_rhfracSize.get());
+                                                      HBHEPFClusters_asOutput.PFClusters.pfc_rhfracSize.get(),
+                                                      portableGPU.view());
 
     int nTopos_h;
     int nRHFracs_h;

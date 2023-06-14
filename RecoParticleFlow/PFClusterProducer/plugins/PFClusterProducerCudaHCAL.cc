@@ -11,6 +11,7 @@
 
 #include "CUDADataFormats/PFRecHitSoA/interface/PFRecHitCollection.h"
 #include "CUDADataFormats/PFClusterSoA/interface/PFClusterCollection.h"
+#include "DataFormats/ParticleFlowReco/interface/PFClusterSoA.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -56,9 +57,12 @@ private:
   using IProductType = cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>;
   edm::EDGetTokenT<IProductType> InputPFRecHitSoA_Token_;
   using OProductType = cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>;
+  //using OProductType = cms::cuda::Product<reco::PFClusterDeviceCollection>;
   edm::EDPutTokenT<OProductType> OutputPFClusterSoA_Token_;
 
   edm::ESGetToken<PFClusteringParamsGPU, JobConfigurationGPURecord> const pfClusParamsToken_;
+
+  edm::EDPutTokenT<cms::cuda::Product<reco::PFClusterDeviceCollection>> cluster_deviceToken_;
 
   // PFClusters for GPU
   hcal::PFClusterCollection<pf::common::VecStoragePolicy<pf::common::CUDAHostAllocatorAlias>> tmpPFClusters;
@@ -89,6 +93,7 @@ PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& co
     : InputPFRecHitSoA_Token_{consumes(conf.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
       OutputPFClusterSoA_Token_{produces<OProductType>(conf.getParameter<std::string>("PFClustersGPUOut"))},
       pfClusParamsToken_{esConsumes(conf.getParameter<edm::ESInputTag>("pfClusteringParameters"))},
+      cluster_deviceToken_{produces(conf.getParameter<std::string>("PFClusterDeviceCollection"))},
       _produceSoA{conf.getParameter<bool>("produceSoA")},
       _produceLegacy{conf.getParameter<bool>("produceLegacy")},
       _rechitsLabel{consumes(conf.getParameter<edm::InputTag>("recHitsSource"))} {
@@ -120,6 +125,7 @@ void PFClusterProducerCudaHCAL::fillDescriptions(edm::ConfigurationDescriptions&
 
   desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("particleFlowRecHitHBHE"));
   desc.add<std::string>("PFClustersGPUOut", "");
+  desc.add<std::string>("PFClustersDeviceCollection", "");
   desc.add<bool>("produceSoA", true);
   desc.add<bool>("produceLegacy", true);
 
@@ -149,6 +155,7 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   cms::cuda::ScopedContextAcquire ctx{PFRecHitsProduct, std::move(holder), cudaState_};
   auto const& PFRecHits = ctx.get(PFRecHitsProduct);
   auto cudaStream = ctx.stream();
+  //auto const& clusters_d = ctx.get(event, cluster_deviceToken_); 
 
   nRH_ = PFRecHits.size;
   if (nRH_ == 0)
@@ -163,11 +170,12 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   float kernelTimers[8] = {0.0};
 
   auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(cudaStream);
+  reco::PFClusterDeviceCollection clustersGPU;
 
   // Calling cuda kernels
   PFClusterCudaHCAL::PFRechitToPFCluster_HCAL_entryPoint(
-      //cudaStream, pfClusParamsProduct, PFRecHits, outputGPU2, outputGPU, scratchGPU, kernelTimers);
-      cudaStream, pfClusParamsProduct, PFRecHits, clustersGPU, outputGPU, scratchGPU, kernelTimers);
+      cudaStream, pfClusParamsProduct, PFRecHits, outputGPU2, outputGPU, scratchGPU, clustersGPU, kernelTimers);
+      //cudaStream, pfClusParamsProduct, PFRecHits, clustersGPU, outputGPU, scratchGPU, kernelTimers);
 
   if (!_produceLegacy)
     return;  // do device->host transfer only when we are producing Legacy data
@@ -260,6 +268,7 @@ void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup
     ctx.emplace(event,
                 OutputPFClusterSoA_Token_,
                 std::move(outputGPU2.PFClusters));  // SoA "PFClusters" still need to be defined.
+                //std::move(clusters_h_));  // SoA "PFClusters" still need to be defined.
 
   if (_produceLegacy) {
     auto pfClustersFromCuda = std::make_unique<reco::PFClusterCollection>();

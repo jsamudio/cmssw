@@ -17,10 +17,10 @@ namespace PFClusterCudaHCAL {
   void PFRechitToPFCluster_HCAL_entryPoint(cudaStream_t cudaStream,
                                            PFClusteringParamsGPU::DeviceProduct const&,
                                            ::hcal::PFRecHitCollection<::pf::common::DevStoragePolicy> const&,
-                                           //::PFClustering::HCAL::OutputPFClusterDataGPU&,
-                                           reco::PFClusterDeviceCollection&,
+                                           ::PFClustering::HCAL::OutputPFClusterDataGPU&,
                                            ::PFClustering::HCAL::OutputDataGPU&,
                                            ::PFClustering::HCAL::ScratchDataGPU&,
+                                           reco::PFClusterDeviceCollection&,
                                            float (&timer)[8]);
 
 }  // namespace PFClusterCudaHCAL
