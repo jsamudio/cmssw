@@ -83,8 +83,8 @@ private:
   PFClustering::HCAL::ScratchDataGPU scratchGPU;
 
   // PFCluster Portable Collection
-  reco::PFClusterHostCollection clusters_h_;
-  reco::PFClusterDeviceCollection clustersGPU;
+  //reco::PFClusterHostCollection clusters_h_;
+  //reco::PFClusterDeviceCollection clustersGPU;
 
   cms::cuda::ContextState cudaState_;
 };
@@ -125,7 +125,7 @@ void PFClusterProducerCudaHCAL::fillDescriptions(edm::ConfigurationDescriptions&
 
   desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("particleFlowRecHitHBHE"));
   desc.add<std::string>("PFClustersGPUOut", "");
-  desc.add<std::string>("PFClustersDeviceCollection", "");
+  desc.add<std::string>("PFClustersDeviceCollection", "PFClusterDev");
   desc.add<bool>("produceSoA", true);
   desc.add<bool>("produceLegacy", true);
 
@@ -170,7 +170,7 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   float kernelTimers[8] = {0.0};
 
   auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(cudaStream);
-  reco::PFClusterDeviceCollection clustersGPU;
+  reco::PFClusterDeviceCollection clustersGPU{nRH_, cudaStream};
 
   // Calling cuda kernels
   PFClusterCudaHCAL::PFRechitToPFCluster_HCAL_entryPoint(
@@ -245,11 +245,15 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
     static_assert(std::is_same<src_data_type, type>::value && "Dest and Src data types do not match");
     cudaCheck(cudaMemcpyAsync(dest.data(), src, size * sizeof(type), cudaMemcpyDeviceToHost, ctx.stream()));
   };
-  lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_topoId, outputGPU2.PFClusters.pfc_topoId.get(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, clustersGPU.view().pfc_seedRHIdx(), nSeeds_h);
+  //lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx.get(), nSeeds_h);
+  //lambdaToTransferSize(tmpPFClusters.pfc_topoId, outputGPU2.PFClusters.pfc_topoId.get(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_topoId, clustersGPU.view().pfc_topoId(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_depth, outputGPU2.PFClusters.pfc_depth.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, outputGPU2.PFClusters.pfc_rhfracOffset.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, outputGPU2.PFClusters.pfc_rhfracSize.get(), nSeeds_h);
+  //lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, outputGPU2.PFClusters.pfc_rhfracOffset.get(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, clustersGPU.view().pfc_rhfracOffset(), nSeeds_h);
+  //lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, outputGPU2.PFClusters.pfc_rhfracSize.get(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, clustersGPU.view().pfc_rhfracSize(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_energy, outputGPU2.PFClusters.pfc_energy.get(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_x, outputGPU2.PFClusters.pfc_x.get(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_y, outputGPU2.PFClusters.pfc_y.get(), nSeeds_h);
@@ -259,7 +263,9 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   //lambdaToTransferSize(tmpPFClusters.pcrh_pfcIdx, outputGPU2.PFClusters.pcrh_pfcIdx.get(), nRHFracs_h);
   //cms::cuda::copyAsync(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx, nSeeds_h, cudaStream);
   
-  clusters_h_ = reco::PFClusterHostCollection(tmpPFClusters.size, ctx.stream());
+  //clusters_h_ = reco::PFClusterHostCollection(tmpPFClusters.size, ctx.stream());
+
+  std::cout << "nSeeds_h" << nSeeds_h << " " << "nRHFracs_h" << nRHFracs_h << std::endl;
 }
 
 void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup& setup) {
