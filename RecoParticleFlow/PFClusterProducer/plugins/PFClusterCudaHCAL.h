@@ -20,7 +20,7 @@ namespace PFClusterCudaHCAL {
                                            ::PFClustering::HCAL::OutputPFClusterDataGPU&,
                                            ::PFClustering::HCAL::OutputDataGPU&,
                                            ::PFClustering::HCAL::ScratchDataGPU&,
-                                           reco::PFClusterDeviceCollection&,
+                                           reco::PFClusterDeviceMultiCollection&,
                                            float (&timer)[8]);
 
 }  // namespace PFClusterCudaHCAL

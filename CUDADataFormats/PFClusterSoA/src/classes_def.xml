@@ -1,10 +1,12 @@
 <lcgdict>
+    <class name="reco::PFClusterSoALayout<128, false>"/>
+    <class name="reco::PFRHFracSoALayout<128, false>"/>
     <class name="reco::PFClusterHostCollection"/>
     <read
     sourceClass="reco::PFClusterHostCollection"
     targetClass="reco::PFClusterHostCollection"
     version="[1-]"
-    source="reco::PFClusterSoA layout_;"
+    source="reco::PFClusterSoALayout<128, false> layout_;"
     target="buffer_"
     embed="false">
     <![CDATA[
@@ -29,6 +31,20 @@
 
     <class name="cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>" persistent="false" />
     <class name="edm::Wrapper<cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>>" persistent="false" />
+
+    <class name="reco::PFClusterDeviceMultiCollection" persistent="false"/>
+    <class name="edm::Wrapper<reco::PFClusterDeviceMultiCollection>" persistent="false"/>
+
+    <class name="cms::cuda::Product<reco::PFClusterDeviceMultiCollection>" persistent="false"/>
+    <class name="edm::Wrapper<cms::cuda::Product<reco::PFClusterDeviceMultiCollection>>" persistent="false"/>
+
+    <class name="portablecollection::CollectionImpl<0,
+        reco::PFClusterSoALayout<128, false>, reco::PFRHFracSoALayout<128, false>>"/>
+    <class name="portablecollection::CollectionImpl<1,
+        reco::PFRHFracSoALayout<128, false>>"/>
+
+    <class name="portablecollection::CollectionLeaf<0, reco::PFClusterSoALayout<128, false>>"/>
+    <class name="portablecollection::CollectionLeaf<1, reco::PFRHFracSoALayout<128, false>>"/>
 
 
 </lcgdict>

@@ -17,11 +17,15 @@ namespace reco {
             SOA_COLUMN(float, pfc_x),
             SOA_COLUMN(float, pfc_y),
             SOA_COLUMN(float, pfc_z)
-            //SOA_COLUMN(float, pcrh_frac),
-            //SOA_COLUMN(int, pcrh_pfrhIdx),
-            //SOA_COLUMN(int, pcrh_pfcIdx)
     )
     using PFClusterSoA = PFClusterSoALayout<>;
+
+    GENERATE_SOA_LAYOUT(PFRHFracSoALayout,
+            SOA_COLUMN(float, pcrh_frac),
+            SOA_COLUMN(int, pcrh_pfrhIdx),
+            SOA_COLUMN(int, pcrh_pfcIdx)
+    )
+    using PFRHFracSoA = PFRHFracSoALayout<>;
 }
 
 #endif

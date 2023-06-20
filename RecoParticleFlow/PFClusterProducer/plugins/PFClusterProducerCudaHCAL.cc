@@ -170,11 +170,12 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   float kernelTimers[8] = {0.0};
 
   auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(cudaStream);
-  reco::PFClusterDeviceCollection clustersGPU{nRH_, cudaStream};
+  //reco::PFClusterDeviceCollection clustersGPU{nRH_, cudaStream};
+  reco::PFClusterDeviceMultiCollection multiCollGPU{{{nRH_, nRH_*120}}, cudaStream};
 
   // Calling cuda kernels
   PFClusterCudaHCAL::PFRechitToPFCluster_HCAL_entryPoint(
-      cudaStream, pfClusParamsProduct, PFRecHits, outputGPU2, outputGPU, scratchGPU, clustersGPU, kernelTimers);
+      cudaStream, pfClusParamsProduct, PFRecHits, outputGPU2, outputGPU, scratchGPU, multiCollGPU, kernelTimers);
       //cudaStream, pfClusParamsProduct, PFRecHits, clustersGPU, outputGPU, scratchGPU, kernelTimers);
 
   if (!_produceLegacy)
@@ -245,27 +246,29 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
     static_assert(std::is_same<src_data_type, type>::value && "Dest and Src data types do not match");
     cudaCheck(cudaMemcpyAsync(dest.data(), src, size * sizeof(type), cudaMemcpyDeviceToHost, ctx.stream()));
   };
-  lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, clustersGPU.view().pfc_seedRHIdx(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, multiCollGPU.view().pfc_seedRHIdx(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx.get(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_topoId, outputGPU2.PFClusters.pfc_topoId.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_topoId, clustersGPU.view().pfc_topoId(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_topoId, multiCollGPU.view().pfc_topoId(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_depth, outputGPU2.PFClusters.pfc_depth.get(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, outputGPU2.PFClusters.pfc_rhfracOffset.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, clustersGPU.view().pfc_rhfracOffset(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, multiCollGPU.view().pfc_rhfracOffset(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, outputGPU2.PFClusters.pfc_rhfracSize.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, clustersGPU.view().pfc_rhfracSize(), nSeeds_h);
+  lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, multiCollGPU.view().pfc_rhfracSize(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_energy, outputGPU2.PFClusters.pfc_energy.get(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_x, outputGPU2.PFClusters.pfc_x.get(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_y, outputGPU2.PFClusters.pfc_y.get(), nSeeds_h);
   //lambdaToTransferSize(tmpPFClusters.pfc_z, outputGPU2.PFClusters.pfc_z.get(), nSeeds_h);
-  lambdaToTransferSize(tmpPFClusters.pcrh_frac, outputGPU2.PFClusters.pcrh_frac.get(), nRHFracs_h);
-  lambdaToTransferSize(tmpPFClusters.pcrh_pfrhIdx, outputGPU2.PFClusters.pcrh_pfrhIdx.get(), nRHFracs_h);
+  lambdaToTransferSize(tmpPFClusters.pcrh_frac, multiCollGPU.view<1>().pcrh_frac(), nRHFracs_h);
+  //lambdaToTransferSize(tmpPFClusters.pcrh_frac, outputGPU2.PFClusters.pcrh_frac.get(), nRHFracs_h);
+  lambdaToTransferSize(tmpPFClusters.pcrh_pfrhIdx, multiCollGPU.view<1>().pcrh_pfrhIdx(), nRHFracs_h);
+  //lambdaToTransferSize(tmpPFClusters.pcrh_pfrhIdx, outputGPU2.PFClusters.pcrh_pfrhIdx.get(), nRHFracs_h);
   //lambdaToTransferSize(tmpPFClusters.pcrh_pfcIdx, outputGPU2.PFClusters.pcrh_pfcIdx.get(), nRHFracs_h);
   //cms::cuda::copyAsync(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx, nSeeds_h, cudaStream);
   
   //clusters_h_ = reco::PFClusterHostCollection(tmpPFClusters.size, ctx.stream());
 
-  std::cout << "nSeeds_h" << nSeeds_h << " " << "nRHFracs_h" << nRHFracs_h << std::endl;
+  std::cout << "nSeeds_h" << nSeeds_h << " " << "nRHFracs_h" << nRHFracs_h << " " << "value from view<>:" << multiCollGPU.view<1>().pcrh_frac() << std::endl;
 }
 
 void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup& setup) {
