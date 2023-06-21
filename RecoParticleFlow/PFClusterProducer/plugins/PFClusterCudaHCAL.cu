@@ -1557,6 +1557,8 @@ namespace PFClusterCudaHCAL {
     if (threadIdx.x == 0) {
       *pcrhFracSize = totalSeedFracOffset;
       *nRHFracs = totalSeedFracOffset;
+      clusterView.nRHFracs() = totalSeedFracOffset;
+      clusterView.nSeeds() = *nSeeds;
       if (*pcrhFracSize > 200000)  // Warning in case the fraction is too large
         printf("At the end of topoClusterContraction, found large *pcrhFracSize = %d\n", *pcrhFracSize);
     }
@@ -2140,6 +2142,8 @@ namespace PFClusterCudaHCAL {
 
     HBHEPFClusters_asOutput.PFClusters.size = nSeeds_h;
     HBHEPFClusters_asOutput.PFClusters.sizeCleaned = nRHFracs_h;  // Hacky use of sizeCleaned for recHitFractions
+    //multiCollGPU.view<0>().nSeeds() = nSeeds_h;
+    //multiCollGPU.view<0>().nRHFracs() = nRHFracs_h;
 
 #ifdef DEBUG_ENABLE
     cudaEventRecord(stop, cudaStream);

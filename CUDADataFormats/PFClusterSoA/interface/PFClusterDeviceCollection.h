@@ -7,7 +7,7 @@
 namespace reco {
 
          using PFClusterDeviceCollection = cms::cuda::PortableDeviceCollection<reco::PFClusterSoA>;
-         using PFClusterDeviceMultiCollection = cms::cuda::PortableDeviceMultiCollection<reco::PFClusterSoA, reco::PFRHFracSoA>;
+         using PFClusterDeviceMultiCollection = cms::cuda::PortableDeviceCollection2<reco::PFClusterSoA, reco::PFRHFracSoA>;
       
 }  // namespace reco
       

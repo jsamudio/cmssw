@@ -237,10 +237,37 @@ namespace cms::cuda {
     return ret;
   }
 
+  size_t bufferSize() const {
+      SizesArray layoutSize;
+      size_t bytes;
+      bytes = 0;
+      portablecollection::constexpr_for<0, members_>([&](auto i) {
+              layoutSize[i] = get<i>().layout_.metadata().byteSize();
+              bytes += layoutSize[i];
+              });
+      return bytes;
+  }
+
+
 private:
   Buffer buffer_;  //!
   Implementation impl_;           // (serialized: this is where the layouts live)
 };
+
+// Singleton case does not need to be aliased. A special template covers it.
+
+  // This aliasing is needed to work with ROOT serialization. Bare templates make dictionary compilation fail.
+  template <typename T0, typename T1>
+  using PortableDeviceCollection2 = PortableDeviceMultiCollection<T0, T1>;
+
+  template <typename T0, typename T1, typename T2>
+  using PortableDeviceCollection3 = PortableDeviceMultiCollection<T0, T1, T2>;
+
+  template <typename T0, typename T1, typename T2, typename T3>
+  using PortableDeviceCollection4 = PortableDeviceMultiCollection<T0, T1, T2, T3>;
+
+  template <typename T0, typename T1, typename T2, typename T3, typename T4>
+  using PortableDeviceCollection5 = PortableDeviceMultiCollection<T0, T1, T2, T3, T4>;
 
 }  // namespace cms::cuda
 

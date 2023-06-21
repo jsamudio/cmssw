@@ -16,7 +16,9 @@ namespace reco {
             SOA_COLUMN(float, pfc_energy),
             SOA_COLUMN(float, pfc_x),
             SOA_COLUMN(float, pfc_y),
-            SOA_COLUMN(float, pfc_z)
+            SOA_COLUMN(float, pfc_z),
+            SOA_SCALAR(int, nSeeds),
+            SOA_SCALAR(int, nRHFracs)
     )
     using PFClusterSoA = PFClusterSoALayout<>;
 

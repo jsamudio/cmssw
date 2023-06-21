@@ -7,6 +7,7 @@
 namespace reco {
 
          using PFClusterHostCollection = cms::cuda::PortableHostCollection<reco::PFClusterSoA>;
+         using PFClusterHostMultiCollection = cms::cuda::PortableHostCollection2<reco::PFClusterSoA, reco::PFRHFracSoA>;
       
 }  // namespace reco
       

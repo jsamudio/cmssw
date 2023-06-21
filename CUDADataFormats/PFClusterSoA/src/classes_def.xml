@@ -46,5 +46,21 @@
     <class name="portablecollection::CollectionLeaf<0, reco::PFClusterSoALayout<128, false>>"/>
     <class name="portablecollection::CollectionLeaf<1, reco::PFRHFracSoALayout<128, false>>"/>
 
+    <class name="reco::PFClusterHostMultiCollection"/>
+
+    <read
+        sourceClass="reco::PFClusterHostMultiCollection"
+        targetClass="reco::PFClusterHostMultiCollection"
+        version="[1-]"
+        source="reco::PFClusterHostMultiCollection::Implementation impl_;"
+        target="buffer_,impl_"
+        embed="false">
+    <![CDATA[
+        reco::PFClusterHostMultiCollection::ROOTReadStreamer(newObj, onfile.impl_);
+    ]]>
+    </read>
+
+    <class name="edm::Wrapper<reco::PFClusterHostMultiCollection>" splitLevel="0"/>
+
 
 </lcgdict>
