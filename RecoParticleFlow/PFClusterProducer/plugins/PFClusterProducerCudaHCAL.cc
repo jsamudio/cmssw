@@ -56,16 +56,14 @@ private:
 
   using IProductType = cms::cuda::Product<hcal::PFRecHitCollection<pf::common::DevStoragePolicy>>;
   edm::EDGetTokenT<IProductType> InputPFRecHitSoA_Token_;
-  using OProductType = cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>;
-  //using OProductType = cms::cuda::Product<reco::PFClusterDeviceCollection>;
+  //using OProductType = cms::cuda::Product<hcal::PFClusterCollection<pf::common::DevStoragePolicy>>;
+  using OProductType = cms::cuda::Product<reco::PFClusterDeviceMultiCollection>;
   edm::EDPutTokenT<OProductType> OutputPFClusterSoA_Token_;
 
   edm::ESGetToken<PFClusteringParamsGPU, JobConfigurationGPURecord> const pfClusParamsToken_;
 
-  edm::EDPutTokenT<cms::cuda::Product<reco::PFClusterDeviceCollection>> cluster_deviceToken_;
+  //edm::EDPutTokenT<cms::cuda::Product<reco::PFClusterDeviceCollection>> cluster_deviceToken_;
 
-  // PFClusters for GPU
-  hcal::PFClusterCollection<pf::common::VecStoragePolicy<pf::common::CUDAHostAllocatorAlias>> tmpPFClusters;
 
   int nRH_ = 0;
   // int nClustersMax_ = 0;
@@ -83,8 +81,8 @@ private:
   PFClustering::HCAL::ScratchDataGPU scratchGPU;
 
   // PFCluster Portable Collection
+  reco::PFClusterDeviceMultiCollection multiCollGPU;
   reco::PFClusterHostMultiCollection multiCollCPU;
-  //reco::PFClusterDeviceCollection clustersGPU;
 
   cms::cuda::ContextState cudaState_;
 };
@@ -93,7 +91,7 @@ PFClusterProducerCudaHCAL::PFClusterProducerCudaHCAL(const edm::ParameterSet& co
     : InputPFRecHitSoA_Token_{consumes(conf.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
       OutputPFClusterSoA_Token_{produces<OProductType>(conf.getParameter<std::string>("PFClustersGPUOut"))},
       pfClusParamsToken_{esConsumes(conf.getParameter<edm::ESInputTag>("pfClusteringParameters"))},
-      cluster_deviceToken_{produces(conf.getParameter<std::string>("PFClusterDeviceCollection"))},
+      //cluster_deviceToken_{produces(conf.getParameter<std::string>("PFClusterDeviceCollection"))},
       _produceSoA{conf.getParameter<bool>("produceSoA")},
       _produceLegacy{conf.getParameter<bool>("produceLegacy")},
       _rechitsLabel{consumes(conf.getParameter<edm::InputTag>("recHitsSource"))} {
@@ -125,7 +123,7 @@ void PFClusterProducerCudaHCAL::fillDescriptions(edm::ConfigurationDescriptions&
 
   desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("particleFlowRecHitHBHE"));
   desc.add<std::string>("PFClustersGPUOut", "");
-  desc.add<std::string>("PFClustersDeviceCollection", "PFClusterDev");
+  //desc.add<std::string>("PFClustersDeviceCollection", "PFClusterDev");
   desc.add<bool>("produceSoA", true);
   desc.add<bool>("produceLegacy", true);
 
@@ -155,7 +153,6 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   cms::cuda::ScopedContextAcquire ctx{PFRecHitsProduct, std::move(holder), cudaState_};
   auto const& PFRecHits = ctx.get(PFRecHitsProduct);
   auto cudaStream = ctx.stream();
-  //auto const& clusters_d = ctx.get(event, cluster_deviceToken_); 
 
   nRH_ = PFRecHits.size;
   if (nRH_ == 0)
@@ -170,13 +167,12 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   float kernelTimers[8] = {0.0};
 
   auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(cudaStream);
-  //reco::PFClusterDeviceCollection clustersGPU{nRH_, cudaStream};
-  reco::PFClusterDeviceMultiCollection multiCollGPU{{{nRH_, nRH_*120}}, cudaStream};
+
+  multiCollGPU = reco::PFClusterDeviceMultiCollection({{nRH_, nRH_*120}}, cudaStream);
 
   // Calling cuda kernels
   PFClusterCudaHCAL::PFRechitToPFCluster_HCAL_entryPoint(
-      cudaStream, pfClusParamsProduct, PFRecHits, outputGPU2, outputGPU, scratchGPU, multiCollGPU, kernelTimers);
-      //cudaStream, pfClusParamsProduct, PFRecHits, clustersGPU, outputGPU, scratchGPU, kernelTimers);
+      cudaStream, pfClusParamsProduct, PFRecHits, outputGPU, scratchGPU, multiCollGPU, kernelTimers);
 
   if (!_produceLegacy)
     return;  // do device->host transfer only when we are producing Legacy data
@@ -184,87 +180,6 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   //
   // --- Data transfers for array
   //
-
-  //outputCPU.allocate(nRH_, cudaStream);
-
-  // Data transfer from GPU
-  /*
-  if (cudaStreamQuery(cudaStream) != cudaSuccess)
-    cudaCheck(cudaStreamSynchronize(cudaStream));
-  */
-
-  //int nTopos_h;
-  //int nSeeds_h;
-  //int nRHFracs_h;
-  //cudaCheck(cudaMemcpyAsync(&nTopos_h, scratchGPU.nTopos.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
-  //cudaCheck(cudaMemcpyAsync(&nSeeds_h, scratchGPU.nSeeds.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
-  //cudaCheck(cudaMemcpyAsync(&nRHFracs_h, scratchGPU.nRHFracs.get(), sizeof(int), cudaMemcpyDeviceToHost, cudaStream));
-
-  // cms::cuda::copyAsync(outputCPU.pcrhFracSize, outputGPU.pcrhFracSize, 1, cudaStream);
-
-  // const Int_t nFracs2 = outputCPU.pcrhFracSize[0];
-
-  // if (cudaStreamQuery(cudaStream) != cudaSuccess)
-  //   cudaCheck(cudaStreamSynchronize(cudaStream));
-
-  // Total size of allocated rechit fraction arrays (includes some extra padding for rechits that don't end up passing cuts)
-  //const Int_t nFracs = outputCPU.pcrhFracSize[0];
-  //std::cout << nRHFracs_h << " " << nFracs << " " << nFracs2 << std::endl;
-
-  // allocate outputCPU - will go away soon and we will use tmpPFClusters + OutputPFClusterSoA_Token_ + outputGPU2.PFClusters
-  //outputCPU.allocate_rhfrac(nFracs, cudaStream);
-
-  //
-  // --- Traditional SoA from Mark
-  //
-
-  /*
-  cms::cuda::copyAsync(outputCPU.topoSeedCount, outputGPU.topoSeedCount, nRH_, cudaStream);
-  cms::cuda::copyAsync(outputCPU.topoRHCount, outputGPU.topoRHCount, nRH_, cudaStream);
-  cms::cuda::copyAsync(outputCPU.seedFracOffsets, outputGPU.seedFracOffsets, nRH_, cudaStream);
-  cms::cuda::copyAsync(outputCPU.pfrh_isSeed, outputGPU.pfrh_isSeed, nRH_, cudaStream);
-  cms::cuda::copyAsync(outputCPU.pfrh_topoId, outputGPU.pfrh_topoId, nRH_, cudaStream);
-  cms::cuda::copyAsync(outputCPU.pcrh_fracInd, outputGPU.pcrh_fracInd, nFracs, cudaStream);
-  cms::cuda::copyAsync(outputCPU.pcrh_frac, outputGPU.pcrh_frac, nFracs, cudaStream);
-  */
-
-  //
-  // --- Newer SoA with proper length
-  //
-
-  // --- SoA transfers -----
-  // Copy back PFCluster SoA data to CPU
-
-  //const int nSeeds_h = outputGPU2.PFClusters.size;
-  //const int nRHFracs_h = outputGPU2.PFClusters.sizeCleaned;
-  //tmpPFClusters.resize(outputGPU2.PFClusters.size);
-  //tmpPFClusters.resizeRecHitFrac(outputGPU2.PFClusters.sizeCleaned);
-  //auto lambdaToTransferSize = [&ctx](auto& dest, auto* src, auto size) {
-  //  using vector_type = typename std::remove_reference<decltype(dest)>::type;
-  //  using src_data_type = typename std::remove_pointer<decltype(src)>::type;
-  //  using type = typename vector_type::value_type;
-  //  static_assert(std::is_same<src_data_type, type>::value && "Dest and Src data types do not match");
-  //  cudaCheck(cudaMemcpyAsync(dest.data(), src, size * sizeof(type), cudaMemcpyDeviceToHost, ctx.stream()));
-  //};
-  //lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, multiCollGPU.view().pfc_seedRHIdx(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx.get(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_topoId, outputGPU2.PFClusters.pfc_topoId.get(), nSeeds_h);
-  //lambdaToTransferSize(tmpPFClusters.pfc_topoId, multiCollGPU.view().pfc_topoId(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_depth, outputGPU2.PFClusters.pfc_depth.get(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, outputGPU2.PFClusters.pfc_rhfracOffset.get(), nSeeds_h);
-  //lambdaToTransferSize(tmpPFClusters.pfc_rhfracOffset, multiCollGPU.view().pfc_rhfracOffset(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, outputGPU2.PFClusters.pfc_rhfracSize.get(), nSeeds_h);
-  //lambdaToTransferSize(tmpPFClusters.pfc_rhfracSize, multiCollGPU.view().pfc_rhfracSize(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_energy, outputGPU2.PFClusters.pfc_energy.get(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_x, outputGPU2.PFClusters.pfc_x.get(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_y, outputGPU2.PFClusters.pfc_y.get(), nSeeds_h);
-  ////lambdaToTransferSize(tmpPFClusters.pfc_z, outputGPU2.PFClusters.pfc_z.get(), nSeeds_h);
-  //lambdaToTransferSize(tmpPFClusters.pcrh_frac, multiCollGPU.view<1>().pcrh_frac(), nRHFracs_h);
-  ////lambdaToTransferSize(tmpPFClusters.pcrh_frac, outputGPU2.PFClusters.pcrh_frac.get(), nRHFracs_h);
-  //lambdaToTransferSize(tmpPFClusters.pcrh_pfrhIdx, multiCollGPU.view<1>().pcrh_pfrhIdx(), nRHFracs_h);
-  ////lambdaToTransferSize(tmpPFClusters.pcrh_pfrhIdx, outputGPU2.PFClusters.pcrh_pfrhIdx.get(), nRHFracs_h);
-  ////lambdaToTransferSize(tmpPFClusters.pcrh_pfcIdx, outputGPU2.PFClusters.pcrh_pfcIdx.get(), nRHFracs_h);
-  ////cms::cuda::copyAsync(tmpPFClusters.pfc_seedRHIdx, outputGPU2.PFClusters.pfc_seedRHIdx, nSeeds_h, cudaStream);
   
   multiCollCPU = reco::PFClusterHostMultiCollection({{nRH_, nRH_*120}}, cudaStream);
 
@@ -277,8 +192,7 @@ void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup
   if (_produceSoA)
     ctx.emplace(event,
                 OutputPFClusterSoA_Token_,
-                std::move(outputGPU2.PFClusters));  // SoA "PFClusters" still need to be defined.
-                //std::move(clusters_h_));  // SoA "PFClusters" still need to be defined.
+                std::move(multiCollGPU));  // SoA "PFClusters" still need to be defined.
 
   if (_produceLegacy) {
     auto pfClustersFromCuda = std::make_unique<reco::PFClusterCollection>();
@@ -288,45 +202,32 @@ void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup
 
     std::vector<int> seedlist1;
     std::vector<int> seedlist2;
-    tmpPFClusters.size = outputGPU2.PFClusters.size;
-    //for (unsigned i = 0; i < tmpPFClusters.size; i++) {
     for (int i = 0; i < multiCollCPU.view<0>().nSeeds(); i++) {
-      //seedlist1.push_back(tmpPFClusters.pfc_seedRHIdx[i]);
       seedlist1.push_back(multiCollCPU.view<0>()[i].pfc_seedRHIdx());
     }
 
     // Build PFClusters in legacy format
     std::unordered_map<int, int> nTopoSeeds;
 
-    //for (uint32_t i = 0; i < tmpPFClusters.size; i++) {
     for (int i = 0; i < multiCollCPU.view<0>().nSeeds(); i++) {
-      //nTopoSeeds[tmpPFClusters.pfc_topoId[i]]++;
       nTopoSeeds[multiCollCPU.view<0>()[i].pfc_topoId()]++;
     }
 
     // Looping over SoA PFClusters to produce legacy PFCluster collection
-    //for (uint32_t i = 0; i < tmpPFClusters.size; i++) {
     for (int i = 0; i < multiCollCPU.view<0>().nSeeds(); i++) {
-      //int n = tmpPFClusters.pfc_seedRHIdx[i];
       int n = multiCollCPU.view<0>()[i].pfc_seedRHIdx();
       reco::PFCluster temp;
       temp.setSeed((*rechitsHandle)[n].detId());  // Pulling the detId of this PFRecHit from the legacy format input
       seedlist2.push_back(n);
-      //int offset = tmpPFClusters.pfc_rhfracOffset[i];
       int offset = multiCollCPU.view<0>()[i].pfc_rhfracOffset();
-      //for (int k = offset; k < (offset + tmpPFClusters.pfc_rhfracSize[i]);
       for (int k = offset; k < (offset + multiCollCPU.view<0>()[i].pfc_rhfracSize());
            k++) {  // Looping over PFRecHits in the same topo cluster
-        //if (tmpPFClusters.pcrh_pfrhIdx[k] > -1 && tmpPFClusters.pcrh_frac[k] > 0.0) {
         if (multiCollCPU.view<1>()[k].pcrh_pfrhIdx() > -1 && multiCollCPU.view<1>()[k].pcrh_frac() > 0.0) {
-          //const reco::PFRecHitRef& refhit = reco::PFRecHitRef(rechitsHandle, tmpPFClusters.pcrh_pfrhIdx[k]);
           const reco::PFRecHitRef& refhit = reco::PFRecHitRef(rechitsHandle, multiCollCPU.view<1>()[k].pcrh_pfrhIdx());
-          //temp.addRecHitFraction(reco::PFRecHitFraction(refhit, tmpPFClusters.pcrh_frac[k]));
           temp.addRecHitFraction(reco::PFRecHitFraction(refhit, multiCollCPU.view<1>()[k].pcrh_frac()));
         }
       }
       // Now PFRecHitFraction of this PFCluster is set. Now compute calculateAndSetPosition (energy, position etc)
-      //if (nTopoSeeds.count(tmpPFClusters.pfc_topoId[i]) == 1 && _allCellsPositionCalc) {
       if (nTopoSeeds.count(multiCollCPU.view<0>()[i].pfc_topoId()) == 1 && _allCellsPositionCalc) {
         _allCellsPositionCalc->calculateAndSetPosition(temp);
       } else {
