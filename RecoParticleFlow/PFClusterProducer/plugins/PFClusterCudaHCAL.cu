@@ -502,9 +502,11 @@ namespace PFClusterCudaHCAL {
   }
 
   __device__ auto dev_getRhFrac(
+
       int* topoSeedList, int topoSeedBegin, reco::PFClusterDeviceMultiCollection::View<1> fracView, int* seedFracOffsets, int seedNum, int rhNum) {
     int seedIdx = topoSeedList[topoSeedBegin + seedNum];
     return fracView[seedFracOffsets[seedIdx] + rhNum].pcrh_frac();
+
   }
 
   __device__ auto dev_computeClusterPos(PFClusteringParamsGPU::DeviceProduct::ConstView pfClusParams,
@@ -535,6 +537,7 @@ namespace PFClusterCudaHCAL {
     pos4.z += rechitPos.z * norm;
     pos4.w += norm;  //  position_norm
   }
+
   __device__ void dev_hcalFastCluster_optimizedSimple(PFClusteringParamsGPU::DeviceProduct::ConstView pfClusParams,
                                                       int topoId,
                                                       int nRHTopo,
@@ -815,6 +818,7 @@ namespace PFClusterCudaHCAL {
       dev_computeClusterPos(
         pfClusParams, seedInitClusterPos, 1., seedThreadIdx, debug, pfrh_x, pfrh_y, pfrh_z, pfrh_energy, rhENormInv);
       }
+
     do {
       if (debug && threadIdx.x == 0) {
         printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
@@ -889,12 +893,14 @@ namespace PFClusterCudaHCAL {
           int j = rechits[r];
           float frac = dev_getRhFrac(topoSeedList, topoSeedBegin, fracView, seedFracOffsets, tid, r + 1);
 
+
           if (frac > -0.5) {
             clusterEnergy[tid] += frac * pfrh_energy[j];
 
             if (nSeeds == 1 || j == seedNeighbors.x || j == seedNeighbors.y || j == seedNeighbors.z ||
                 j == seedNeighbors.w)
               dev_computeClusterPos(pfClusParams, clusterPos[tid], frac, j, debug, pfrh_x, pfrh_y, pfrh_z, pfrh_energy, rhENormInv);
+
           }
         }
       }
@@ -988,6 +994,7 @@ namespace PFClusterCudaHCAL {
     __shared__ int nRHNotSeed, topoSeedBegin, gridStride, iter;
     __shared__ float tol, diff2, rhENormInv;
     __shared__ bool notDone, debug;
+
     extern __shared__ float4 sharedArr[];
     float4* clusterPos = sharedArr;                          //nSeeds
     float4* prevClusterPos = (float4*)&clusterPos[nSeeds];   //nSeeds
@@ -1141,12 +1148,14 @@ namespace PFClusterCudaHCAL {
           int j = rechits[r];
           float frac = dev_getRhFrac(topoSeedList,topoSeedBegin, fracView, seedFracOffsets, s, r + 1);
 
+
           if (frac > -0.5) {
             clusterEnergy[s] += frac * pfrh_energy[j];
 
             if (nSeeds == 1 || j == pfrh_neighbours[8 * seedRhIdx] || j == pfrh_neighbours[8 * seedRhIdx + 1] ||
                 j == pfrh_neighbours[8 * seedRhIdx + 2] || j == pfrh_neighbours[8 * seedRhIdx + 3])
               dev_computeClusterPos(pfClusParams, clusterPos[s], frac, j, debug, pfrh_x, pfrh_y, pfrh_z, pfrh_energy, rhENormInv);
+
           }
         }
       }
@@ -1938,6 +1947,7 @@ namespace PFClusterCudaHCAL {
     int nSeedsTopoMax = *std::max_element(nSeedsTopo_h, nSeedsTopo_h + (nRH-1));
 
     // x: seeds, y: non-seeds
+
     fillRhfIndex<<<grid, block, 0, cudaStream>>>(nRH,
                                                  outputGPU.pfrh_topoId.get(),
                                                  outputGPU.pfrh_isSeed.get(),
@@ -2055,6 +2065,7 @@ namespace PFClusterCudaHCAL {
 #endif
 
     */
+
   }
 
 }  // namespace PFClusterCudaHCAL
