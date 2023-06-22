@@ -1,21 +1,6 @@
 <lcgdict>
 <selection>
 
-    <class name="reco::PFClusterSoA">
-    <field name="pfc_depth_" />
-    <field name="pfc_seedRHIdx_" />
-    <field name="pfc_topoId_" />
-    <field name="pfc_rhfracsize_" />
-    <field name="pfc_energy__" />
-    <field name="pfc_x_" />
-    <field name="pfc_y_" />
-    <field name="pfc_z_" />
-    <field name="pcrh_frac_" />
-    <field name="pcrh_pfrhIdx_" />
-    <field name="pcrh_pfcIdx_" />
-    </class>
-    <class name="reco::PFClusterSoA::View"/>
-
 
   <class name="reco::PFNuclearInteraction"  ClassVersion="10">
    <version ClassVersion="10" checksum="1573561360"/>

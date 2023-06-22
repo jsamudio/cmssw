@@ -77,7 +77,6 @@ private:
   PFClustering::HCAL::ConfigurationParameters cudaConfig_;
   PFClustering::HCAL::OutputDataCPU outputCPU;
   PFClustering::HCAL::OutputDataGPU outputGPU;
-  PFClustering::HCAL::OutputPFClusterDataGPU outputGPU2;
   PFClustering::HCAL::ScratchDataGPU scratchGPU;
 
   // PFCluster Portable Collection
