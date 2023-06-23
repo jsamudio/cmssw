@@ -208,6 +208,8 @@ process.hltParticleFlowClusterHBHEonGPU = cms.EDProducer("PFClusterProducerCudaH
                                                     initialClusteringStep = process.hltParticleFlowClusterHBHE.initialClusteringStep
 )
 process.hltParticleFlowClusterHBHEonGPU.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowRecHitHBHEonGPU","")
+process.hltParticleFlowClusterHBHEonGPU.PFClustersGPUOut = cms.string("hltParticleFlowClusterHBHEonGPU")
+#process.hltParticleFlowClusterHBHEonGPU.PFClusterDeviceCollection = cms.string("hltParticleFlowClusterHBHEonGPU")
 
 # value before recent optimizations
 process.hltParticleFlowClusterHBHE.pfClusterBuilder.maxIterations = 50

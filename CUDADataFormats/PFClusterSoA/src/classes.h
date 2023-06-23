@@ -1,0 +1,6 @@
+#include "CUDADataFormats/Common/interface/Product.h"
+#include "CUDADataFormats/PFClusterSoA/interface/PFClusterCollection.h"
+#include "CUDADataFormats/PFClusterSoA/interface/PFClusterDeviceCollection.h"
+#include "CUDADataFormats/PFClusterSoA/interface/PFClusterHostCollection.h"
+#include "DataFormats/Common/interface/Wrapper.h"
+#include "DataFormats/ParticleFlowReco/interface/PFClusterSoA.h"
