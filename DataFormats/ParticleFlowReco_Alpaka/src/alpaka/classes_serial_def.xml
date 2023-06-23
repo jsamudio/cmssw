@@ -1,29 +1,29 @@
 <lcgdict>
-  <class name="CaloRecHitHostCollection"/>
+  <class name="reco::CaloRecHitHostCollection"/>
   <read
-    sourceClass="CaloRecHitHostCollection"
-    targetClass="CaloRecHitHostCollection"
+    sourceClass="reco::CaloRecHitHostCollection"
+    targetClass="reco::CaloRecHitHostCollection"
     version="[1-]"
-    source="CaloRecHitSoA layout_;"
+    source="reco::CaloRecHitSoA layout_;"
     target="buffer_,layout_,view_"
     embed="false">
   <![CDATA[
-    CaloRecHitHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
+    reco::CaloRecHitHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
   ]]>
   </read>
-  <class name="edm::Wrapper<CaloRecHitHostCollection>" splitLevel="0"/>
+  <class name="edm::Wrapper<reco::CaloRecHitHostCollection>" splitLevel="0"/>
 
-  <class name="PFRecHitHostCollection"/>
+  <class name="reco::PFRecHitHostCollection"/>
   <read
-    sourceClass="PFRecHitHostCollection"
-    targetClass="PFRecHitHostCollection"
+    sourceClass="reco::PFRecHitHostCollection"
+    targetClass="reco::PFRecHitHostCollection"
     version="[1-]"
-    source="PFRecHitSoA layout_;"
+    source="reco::PFRecHitSoA layout_;"
     target="buffer_,layout_,view_"
     embed="false">
   <![CDATA[
-    PFRecHitHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
+    reco::PFRecHitHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
   ]]>
   </read>
-  <class name="edm::Wrapper<PFRecHitHostCollection>" splitLevel="0"/>
+  <class name="edm::Wrapper<reco::PFRecHitHostCollection>" splitLevel="0"/>
 </lcgdict>

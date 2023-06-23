@@ -26,7 +26,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if(DEBUG)
         printf("Found %d recHits\n", num_recHits);
 
-      CaloRecHitHostCollection hostProduct{num_recHits, event.queue()};
+      reco::CaloRecHitHostCollection hostProduct{num_recHits, event.queue()};
       auto& view = hostProduct.view();
 
       for(int i = 0; i < num_recHits; i++)
