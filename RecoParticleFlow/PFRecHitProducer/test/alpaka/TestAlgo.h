@@ -2,8 +2,8 @@
 #define RecoParticleFlow_PFRecHitProducer_test_alpaka_TestAlgo_h
 
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitHBHEParamsAlpakaESData.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitHBHETopologyAlpakaESData.h"
+#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitHBHEParamsAlpakaESData.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 

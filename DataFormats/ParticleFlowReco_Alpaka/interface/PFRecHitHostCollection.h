@@ -4,6 +4,8 @@
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFRecHitSoA.h"
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
 
-using PFRecHitHostCollection = PortableHostCollection<PFRecHitSoA>;
+namespace reco {
+  using PFRecHitHostCollection = PortableHostCollection<PFRecHitSoA>;
+}
 
 #endif

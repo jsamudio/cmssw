@@ -1,9 +1,9 @@
 <lcgdict>
 <selection>
-  <class name="CaloRecHitSoA"/>
-  <class name="CaloRecHitSoA::View"/>
-  <class name="PFRecHitSoA"/>
-  <class name="PFRecHitSoA::View"/>
+  <class name="reco::CaloRecHitSoA"/>
+  <class name="reco::CaloRecHitSoA::View"/>
+  <class name="reco::PFRecHitSoA"/>
+  <class name="reco::PFRecHitSoA::View"/>
 </selection>
 </lcgdict>
 
