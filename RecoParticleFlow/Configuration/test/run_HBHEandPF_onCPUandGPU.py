@@ -158,6 +158,8 @@ if 'MessageLogger' in process.__dict__:
 # - use GPU version
 process.hltParticleFlowRecHitHBHEonGPU = process.hltParticleFlowRecHitHBHE.clone()
 _pset_hltParticleFlowRecHitHBHE_producers_mod = process.hltParticleFlowRecHitHBHEonGPU.producers
+PFHBThreshold = cms.vuint32( 0 )
+PFHEThreshold = cms.vuint32( 0 )
 for idx, x in enumerate(_pset_hltParticleFlowRecHitHBHE_producers_mod):
     if x.src.moduleLabel == "hltHbhereco":
         x.src.moduleLabel = "hltHbherecoGPU" # use GPU version as input instead of legacy version
@@ -167,14 +169,40 @@ for idx, x in enumerate(_pset_hltParticleFlowRecHitHBHE_producers_mod):
                 if z.detectorEnum == 1: # HB
                     z.detectorEnum = cms.uint32( 1 )
                     z.depth = cms.vuint32( 1, 2, 3, 4 )
+                    process.pfhbheRecHitParamsGPUESProducer.thresholdE_HB = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
                 if z.detectorEnum == 2: # HE
                     z.detectorEnum = cms.uint32( 2 )
                     z.depth = cms.vuint32( 1, 2, 3, 4, 5, 6, 7  )
+                    process.pfhbheRecHitParamsGPUESProducer.thresholdE_HE = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
 
 process.hltParticleFlowRecHitHBHEonGPU = cms.EDProducer("PFHBHERecHitProducerGPU", # instead of "PFRecHitProducer"
                                                    producers = _pset_hltParticleFlowRecHitHBHE_producers_mod,
                                                    navigator = process.hltParticleFlowRecHitHBHE.navigator
 )
+
+#
+# Propagate PFCluster parameters for CPU to GPU omes
+#
+_pset_GPU = process.pfClusteringParamsGPUESSource.initialClusteringStep.thresholdsByDetector
+_pset_CPU = process.hltParticleFlowClusterHBHE.initialClusteringStep.thresholdsByDetector
+for idx, x in enumerate(_pset_GPU):
+    for idy, y in enumerate(_pset_CPU):
+        if x.detector == y.detector:
+            x.gatheringThreshold = y.gatheringThreshold
+
+_pset_GPU = process.pfClusteringParamsGPUESSource.pfClusterBuilder.recHitEnergyNorms
+_pset_CPU = process.hltParticleFlowClusterHBHE.pfClusterBuilder.recHitEnergyNorms
+for idx, x in enumerate(_pset_GPU):
+    for idy, y in enumerate(_pset_CPU):
+        if x.detector == y.detector:
+            x.recHitEnergyNorm = y.recHitEnergyNorm
+
+_pset_GPU = process.pfClusteringParamsGPUESSource.seedFinder.thresholdsByDetector
+_pset_CPU = process.hltParticleFlowClusterHBHE.seedFinder.thresholdsByDetector
+for idx, x in enumerate(_pset_GPU):
+    for idy, y in enumerate(_pset_CPU):
+        if x.detector == y.detector:
+            x.seedingThreshold = y.seedingThreshold
 
 #
 # for CPU PFRecHitHBHE
