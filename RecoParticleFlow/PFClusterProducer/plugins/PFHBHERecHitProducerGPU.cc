@@ -24,7 +24,6 @@
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
 #include "HeterogeneousCore/CUDACore/interface/ScopedContext.h"
-#include "HeterogeneousCore/CUDAServices/interface/CUDAService.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
