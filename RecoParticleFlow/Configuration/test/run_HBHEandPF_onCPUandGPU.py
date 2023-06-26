@@ -21,9 +21,6 @@ process.load('HLTrigger.Configuration.HLT_GRun_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
-process.load("RecoParticleFlow.PFClusterProducer.pfhbheRecHitParamsGPUESProducer_cfi")
-process.load("RecoParticleFlow.PFClusterProducer.pfhbheTopologyGPUESProducer_cfi")
-
 process.maxEvents = cms.untracked.PSet(
     #input = cms.untracked.int32(5),
     input = cms.untracked.int32(100),
@@ -179,7 +176,7 @@ process.hltParticleFlowRecHitHBHEonGPU = cms.EDProducer("PFHBHERecHitProducerGPU
 )
 
 #
-# Propagate PFCluster parameters for CPU to GPU omes
+# Propagate PFCluster parameters for CPU to GPU ES-based ones
 #
 _pset_GPU = process.pfClusteringParamsGPUESSource.initialClusteringStep.thresholdsByDetector
 _pset_CPU = process.hltParticleFlowClusterHBHE.initialClusteringStep.thresholdsByDetector
