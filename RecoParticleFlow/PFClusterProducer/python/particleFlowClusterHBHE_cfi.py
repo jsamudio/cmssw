@@ -35,7 +35,7 @@ _module_config = cms.PSet(
         nNeighbours = cms.int32(4)
     ),
     initialClusteringStep = cms.PSet(
-        algoName = cms.string("Basic2DGenericTopoClusterizer"),    
+        algoName = cms.string("Basic2DGenericTopoClusterizer"),
         thresholdsByDetector = cms.VPSet(
         cms.PSet( detector = cms.string("HCAL_BARREL1"),
                   depths = cms.vint32(1, 2, 3, 4),
@@ -50,14 +50,14 @@ _module_config = cms.PSet(
         ),
         useCornerCells = cms.bool(True)
     ),
-    
+
     pfClusterBuilder = cms.PSet(
            algoName = cms.string("Basic2DGenericPFlowClusterizer"),
            #pf clustering parameters
            minFractionToKeep = cms.double(1e-7),
            positionCalc = cms.PSet(
                  algoName = cms.string("Basic2DGenericPFlowPositionCalc"),
-                 minFractionInCalc = cms.double(1e-9),    
+                 minFractionInCalc = cms.double(1e-9),
                  posCalcNCrystals = cms.int32(5),
                  logWeightDenominatorByDetector = cms.VPSet(
                        cms.PSet( detector = cms.string("HCAL_BARREL1"),
@@ -73,7 +73,7 @@ _module_config = cms.PSet(
            ),
            allCellsPositionCalc =cms.PSet(
                  algoName = cms.string("Basic2DGenericPFlowPositionCalc"),
-                 minFractionInCalc = cms.double(1e-9),    
+                 minFractionInCalc = cms.double(1e-9),
                  posCalcNCrystals = cms.int32(-1),
                  logWeightDenominatorByDetector = cms.VPSet(
                        cms.PSet( detector = cms.string("HCAL_BARREL1"),
@@ -87,7 +87,7 @@ _module_config = cms.PSet(
                        ),
                  minAllowedNormalization = cms.double(1e-9)
            ),
-           
+
 
            timeSigmaEB = cms.double(10.),
            timeSigmaEE = cms.double(10.),
@@ -171,7 +171,7 @@ run3_HB.toModify(_particleFlowClusterHBHE_cuda,
 
 # offline 2023
 from Configuration.Eras.Modifier_run3_egamma_2023_cff import run3_egamma_2023
-run3_egamma_2023.toModify(particleFlowClusterHBHE,
+run3_egamma_2023.toModify(_particleFlowClusterHBHE_cpu,
     seedFinder = dict(thresholdsByDetector = {0 : dict(seedingThreshold = _seedingThresholdsHBphase1_2023) } ),
     initialClusteringStep = dict(thresholdsByDetector = {0 : dict(gatheringThreshold = _thresholdsHBphase1_2023) } ),
     pfClusterBuilder = dict(
@@ -180,7 +180,24 @@ run3_egamma_2023.toModify(particleFlowClusterHBHE,
         allCellsPositionCalc = dict(logWeightDenominatorByDetector = {0 : dict(logWeightDenominator = _thresholdsHBphase1_2023) } ),
     ),
 )
-
+run3_egamma_2023.toModify(_particleFlowClusterHBHE_cuda,
+    seedFinder = dict(thresholdsByDetector = {0 : dict(seedingThreshold = _seedingThresholdsHBphase1_2023) } ),
+    initialClusteringStep = dict(thresholdsByDetector = {0 : dict(gatheringThreshold = _thresholdsHBphase1_2023) } ),
+    pfClusterBuilder = dict(
+        recHitEnergyNorms = {0 : dict(recHitEnergyNorm = _thresholdsHBphase1_2023) },
+        positionCalc = dict(logWeightDenominatorByDetector = {0 : dict(logWeightDenominator = _thresholdsHBphase1_2023) } ),
+        allCellsPositionCalc = dict(logWeightDenominatorByDetector = {0 : dict(logWeightDenominator = _thresholdsHBphase1_2023) } ),
+    ),
+)
+# GPU version actually uses ES values below
+from RecoParticleFlow.PFClusterProducer.pfClusteringParamsGPUESSource_cfi import pfClusteringParamsGPUESSource
+run3_egamma_2023.toModify(pfClusteringParamsGPUESSource,
+    seedFinder = dict(thresholdsByDetector = {0 : dict(seedingThreshold = _seedingThresholdsHBphase1_2023) } ),
+    initialClusteringStep = dict(thresholdsByDetector = {0 : dict(gatheringThreshold = _thresholdsHBphase1_2023) } ),
+    pfClusterBuilder = dict(
+        recHitEnergyNorms = {0 : dict(recHitEnergyNorm = _thresholdsHBphase1_2023) }
+    ),
+)
 
 # HCALonly WF
 # particleFlowClusterHBHEOnly = _particleFlowClusterHBHE_cpu.clone(
@@ -208,6 +225,6 @@ particleFlowClusterHBHE = SwitchProducerCUDA(
 )
 
 from Configuration.ProcessModifiers.gpu_cff import gpu
-gpu.toModify(particleFlowClusterHBHE, 
+gpu.toModify(particleFlowClusterHBHE,
     cuda = _particleFlowClusterHBHE_cuda.clone()
-)         
+)
