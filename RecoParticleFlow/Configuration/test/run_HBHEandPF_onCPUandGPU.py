@@ -158,8 +158,6 @@ if 'MessageLogger' in process.__dict__:
 # - use GPU version
 process.hltParticleFlowRecHitHBHEonGPU = process.hltParticleFlowRecHitHBHE.clone()
 _pset_hltParticleFlowRecHitHBHE_producers_mod = process.hltParticleFlowRecHitHBHEonGPU.producers
-PFHBThreshold = cms.vuint32( 0 )
-PFHEThreshold = cms.vuint32( 0 )
 for idx, x in enumerate(_pset_hltParticleFlowRecHitHBHE_producers_mod):
     if x.src.moduleLabel == "hltHbhereco":
         x.src.moduleLabel = "hltHbherecoGPU" # use GPU version as input instead of legacy version
