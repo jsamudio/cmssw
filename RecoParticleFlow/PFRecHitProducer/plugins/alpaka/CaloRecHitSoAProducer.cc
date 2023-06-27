@@ -17,7 +17,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     CaloRecHitSoAProducer(edm::ParameterSet const& config) :
       recHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
-      deviceToken(produces())
+      deviceToken(produces()),
+      synchronise(config.getParameter<bool>("synchronise"))
     {}
 
     void produce(edm::StreamID sid, device::Event& event, device::EventSetup const&) const override {
@@ -42,18 +43,22 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       CaloRecHitDeviceCollection deviceProduct{num_recHits, event.queue()};
       alpaka::memcpy(event.queue(), deviceProduct.buffer(), hostProduct.buffer());
+      if(synchronise)
+        alpaka::wait(event.queue());
       event.emplace(deviceToken, std::move(deviceProduct));
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
       desc.add<edm::InputTag>("src");
+      desc.add<bool>("synchronise");
       descriptions.addWithDefaultLabel(desc);
     }
 
   private:
     const edm::EDGetTokenT<edm::SortedCollection<HBHERecHit>> recHitsToken;
     const device::EDPutToken<CaloRecHitDeviceCollection> deviceToken;
+    const bool synchronise;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

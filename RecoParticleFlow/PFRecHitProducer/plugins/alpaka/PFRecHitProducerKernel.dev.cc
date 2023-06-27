@@ -218,21 +218,26 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
 
-  void PFRecHitProducerKernel::execute(const Device& device, Queue& queue,
-    const PFRecHitHBHEParamsAlpakaESDataDevice& params,
-    const PFRecHitHBHETopologyAlpakaESDataDevice& topology,
-    const CaloRecHitDeviceCollection& recHits,
-    PFRecHitDeviceCollection& pfRecHits) const {
+  PFRecHitProducerKernel::PFRecHitProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t[]>&& buffer)
+    : denseId2pfRecHit(std::move(buffer)) {
+  }
 
+  PFRecHitProducerKernel PFRecHitProducerKernel::Construct(Queue& queue) {
     // TODO copy these from device or use ESProduct on host
     const uint32_t denseId_min = 0, denseId_max = 25000;
     //alpaka::memcpy(queue, &denseId_min, topology.view().denseId_min(), 1);
     //auto event = alpaka::Event<Queue>(device);
     //alpaka::wait(event);
     //printf("denseId range: %u %u\n", denseId_min, denseId_max);
-    
-    // TODO keep this buffer between events
-    auto denseId2pfRecHit = cms::alpakatools::make_device_buffer<uint32_t[]>(queue, denseId_max - denseId_min + 1);
+
+    return PFRecHitProducerKernel{cms::alpakatools::make_device_buffer<uint32_t[]>(queue, denseId_max - denseId_min + 1)};
+  }
+
+  void PFRecHitProducerKernel::execute(const Device& device, Queue& queue,
+    const PFRecHitHBHEParamsAlpakaESDataDevice& params,
+    const PFRecHitHBHETopologyAlpakaESDataDevice& topology,
+    const CaloRecHitDeviceCollection& recHits,
+    PFRecHitDeviceCollection& pfRecHits) {
 
     // Reset denseId -> pfRecHit index map
     alpaka::memset(queue, denseId2pfRecHit, 0xff);
