@@ -16,7 +16,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFRecHitHBHEParamsESProducer : public ESProducer {
   public:
-    PFRecHitHBHEParamsESProducer(edm::ParameterSet const& iConfig) :
+    PFRecHitHBHEParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig),
         energyThresholdsHB_(iConfig.getParameter<std::array<double, kMaxDepthHB>>("energyThresholdsHB")),
         energyThresholdsHE_(iConfig.getParameter<std::array<double, kMaxDepthHE>>("energyThresholdsHE")) {
       setWhatProduced(this);

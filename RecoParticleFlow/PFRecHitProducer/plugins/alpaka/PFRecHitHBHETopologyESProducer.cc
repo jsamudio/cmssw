@@ -26,8 +26,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFRecHitHBHETopologyESProducer : public ESProducer {
   public:
-    PFRecHitHBHETopologyESProducer(edm::ParameterSet const& iConfig)
-      : hcalEnums_(iConfig.getParameter<std::vector<int>>("hcalEnums")) {
+    PFRecHitHBHETopologyESProducer(edm::ParameterSet const& iConfig) :
+      ESProducer(iConfig) ,
+      hcalEnums_(iConfig.getParameter<std::vector<int>>("hcalEnums")) {
       auto cc = setWhatProduced(this);
       hcalToken_ = cc.consumes();
       geomToken_ = cc.consumes();
