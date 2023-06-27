@@ -9,24 +9,14 @@
 
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
+#include "HeterogeneousCore/AlpakaInterface/interface/traits.h"
+#include "DataFormats/Portable/interface/PortableCollectionCommon.h"
 
 // generic SoA-based product in device memory
 template <typename T, typename TDev, typename = std::enable_if_t<alpaka::isDevice<TDev>>>
 class PortableDeviceCollection {
   static_assert(not std::is_same_v<TDev, alpaka_common::DevHost>,
                 "Use PortableHostCollection<T> instead of PortableDeviceCollection<T, DevHost>");
-  // Make sure void is not interleaved with other types.
-  static_assert(not std::is_same<T3, void>::value or std::is_same<T4, void>::value);
-  static_assert(not std::is_same<T2, void>::value or std::is_same<T3, void>::value);
-  static_assert(not std::is_same<T1, void>::value or std::is_same<T2, void>::value);
-
-  template <typename T>
-  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, T1, T2, T3, T4>;
-
-  template <typename T>
-  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, T1, T2, T3, T4>;
-
-  static constexpr std::size_t members_ = portablecollection::membersCount<T0, T1, T2, T3, T4>;
 
 public:
   using Layout = T;
@@ -34,16 +24,95 @@ public:
   using ConstView = typename Layout::ConstView;
   using Buffer = cms::alpakatools::device_buffer<TDev, std::byte[]>;
   using ConstBuffer = cms::alpakatools::const_device_buffer<TDev, std::byte[]>;
-  using Implementation = portablecollection::CollectionImpl<0, T0, T1, T2, T3, T4>;
+
+  PortableDeviceCollection() = default;
+
+  PortableDeviceCollection(int32_t elements, TDev const& device)
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, Layout::computeDataSize(elements))},
+        layout_{buffer_->data(), elements},
+        view_{layout_} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout::alignment == 0);
+  }
+
+  template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
+  PortableDeviceCollection(int32_t elements, TQueue const& queue)
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout::computeDataSize(elements))},
+        layout_{buffer_->data(), elements},
+        view_{layout_} {
+    // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
+    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout::alignment == 0);
+  }
+
+  // non-copyable
+  PortableDeviceCollection(PortableDeviceCollection const&) = delete;
+  PortableDeviceCollection& operator=(PortableDeviceCollection const&) = delete;
+
+  // movable
+  PortableDeviceCollection(PortableDeviceCollection&&) = default;
+  PortableDeviceCollection& operator=(PortableDeviceCollection&&) = default;
+
+  // default destructor
+  ~PortableDeviceCollection() = default;
+
+  // access the View
+  View& view() { return view_; }
+  ConstView const& view() const { return view_; }
+  ConstView const& const_view() const { return view_; }
+
+  View& operator*() { return view_; }
+  ConstView const& operator*() const { return view_; }
+
+  View* operator->() { return &view_; }
+  ConstView const* operator->() const { return &view_; }
+
+  // access the Buffer
+  Buffer buffer() { return *buffer_; }
+  ConstBuffer buffer() const { return *buffer_; }
+  ConstBuffer const_buffer() const { return *buffer_; }
+
+private:
+  std::optional<Buffer> buffer_;  //!
+  Layout layout_;                 //
+  View view_;                     //!
+};
+
+// generic SoA-based product in device memory
+template <typename TDev, typename T0, typename... Args>
+class PortableDeviceMultiCollection {
+  //static_assert(alpaka::isDevice<TDev>);
+  static_assert(not std::is_same_v<TDev, alpaka_common::DevHost>,
+                "Use PortableHostCollection<T> instead of PortableDeviceCollection<T, DevHost>");
+
+  template <typename T>
+  static constexpr std::size_t count_t_ = portablecollection::typeCount<T, T0, Args...>;
+
+  template <typename T>
+  static constexpr std::size_t index_t_ = portablecollection::typeIndex<T, T0, Args...>;
+
+  static constexpr std::size_t members_ = sizeof...(Args) + 1;
+
+public:
+  using Buffer = cms::alpakatools::device_buffer<TDev, std::byte[]>;
+  using ConstBuffer = cms::alpakatools::const_device_buffer<TDev, std::byte[]>;
+  using Implementation = portablecollection::CollectionImpl<0, T0, Args...>;
 
   using SizesArray = std::array<int32_t, members_>;
 
-  template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using Layout = portablecollection::TypeResolver<Idx, T0, T1, T2, T3, T4>;
-  template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using View = typename Layout<Idx>::View;
-  template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
-  using ConstView = typename Layout<Idx>::ConstView;
+  template <std::size_t Idx = 0>
+  using Layout = portablecollection::TypeResolver<Idx, T0, Args...>;
+
+  //template <std::size_t Idx = 0>
+  //using View = typename Layout<Idx>::View;
+  // Workaround for flaky expansion of tempaltes by nvcc (expanding with "Args" instead of "Args...
+  template <std::size_t Idx = 0UL>
+  using View = typename std::tuple_element<Idx, std::tuple<T0, Args...>>::type::View;
+
+  //template <std::size_t Idx = 0>
+  //using ConstView = typename Layout<Idx>::ConstView;
+  // Workaround for flaky expansion of tempaltes by nvcc (expanding with "Args" instead of "Args..."
+  template <std::size_t Idx = 0UL>
+  using ConstView = typename std::tuple_element<Idx, std::tuple<T0, Args...>>::type::ConstView;
 
 private:
   template <std::size_t Idx>
@@ -64,87 +133,71 @@ private:
     return static_cast<Leaf<index_t_<T>>&>(impl_);
   }
 
+  template <typename T>
   Leaf<index_t_<T>> const& get() const {
     return static_cast<Leaf<index_t_<T>> const&>(impl_);
   }
 
 public:
-  PortableDeviceCollection() = default;
+  PortableDeviceMultiCollection() = default;
 
-  PortableDeviceCollection(int32_t elements, TDev const& device)
-      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, Layout::computeDataSize(elements))},
-        layout_{buffer_->data(), elements},
-        view_{layout_} {
+  PortableDeviceMultiCollection(int32_t elements, TDev const& device)
+      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, Layout<>::computeDataSize(elements))},
+        impl_{buffer_->data(), elements} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
     assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
     static_assert(members_ == 1);
   }
 
   template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
-  PortableDeviceCollection(int32_t elements, TQueue const& queue)
+  PortableDeviceMultiCollection(int32_t elements, TQueue const& queue)
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout<>::computeDataSize(elements))},
         impl_{buffer_->data(), elements} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
     assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
     static_assert(members_ == 1);
+  }
 
   static int32_t computeDataSize(const SizesArray& sizes) {
     int32_t ret = 0;
-    constexpr_for<0, members_>([&sizes, &ret](auto i) { ret += Layout<i>::computeDataSize(sizes[i]); });
+    portablecollection::constexpr_for<0, members_>(
+        [&sizes, &ret](auto i) { ret += Layout<i>::computeDataSize(sizes[i]); });
     return ret;
   }
 
-public:
-  PortableDeviceCollection() = default;
-
-  PortableDeviceCollection(int32_t elements, TDev const& device)
-      // allocate device memory
-      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, Layout<>::computeDataSize(elements))},
-        impl_{buffer_->data(), elements} {
-    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
-    static_assert(members_ == 1);
-  }
-
-  template <typename TQueue, typename = std::enable_if_t<cms::alpakatools::is_queue_v<TQueue>>>
-  PortableDeviceCollection(int32_t elements, TQueue const& queue)
-      // allocate device memory asynchronously on the given work queue
-      : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, Layout<>::computeDataSize(elements))},
-        impl_{buffer_->data(), elements} {
-    assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<>::alignment == 0);
-    static_assert(members_ == 1);
-  }
-
-  PortableDeviceCollection(const SizesArray& sizes, TDev const& device)
+  PortableDeviceMultiCollection(const SizesArray& sizes, TDev const& device)
       // allocate device memory
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(device, computeDataSize(sizes))},
         impl_{buffer_->data(), sizes} {
-    constexpr_for<0, members_>(
+    portablecollection::constexpr_for<0, members_>(
         [&](auto i) { assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<i>::alignment == 0); });
     constexpr auto alignment = Layout<0>::alignment;
-    constexpr_for<1, members_>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
+    portablecollection::constexpr_for<1, members_>(
+        [&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
   }
 
-  template <typename TQueue, typename = std::enable_if_t<cms::alpakatools::is_queue_v<TQueue>>>
-  PortableDeviceCollection(const SizesArray& sizes, TQueue const& queue)
+  template <typename TQueue, typename = std::enable_if_t<alpaka::isQueue<TQueue>>>
+  PortableDeviceMultiCollection(const SizesArray& sizes, TQueue const& queue)
       // allocate device memory asynchronously on the given work queue
       : buffer_{cms::alpakatools::make_device_buffer<std::byte[]>(queue, computeDataSize(sizes))},
         impl_{buffer_->data(), sizes} {
-    constexpr_for<0, members_>(
+    portablecollection::constexpr_for<0, members_>(
         [&](auto i) { assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<i>::alignment == 0); });
     constexpr auto alignment = Layout<0>::alignment;
-    constexpr_for<1, members_>([&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
+    portablecollection::constexpr_for<1, members_>(
+        [&alignment](auto i) { static_assert(alignment == Layout<i>::alignment); });
   }
 
   // non-copyable
-  PortableDeviceCollection(PortableDeviceCollection const&) = delete;
-  PortableDeviceCollection& operator=(PortableDeviceCollection const&) = delete;
+  PortableDeviceMultiCollection(PortableDeviceMultiCollection const&) = delete;
+  PortableDeviceMultiCollection& operator=(PortableDeviceMultiCollection const&) = delete;
 
   // movable
-  PortableDeviceCollection(PortableDeviceCollection&&) = default;
-  PortableDeviceCollection& operator=(PortableDeviceCollection&&) = default;
+  PortableDeviceMultiCollection(PortableDeviceMultiCollection&&) = default;
+  PortableDeviceMultiCollection& operator=(PortableDeviceMultiCollection&&) = default;
 
   // default destructor
-  ~PortableDeviceCollection() = default;
+  ~PortableDeviceMultiCollection() = default;
 
   // access the View by index
   template <std::size_t Idx = 0, typename = std::enable_if_t<(members_ > Idx)>>
@@ -182,11 +235,41 @@ public:
     return &get<Idx>().view_;
   }
 
-  View& operator*() { return view_; }
-  ConstView const& operator*() const { return view_; }
+  // access the View by type
+  template <typename T>
+  typename T::View& view() {
+    return get<T>().view_;
+  }
 
-  View* operator->() { return &view_; }
-  ConstView const* operator->() const { return &view_; }
+  template <typename T>
+  typename T::ConstView const& view() const {
+    return get<T>().view_;
+  }
+
+  template <typename T>
+  typename T::ConstView const& const_view() const {
+    return get<T>().view_;
+  }
+
+  template <typename T>
+  typename T::View& operator*() {
+    return get<T>().view_;
+  }
+
+  template <typename T>
+  typename T::ConstView const& operator*() const {
+    return get<T>().view_;
+  }
+
+  template <typename T>
+  typename T::View* operator->() {
+    return &get<T>().view_;
+  }
+
+  template <typename T>
+  typename T::ConstView const* operator->() const {
+    return &get<T>().view_;
+  }
 
   // access the Buffer
   Buffer buffer() { return *buffer_; }
@@ -196,14 +279,13 @@ public:
   // Extract the sizes array
   SizesArray sizes() const {
     SizesArray ret;
-    constexpr_for<0, members_>([&](auto i) { ret[i] = get<i>().layout_.metadata().size(); });
+    portablecollection::constexpr_for<0, members_>([&](auto i) { ret[i] = get<i>().layout_.metadata().size(); });
     return ret;
   }
 
 private:
   std::optional<Buffer> buffer_;  //!
-  Layout layout_;                 //
-  View view_;                     //!
+  Implementation impl_;           // (serialized: this is where the layouts live)
 };
 
 #endif  // DataFormats_Portable_interface_PortableDeviceCollection_h
