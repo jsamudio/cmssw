@@ -3,7 +3,7 @@
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "DataFormats/PFCluster/interface/PFClusterSoA.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/PFClusterSoA.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
