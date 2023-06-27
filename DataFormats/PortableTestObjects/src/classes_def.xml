@@ -1,18 +1,79 @@
 <lcgdict>
-  <class name="portabletest::TestSoA"/>
-  <class name="portabletest::TestSoA::View"/>
+  <class name="portabletest::TestSoALayout<128, false>"/>
+  <class name="portabletest::TestSoALayout2<128, false>"/>
+  <class name="portabletest::TestSoALayout3<128, false>"/>
 
+  <!-- Collection declaration for dictionary -->
   <class name="portabletest::TestHostCollection"/>
+
+  <!-- Read streamer declaration for dictionary. It ensures allocation of buffer and data copying to it -->
   <read
     sourceClass="portabletest::TestHostCollection"
     targetClass="portabletest::TestHostCollection"
     version="[1-]"
-    source="portabletest::TestSoA layout_;"
+    source="portabletest::TestSoALayout<128, false> layout_;"
     target="buffer_,layout_,view_"
     embed="false">
   <![CDATA[
     portabletest::TestHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
   ]]>
   </read>
+
   <class name="edm::Wrapper<portabletest::TestHostCollection>" splitLevel="0"/>
+
+  <!-- Recursive templates (with no data) ensuring we have one CollectionLeaf<index, type> for each layout in the collection -->
+  <class name="portablecollection::CollectionImpl<0, portabletest::TestSoALayout<128, false>, portabletest::TestSoALayout2<128, false>>"/>
+  <class name="portablecollection::CollectionImpl<1, portabletest::TestSoALayout2<128, false>>"/>
+
+  <!-- Recursive templates implementing the association of indices and layouts, and containing the data -->
+  <class name="portablecollection::CollectionLeaf<0, portabletest::TestSoALayout<128, false>>"/>
+  <class name="portablecollection::CollectionLeaf<1, portabletest::TestSoALayout2<128, false>>"/>
+
+  <!-- Collection declaration for dictionary -->
+  <class name="portabletest::TestHostMultiCollection2"/>
+
+  <!-- Read streamer declaration for dictionary. It ensures allocation of buffer and data copying to it -->
+  <read
+    sourceClass="portabletest::TestHostMultiCollection2"
+    targetClass="portabletest::TestHostMultiCollection2"
+    version="[1-]"
+    source="portabletest::TestHostMultiCollection2::Implementation impl_;"
+    target="buffer_,impl_"
+    embed="false">
+  <![CDATA[
+    portabletest::TestHostMultiCollection2::ROOTReadStreamer(newObj, onfile.impl_);
+  ]]>
+  </read>
+
+  <class name="edm::Wrapper<portabletest::TestHostMultiCollection2>" splitLevel="0"/>
+
+  <!-- Recursive templates (with no data) ensuring we have one CollectionLeaf<index, type> for each layout in the collection -->
+  <class name="portablecollection::CollectionImpl<0, portabletest::TestSoALayout<128, false>, portabletest::TestSoALayout2<128, false>, portabletest::TestSoALayout3<128, false>>"/>
+  <class name="portablecollection::CollectionImpl<1, portabletest::TestSoALayout2<128, false>, portabletest::TestSoALayout3<128, false>>"/>
+  <class name="portablecollection::CollectionImpl<2, portabletest::TestSoALayout3<128, false>>"/>
+
+  <!-- Recursive templates implementing the association of indices and layouts, and containing the data -->
+  <!-- Duplicates from portabletest::TestHostMultiCollection2 that must be made unique after xml generation
+  <class name="portablecollection::CollectionLeaf<0, portabletest::TestSoALayout<128, false>>"/>
+  <class name="portablecollection::CollectionLeaf<1, portabletest::TestSoALayout2<128, false>>"/>
+  -->
+  <class name="portablecollection::CollectionLeaf<2, portabletest::TestSoALayout3<128, false>>"/>
+
+  <!-- Collection declaration for dictionary -->
+  <class name="portabletest::TestHostMultiCollection3"/>
+
+  <!-- Read streamer declaration for dictionary. It ensures allocation of buffer and data copying to it -->
+  <read
+    sourceClass="portabletest::TestHostMultiCollection3"
+    targetClass="portabletest::TestHostMultiCollection3"
+    version="[1-]"
+    source="portabletest::TestHostMultiCollection3::Implementation impl_;"
+    target="buffer_,impl_"
+    embed="false">
+  <![CDATA[
+    portabletest::TestHostMultiCollection3::ROOTReadStreamer(newObj, onfile.impl_);
+  ]]>
+  </read>
+
+  <class name="edm::Wrapper<portabletest::TestHostMultiCollection3>" splitLevel="0"/>
 </lcgdict>

@@ -26,4 +26,23 @@
   ]]>
   </read>
   <class name="edm::Wrapper<reco::PFRecHitHostCollection>" splitLevel="0"/>
+
+  <!-- Collection declaration for dictionary -->
+  <class name="reco::PFClusterHostCollection"/>
+
+  <!-- Read streamer declaration for dictionary. It ensures allocation of buffer and data copying to it -->
+  <read
+    sourceClass="reco::PFClusterHostCollection"
+    targetClass="reco::PFClusterHostCollection"
+    version="[1-]"
+    source="reco::PFClusterHostCollection::Implementation impl_;"
+    target="buffer_,impl_"
+    embed="false">
+  <![CDATA[
+    reco::PFClusterHostCollection::ROOTReadStreamer(newObj, onfile.impl_);
+  ]]>
+  </read>
+
+  <class name="edm::Wrapper<reco::PFClusterHostCollection>" splitLevel="0"/>
+
 </lcgdict>
