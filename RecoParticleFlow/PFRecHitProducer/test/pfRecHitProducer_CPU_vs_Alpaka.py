@@ -145,6 +145,22 @@ if 'MessageLogger' in process.__dict__:
     process.MessageLogger.ThroughputService = cms.untracked.PSet()
     process.MessageLogger.cerr.FastReport = cms.untracked.PSet( limit = cms.untracked.int32( 10000000 ) )
 
+
+
+
+
+import sys
+import argparse
+parser = argparse.ArgumentParser(prog=sys.argv[0], description='Test and validation of PFRecHitProducer with Alpaka')
+parser.add_argument('-b', '--backend', type=str, default='cpu',
+                    help='Alpaka backend. Possible options: CPU, GPU, auto. Default: CPU')
+parser.add_argument('-s', '--synchronise', action='store_true', default=False,
+                    help='Put synchronisation point at the end of Alpaka modules (for benchmarking performance)')
+parser.add_argument('-t', '--threads', type=int, default=8,
+                    help='Number of threads. Default: 8')
+args = parser.parse_args(sys.argv[3:])
+
+
 #####################################
 ##    Legacy PFRecHit producer     ##
 #####################################
@@ -186,13 +202,20 @@ process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
 #####################################
 ##    Alpaka PFRecHit producer     ##
 #####################################
-alpaka_backend_str = "alpaka_serial_sync::%s"   # Execute on CPU
-#alpaka_backend_str = "alpaka_cuda_async::%s"    # Execute using CUDA
-#alpaka_backend_str = "%s@alpaka"                # Let framework choose
+if args.backend.lower() == "cpu":
+    alpaka_backend_str = "alpaka_serial_sync::%s"   # Execute on CPU
+elif args.backend.lower() == "gpu" or args.backend.lower() == "cuda":
+    alpaka_backend_str = "alpaka_cuda_async::%s"    # Execute using CUDA
+elif args.backend.lower() == "auto":
+    alpaka_backend_str = "%s@alpaka"                # Let framework choose
+else:
+    print("Invalid backend:", args.backend)
+    sys.exit(1)
 
 # Convert legacy CaloRecHits to CaloRecHitSoA
 process.hltParticleFlowRecHitToSoA = cms.EDProducer(alpaka_backend_str % "CaloRecHitSoAProducer",
-    src = cms.InputTag("hltHbhereco")
+    src = cms.InputTag("hltHbhereco"),
+    synchronise = cms.bool(args.synchronise)
 )
 
 # Construct PFRecHitsSoA
@@ -216,7 +239,8 @@ process.hltParticleFlowRecHitTopologyESProducer = cms.ESProducer(alpaka_backend_
 process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpaka",
     src = cms.InputTag("hltParticleFlowRecHitToSoA"),
     params = cms.ESInputTag("hltParticleFlowRecHitParamsESProducer:"),
-    topology = cms.ESInputTag("hltParticleFlowRecHitTopologyESProducer:")
+    topology = cms.ESInputTag("hltParticleFlowRecHitTopologyESProducer:"),
+    synchronise = cms.bool(args.synchronise)
 )
 
 # Compare legacy PFRecHits to PFRecHitsSoA
@@ -253,4 +277,4 @@ process.HBHEPFCPUGPUTask = cms.Path(
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
 
-process.options.numberOfThreads = cms.untracked.uint32(8)
+process.options.numberOfThreads = cms.untracked.uint32(args.threads)
