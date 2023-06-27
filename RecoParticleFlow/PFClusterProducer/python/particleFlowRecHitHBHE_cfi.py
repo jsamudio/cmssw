@@ -86,9 +86,18 @@ run3_HB.toModify(_particleFlowRecHitHBHE_cuda,
     producers = {0 : dict(qualityTests = {0 : dict(cuts = {0 : dict(threshold = _thresholdsHBphase1) } ) } ) },
 )
 
+# offline 2023
 from Configuration.Eras.Modifier_run3_egamma_2023_cff import run3_egamma_2023
-run3_egamma_2023.toModify(particleFlowRecHitHBHE,
+run3_egamma_2023.toModify(_particleFlowRecHitHBHE_cpu,
     producers = {0 : dict(qualityTests = {0 : dict(cuts = {0 : dict(threshold = _thresholdsHBphase1_2023) } ) } ) },
+)
+run3_egamma_2023.toModify(_particleFlowRecHitHBHE_cuda,
+    producers = {0 : dict(qualityTests = {0 : dict(cuts = {0 : dict(threshold = _thresholdsHBphase1_2023) } ) } ) },
+)
+# GPU version actually uses ES values below
+from RecoParticleFlow.PFClusterProducer.pfhbheRecHitParamsGPUESProducer_cfi import pfhbheRecHitParamsGPUESProducer
+run3_egamma_2023.toModify(pfhbheRecHitParamsGPUESProducer,
+                          thresholdE_HB = _thresholdsHBphase1_2023,
 )
 
 from HeterogeneousCore.CUDACore.SwitchProducerCUDA import SwitchProducerCUDA
@@ -110,7 +119,7 @@ run3_HB.toModify(particleFlowRecHitHBHEOnly,
     producers = { 0: dict(src = "hbhereco") }
 )
 
-# KenH: this overwrites the original above. I am not sure if that's a good thing.
+#
 particleFlowRecHitHBHEOnly = SwitchProducerCUDA(
     cpu = _particleFlowRecHitHBHE_cpu.clone()
 )
