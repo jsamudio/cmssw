@@ -103,13 +103,6 @@ associatePatAlgosToolsTask(process)
 
 # customisation of the process.
 
-#Inclusion of ESSource
-process.load("RecoParticleFlow.PFClusterProducer.pfhbheRecHitParamsGPUESProducer_cfi")
-process.load("RecoParticleFlow.PFClusterProducer.pfhbheTopologyGPUESProducer_cfi")
-
-from RecoParticleFlow.PFClusterProducer.pfClusteringParamsGPUESSource_cfi import pfClusteringParamsGPUESSource as _pfClusteringParamsGPUESSource
-process.pfClusteringParamsGPUESSource = _pfClusteringParamsGPUESSource.clone()
-
 # Automatic addition of the customisation function from HLTrigger.Configuration.customizeHLTforPatatrack
 #from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrack, customiseCommon, customiseHcalLocalReconstruction
 
@@ -150,97 +143,98 @@ if 'MessageLogger' in process.__dict__:
 ## Configure CPU and GPU producers ##
 #####################################
 
-#
-# for GPU PFRecHitHBHE
-# - use GPU version
-process.hltParticleFlowRecHitHBHEonGPU = process.hltParticleFlowRecHitHBHE.clone()
-_pset_hltParticleFlowRecHitHBHE_producers_mod = process.hltParticleFlowRecHitHBHEonGPU.producers
-for idx, x in enumerate(_pset_hltParticleFlowRecHitHBHE_producers_mod):
-    if x.src.moduleLabel == "hltHbhereco":
-        x.src.moduleLabel = "hltHbherecoGPU" # use GPU version as input instead of legacy version
-    for idy, y in enumerate(x.qualityTests):
-        if y.name._value == "PFRecHitQTestHCALThresholdVsDepth": # apply phase1 depth-dependent HCAL thresholds
-            for idz, z in enumerate(y.cuts): # convert signed to unsigned
-                if z.detectorEnum == 1: # HB
-                    z.detectorEnum = cms.uint32( 1 )
-                    z.depth = cms.vuint32( 1, 2, 3, 4 )
-                    process.pfhbheRecHitParamsGPUESProducer.thresholdE_HB = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
-                if z.detectorEnum == 2: # HE
-                    z.detectorEnum = cms.uint32( 2 )
-                    z.depth = cms.vuint32( 1, 2, 3, 4, 5, 6, 7  )
-                    process.pfhbheRecHitParamsGPUESProducer.thresholdE_HE = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
+# Run as:
+# cmsRun RecoParticleFlow/Configuration/test/run_HBHEandPF_onCPUandGPU.py -- [--cpu] [--gpu]
+import sys
+use_cpu = "--cpu" in sys.argv or "--gpu" not in sys.argv
+use_gpu = "--gpu" in sys.argv or "--cpu" not in sys.argv
+if "--gpu" in sys.argv and "--cpu" in sys.argv:
+    print("Running onf CPU and GPU")
+elif "--cpu" in sys.argv and "--gpu" not in sys.argv:
+    print("Running on CPU")
+elif "--gpu" in sys.argv or "--cpu" not in sys.argv:
+    print("Running on GPU")
+else:
+    print("Running onf CPU and GPU. Pass option --cpu or --gpu to run only on one.")
 
-process.hltParticleFlowRecHitHBHEonGPU = cms.EDProducer("PFHBHERecHitProducerGPU", # instead of "PFRecHitProducer"
-                                                   producers = _pset_hltParticleFlowRecHitHBHE_producers_mod,
-                                                   navigator = process.hltParticleFlowRecHitHBHE.navigator
-)
 
-#
-# Propagate PFCluster parameters for CPU to GPU ES-based ones
-#
-_pset_GPU = process.pfClusteringParamsGPUESSource.initialClusteringStep.thresholdsByDetector
-_pset_CPU = process.hltParticleFlowClusterHBHE.initialClusteringStep.thresholdsByDetector
-for idx, x in enumerate(_pset_GPU):
-    for idy, y in enumerate(_pset_CPU):
-        if x.detector == y.detector:
-            x.gatheringThreshold = y.gatheringThreshold
+if use_gpu:  # Inclusion of ESSource fr GPU
+    process.load("RecoParticleFlow.PFClusterProducer.pfhbheRecHitParamsGPUESProducer_cfi")
+    process.load("RecoParticleFlow.PFClusterProducer.pfhbheTopologyGPUESProducer_cfi")
+    from RecoParticleFlow.PFClusterProducer.pfClusteringParamsGPUESSource_cfi import pfClusteringParamsGPUESSource as _pfClusteringParamsGPUESSource
+    process.pfClusteringParamsGPUESSource = _pfClusteringParamsGPUESSource.clone()
 
-_pset_GPU = process.pfClusteringParamsGPUESSource.pfClusterBuilder.recHitEnergyNorms
-_pset_CPU = process.hltParticleFlowClusterHBHE.pfClusterBuilder.recHitEnergyNorms
-for idx, x in enumerate(_pset_GPU):
-    for idy, y in enumerate(_pset_CPU):
-        if x.detector == y.detector:
-            x.recHitEnergyNorm = y.recHitEnergyNorm
+if use_gpu:  # Setup GPU RecHit producer
+    producersGPU = process.hltParticleFlowRecHitHBHE.clone().producers
+    for idx, x in enumerate(producersGPU):
+        if x.src.moduleLabel == "hltHbhereco":
+            x.src.moduleLabel = "hltHbherecoGPU" # use GPU version as input instead of legacy version
+        for idy, y in enumerate(x.qualityTests):
+            if y.name._value == "PFRecHitQTestHCALThresholdVsDepth": # apply phase1 depth-dependent HCAL thresholds
+                for idz, z in enumerate(y.cuts): # convert signed to unsigned
+                    if z.detectorEnum == 1: # HB
+                        z.detectorEnum = cms.uint32( 1 )
+                        z.depth = cms.vuint32( 1, 2, 3, 4 )
+                        process.pfhbheRecHitParamsGPUESProducer.thresholdE_HB = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
+                    if z.detectorEnum == 2: # HE
+                        z.detectorEnum = cms.uint32( 2 )
+                        z.depth = cms.vuint32( 1, 2, 3, 4, 5, 6, 7  )
+                        process.pfhbheRecHitParamsGPUESProducer.thresholdE_HE = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
+    process.hltParticleFlowRecHitHBHEonGPU = cms.EDProducer("PFHBHERecHitProducerGPU", # instead of "PFRecHitProducer"
+                                                            producers = producersGPU,
+                                                            navigator = process.hltParticleFlowRecHitHBHE.navigator)
 
-_pset_GPU = process.pfClusteringParamsGPUESSource.seedFinder.thresholdsByDetector
-_pset_CPU = process.hltParticleFlowClusterHBHE.seedFinder.thresholdsByDetector
-for idx, x in enumerate(_pset_GPU):
-    for idy, y in enumerate(_pset_CPU):
-        if x.detector == y.detector:
-            x.seedingThreshold = y.seedingThreshold
+if use_cpu:  # Setup CPU RecHit producer
+    producersCPU = process.hltParticleFlowRecHitHBHE.producers
+    for idx, x in enumerate(producersCPU):
+        #if x.src.moduleLabel == "hltHbhereco":
+        #    x.src.moduleLabel = "hltHbherecoFromGPU" # use GPU version as input instead of legacy version
+        for idy, y in enumerate(x.qualityTests):
+            if y.name._value == "PFRecHitQTestThreshold":
+                y.name._value = "PFRecHitQTestHCALThresholdVsDepth" # apply phase1 depth-dependent HCAL thresholds
+    process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
+                                                    producers = producersCPU,
+                                                    navigator = process.hltParticleFlowRecHitHBHE.navigator)
+else:
+    del process.hltParticleFlowRecHitHBHE
 
-#
-# for CPU PFRecHitHBHE
-#
-# for PFRecHitHBHE
-# - apply phase1 depth-dependent HCAL thresholds
-_pset_hltParticleFlowRecHitHBHE_producers_mod = process.hltParticleFlowRecHitHBHE.producers
-for idx, x in enumerate(_pset_hltParticleFlowRecHitHBHE_producers_mod):
-    if x.src.moduleLabel == "hltHbhereco":
-        x.src.moduleLabel = "hltHbherecoFromGPU" # use GPU version as input instead of legacy version
-    for idy, y in enumerate(x.qualityTests):
-        if y.name._value == "PFRecHitQTestThreshold":
-            y.name._value = "PFRecHitQTestHCALThresholdVsDepth" # apply phase1 depth-dependent HCAL thresholds
+if use_gpu:  # Copy PFCluster parameters for CPU to GPU ES-based ones
+    for idx, x in enumerate(process.pfClusteringParamsGPUESSource.initialClusteringStep.thresholdsByDetector):
+        for idy, y in enumerate(process.hltParticleFlowClusterHBHE.initialClusteringStep.thresholdsByDetector):
+            if x.detector == y.detector:
+                x.gatheringThreshold = y.gatheringThreshold
+    for idx, x in enumerate(process.pfClusteringParamsGPUESSource.pfClusterBuilder.recHitEnergyNorms):
+        for idy, y in enumerate(process.hltParticleFlowClusterHBHE.pfClusterBuilder.recHitEnergyNorms):
+            if x.detector == y.detector:
+                x.recHitEnergyNorm = y.recHitEnergyNorm
+    for idx, x in enumerate(process.pfClusteringParamsGPUESSource.seedFinder.thresholdsByDetector):
+        for idy, y in enumerate(process.hltParticleFlowClusterHBHE.seedFinder.thresholdsByDetector):
+            if x.detector == y.detector:
+                x.seedingThreshold = y.seedingThreshold
 
-process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
-                                                   producers = _pset_hltParticleFlowRecHitHBHE_producers_mod,
-                                                   navigator = process.hltParticleFlowRecHitHBHE.navigator
-)
-
-#
-# for GPU PFClusterHBHE
-# - use GPU version
-process.hltParticleFlowClusterHBHEonGPU = cms.EDProducer("PFClusterProducerCudaHCAL", # instead of "PFClusterProducer"
-                                                    pfClusterBuilder = process.hltParticleFlowClusterHBHE.pfClusterBuilder,
-                                                    positionReCalc = process.hltParticleFlowClusterHBHE.positionReCalc,
-                                                    recHitCleaners = process.hltParticleFlowClusterHBHE.recHitCleaners,
-                                                    recHitsSource = cms.InputTag("hltParticleFlowRecHitHBHEonGPU"), # Use GPU version of input
-                                                    seedCleaners = process.hltParticleFlowClusterHBHE.seedCleaners,
-                                                    seedFinder = process.hltParticleFlowClusterHBHE.seedFinder,
-                                                    energyCorrector = process.hltParticleFlowClusterHBHE.energyCorrector,
-                                                    initialClusteringStep = process.hltParticleFlowClusterHBHE.initialClusteringStep
-)
-process.hltParticleFlowClusterHBHEonGPU.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowRecHitHBHEonGPU","")
-process.hltParticleFlowClusterHBHEonGPU.PFClustersGPUOut = cms.string("hltParticleFlowClusterHBHEonGPU")
-#process.hltParticleFlowClusterHBHEonGPU.PFClusterDeviceCollection = cms.string("hltParticleFlowClusterHBHEonGPU")
+if use_gpu:  # Setup GPU cluster producer
+    process.hltParticleFlowClusterHBHEonGPU = cms.EDProducer("PFClusterProducerCudaHCAL", # instead of "PFClusterProducer"
+                                                        pfClusterBuilder = process.hltParticleFlowClusterHBHE.pfClusterBuilder,
+                                                        positionReCalc = process.hltParticleFlowClusterHBHE.positionReCalc,
+                                                        recHitCleaners = process.hltParticleFlowClusterHBHE.recHitCleaners,
+                                                        recHitsSource = cms.InputTag("hltParticleFlowRecHitHBHEonGPU"), # Use GPU version of input
+                                                        seedCleaners = process.hltParticleFlowClusterHBHE.seedCleaners,
+                                                        seedFinder = process.hltParticleFlowClusterHBHE.seedFinder,
+                                                        energyCorrector = process.hltParticleFlowClusterHBHE.energyCorrector,
+                                                        initialClusteringStep = process.hltParticleFlowClusterHBHE.initialClusteringStep)
+    process.hltParticleFlowClusterHBHEonGPU.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowRecHitHBHEonGPU","")
+    process.hltParticleFlowClusterHBHEonGPU.PFClustersGPUOut = cms.string("hltParticleFlowClusterHBHEonGPU")
+    #process.hltParticleFlowClusterHBHEonGPU.PFClusterDeviceCollection = cms.string("hltParticleFlowClusterHBHEonGPU")
 
 # value before recent optimizations
-process.hltParticleFlowClusterHBHE.pfClusterBuilder.maxIterations = 50
-process.hltParticleFlowClusterHBHEonGPU.pfClusterBuilder.maxIterations = 50
+if use_cpu:
+    process.hltParticleFlowClusterHBHE.pfClusterBuilder.maxIterations = 50
+if use_gpu:
+    process.hltParticleFlowClusterHBHEonGPU.pfClusterBuilder.maxIterations = 50
 
 #
 # Additional customization
-process.maxEvents.input = -1
+process.maxEvents.input = 100
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*ParticleFlow*HBHE*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*HbherecoLegacy*_*_*')
@@ -257,10 +251,34 @@ process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*Hbhereco*_*_*')
 #process.source.fileNames = cms.untracked.vstring('file:/cms/data/hatake/ana/PF/GPU/CMSSW_12_4_0_v2/src/test/v21/GPU/reHLT_HLT.root ')
 
 # Path/sequence definitions
-process.HBHEPFGPUTask = cms.Path(process.hltHcalDigis+process.hltHcalDigisGPU+process.hltHbherecoGPU+process.hltHbherecoFromGPU+process.hltParticleFlowRecHitHBHE+process.hltParticleFlowClusterHBHE)
-process.HBHEPFCPUTask = cms.Path(process.hltHcalDigis+process.hltHbherecoLegacy+process.hltParticleFlowRecHitHBHE+process.hltParticleFlowClusterHBHE)
-process.HBHEPFCPUGPUTask = cms.Path(process.hltHcalDigis+process.hltHcalDigisGPU+process.hltHbherecoLegacy+process.hltHbherecoGPU+process.hltHbherecoFromGPU+process.hltParticleFlowRecHitHBHE+process.hltParticleFlowClusterHBHE+process.hltParticleFlowRecHitHBHEonGPU+process.hltParticleFlowClusterHBHEonGPU)
-process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
+if use_cpu and use_gpu:
+    process.HBHEPFCPUGPUTask = cms.Path(
+         process.hltHcalDigis
+        +process.hltHcalDigisGPU
+        +process.hltHbherecoLegacy
+        +process.hltHbherecoGPU
+        #+process.hltHbherecoFromGPU
+        +process.hltParticleFlowRecHitHBHE
+        +process.hltParticleFlowClusterHBHE
+        +process.hltParticleFlowRecHitHBHEonGPU
+        +process.hltParticleFlowClusterHBHEonGPU)
+    process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
+elif use_cpu:
+    process.HBHEPFCPUTask = cms.Path(
+         process.hltHcalDigis
+        +process.hltHbherecoLegacy
+        +process.hltParticleFlowRecHitHBHE
+        +process.hltParticleFlowClusterHBHE)
+    process.schedule = cms.Schedule(process.HBHEPFCPUTask)
+elif use_gpu:
+    process.HBHEPFGPUTask = cms.Path(
+         process.hltHcalDigis
+        +process.hltHcalDigisGPU
+        +process.hltHbherecoGPU
+        +process.hltParticleFlowRecHitHBHEonGPU
+        +process.hltParticleFlowClusterHBHEonGPU)
+    process.schedule = cms.Schedule(process.HBHEPFGPUTask)
+
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
 
 process.options.numberOfThreads = cms.untracked.uint32(8)
