@@ -105,6 +105,8 @@ process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     fileName = cms.untracked.string('/data/user/florkows/hcal_recHits.root'),
+    #fileName = cms.untracked.string('/data/user/florkows/hcal_recHits_uncompressed.root'),
+    #compressionLevel = cms.untracked.int32(0),
     outputCommands = process.FEVTDEBUGHLTEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
@@ -169,7 +171,8 @@ if 'MessageLogger' in process.__dict__:
 #
 # Additional customization
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop *_*_*_*')
-process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*Hbhereco*_*_*')
+process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltHbhereco_*_*')
+#process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltHbherecoLegacy_*_*')
 
 #
 # Run only localreco, PFRecHit and PFCluster producers for HBHE only

@@ -51,7 +51,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
       desc.add<edm::InputTag>("src");
-      desc.add<bool>("synchronise");
+      desc.add<bool>("synchronise", false);
       descriptions.addWithDefaultLabel(desc);
     }
 

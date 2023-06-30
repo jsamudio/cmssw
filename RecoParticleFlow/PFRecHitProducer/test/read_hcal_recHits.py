@@ -36,7 +36,8 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits.root'),
+    #fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits.root'),
+    fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits_uncompressed.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -152,14 +153,19 @@ if 'MessageLogger' in process.__dict__:
 import sys
 import argparse
 parser = argparse.ArgumentParser(prog=sys.argv[0], description='Throughput test of PFRecHitProducer with Alpaka')
-parser.add_argument('-b', '--backend', type=str, default='legacy',
+parser.add_argument('-b', '--backend', type=str, default='cpu',
                     help='Alpaka backend. Possible options: legacy, CPU, GPU, auto. Default: CPU')
 parser.add_argument('-s', '--synchronise', action='store_true', default=False,
                     help='Put synchronisation point at the end of Alpaka modules (for benchmarking performance)')
 parser.add_argument('-t', '--threads', type=int, default=8,
                     help='Number of threads. Default: 8')
+parser.add_argument('-i', '--iterations', type=int, default=1,
+                    help='How many times to run PFRecHitProducer module (for benchmarking). Default: 1')
+parser.add_argument('-e', '--events', type=int, default=process.maxEvents.input.value(),
+                    help='Number of events to process. Default: %d' % process.maxEvents.input.value())
 args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
 backend = args.backend.lower()
+process.maxEvents.input = args.events
 
 #####################################
 ##    Legacy PFRecHit producer     ##
@@ -263,14 +269,20 @@ process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop *_*_*_*'
 
 # Path/sequence definitions
 if backend == "legacy":
-    process.HBHEPFCPUGPUTask = cms.Path(
-        process.hltParticleFlowRecHitHBHE
-    )
+    path = process.hltParticleFlowRecHitHBHE
+    for i in range(1, args.iterations):
+        n = "hltParticleFlowRecHitHBHE%02d" % i
+        setattr(process, n, process.hltParticleFlowRecHitHBHE.clone())
+        path += getattr(process, n)
+    process.HBHEPFCPUGPUTask = cms.Path(path)
 else:
-    process.HBHEPFCPUGPUTask = cms.Path(
-        process.hltParticleFlowRecHitToSoA      # Convert legacy CaloRecHits to SoA and copy to device
-        +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
-    )
+    path = process.hltParticleFlowRecHitToSoA      # Convert legacy CaloRecHits to SoA and copy to device
+    path += process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
+    for i in range(1, args.iterations):
+        n = "hltParticleFlowPFRecHitAlpaka%02d" % i
+        setattr(process, n, process.hltParticleFlowPFRecHitAlpaka.clone())
+        path += getattr(process, n)
+    process.HBHEPFCPUGPUTask = cms.Path(path)
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
 
