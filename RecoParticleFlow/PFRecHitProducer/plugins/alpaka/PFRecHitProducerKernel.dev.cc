@@ -108,6 +108,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   PFRecHitDeviceCollection::View pfRecHits,
                                   uint32_t* __restrict__ denseId2pfRecHit,
                                   uint32_t* __restrict__ num_pfRecHits) const {
+      const int32_t num_blocks = alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0u];
+
       // HCAL barrel and endcap energy thresholds
       const float* thresholdE_HB = params.energyThresholds();     // length 4
       const float* thresholdE_HE = params.energyThresholds() + 4; // length 7
@@ -130,7 +132,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         // CaloRecHits above energy threshold become PFRecHits
         if (energy >= threshold) {
-          const uint32_t j = alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Grids{});
+          // Use the appropriate synchronisation for the kernel layout
+          const uint32_t j =
+            (num_blocks == 1) ? alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Blocks{})
+                              : alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Grids{});
           pfRecHits[j].detId() = detId;
           pfRecHits[j].energy() = recHits[i].energy();
           pfRecHits[j].time() = recHits[i].time();
@@ -221,8 +226,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::memset(queue, denseId2pfRecHit, 0xff);  // Reset denseId -> pfRecHit index map
     alpaka::memset(queue, num_pfRecHits, 0x00);     // Reset global pfRecHit counter
 
-    uint32_t items = 64;
-    uint32_t groups = divide_up_by(recHits->metadata().size(), items);
+    // Use only one block on the synchronous CPU backend, because there is no
+    // performance gain in using multiple blocks, but there is a significant
+    // penalty due to the more complex synchronisation.
+    const uint32_t items = 64;
+#if ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
+    const uint32_t groups = 1;
+#else
+    const uint32_t groups = divide_up_by(recHits->metadata().size(), items);
+#endif
 
     alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(groups, items), PFRecHitProducerKernelImpl1{},
       params.view(), topology.view(), recHits.view(), recHits->metadata().size(), pfRecHits.view(), denseId2pfRecHit.data(), num_pfRecHits.data());
