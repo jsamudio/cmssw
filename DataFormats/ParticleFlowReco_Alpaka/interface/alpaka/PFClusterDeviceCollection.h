@@ -6,9 +6,7 @@
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFClusterSoA.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-
-  using PFClusterDeviceCollection = PortableCollection2<reco::PFClusterSoA, reco::PFRHFracSoA>;
-
+  using PFClusterDeviceCollection2 = PortableCollection2<reco2::PFClusterSoA2, reco2::PFRHFracSoA2>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #endif

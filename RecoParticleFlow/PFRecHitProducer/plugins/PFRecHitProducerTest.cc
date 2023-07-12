@@ -70,6 +70,7 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
   const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka = pfRecHitsAlpakaSoA->const_view();
 
   int error = 0;
+  std::cout << "nRH from RHProducer: " << pfRecHitsAlpaka.size() << std::endl;
   if(pfRecHitsCPU.size() != pfRecHitsAlpaka.size())
     error = 1;
   else

@@ -7,7 +7,7 @@
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/ModuleFactory.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/JobConfigurationAlpakaRecord.h"
+#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/JobConfigurationAlpakaRecord2.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
 
 #include <array>
@@ -23,7 +23,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription psetDesc;
-      psetDesc.add<std::string>("appendToDataLabel", "pfClusParamsOffline");
+      psetDesc.add<std::string>("appendToDataLabel", "");
       {
           auto const psetName = "seedFinder";
           edm::ParameterSetDescription foo;
@@ -115,7 +115,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       descriptions.addWithDefaultLabel(psetDesc);
     }
 
-    std::unique_ptr<PFClusterParamsAlpakaESDataHost> produce(JobConfigurationAlpakaRecord const& iRecord) {
+    std::unique_ptr<PFClusterParamsAlpakaESDataHost> produce(JobConfigurationAlpakaRecord2 const& iRecord) {
       auto product = std::make_unique<PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
         constexpr static uint32_t kMaxDepth_barrel = 4;
         constexpr static uint32_t kMaxDepth_endcap = 7;

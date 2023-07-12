@@ -26,6 +26,8 @@
   <use name="Geometry/Records"/>
   <use name="HeterogeneousCore/AlpakaCore"/>
   <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoParticleFlow/PFClusterProducer"/>
+  <use name="RecoParticleFlow/PFRecHitProducer"/>
   <use name="RecoParticleFlow/PFClusterProducerAlpaka"/>
   <flags ALPAKA_BACKENDS="1"/>
   <flags EDM_PLUGIN="1"/>

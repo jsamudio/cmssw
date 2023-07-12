@@ -8,7 +8,7 @@
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/ESGetToken.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/JobConfigurationAlpakaRecord.h"
+#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/JobConfigurationAlpakaRecord2.h"
 
 #include "TestAlgo.h"
 
@@ -38,7 +38,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
   private:
-    device::ESGetToken<PFClusterParamsAlpakaESDataDevice, JobConfigurationAlpakaRecord> const esParamsToken_;
+    device::ESGetToken<PFClusterParamsAlpakaESDataDevice, JobConfigurationAlpakaRecord2> const esParamsToken_;
     device::EDPutToken<portabletest::TestDeviceCollection> devicePutToken_;
 
     TestAlgo algo_;
