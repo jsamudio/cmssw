@@ -59,10 +59,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     void produce(device::Event& event, device::EventSetup const& setup) override {
       const PFClusterParamsAlpakaESDataDevice& params = setup.getData(pfClusParamsToken);
       const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
+      //auto pfRecHits = event.getHandle(InputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
       std::cout << "nRH:" << " " << nRH << std::endl; 
-      tmpPFDeviceCollection tmp{nRH, event.queue()};
-      //PFClusterDeviceCollection pfClusters{{{nRH, nRH*120}}, event.queue()};
+      tmpPFDeviceCollection tmp{{{nRH + 1, (nRH * 8) + 1}}, event.queue()};
+      //auto tmp = std::make_unique<tmpPFDeviceCollection>((nRH, nRH*8), event.queue());
       PFClusterDeviceCollection2 pfClusters{{{nRH, nRH*120}}, event.queue()};
 
       //if(!kernel)

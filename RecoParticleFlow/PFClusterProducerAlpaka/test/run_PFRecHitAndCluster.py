@@ -30,15 +30,17 @@ process.load('HeterogeneousCore.AlpakaCore.ProcessAcceleratorAlpaka_cfi')
 
 process.maxEvents = cms.untracked.PSet(
     #input = cms.untracked.int32(5),
-    input = cms.untracked.int32(1),
+    input = cms.untracked.int32(100),
     #input = cms.untracked.int32(1000),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
+
 
 # Input source
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring('/store/relval/CMSSW_12_4_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_124X_mcRun3_2022_realistic_v5-v1/10000/012eda92-aad5-4a95-8dbd-c79546b5f508.root'),
     secondaryFileNames = cms.untracked.vstring()
+    #skipEvents = cms.untracked.uint32(9)
 )
 
 process.options = cms.untracked.PSet(
