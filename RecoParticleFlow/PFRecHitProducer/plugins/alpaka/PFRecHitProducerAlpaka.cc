@@ -49,7 +49,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       desc.add<edm::InputTag>("src");
       desc.add<edm::ESInputTag>("params");
       desc.add<edm::ESInputTag>("topology");
-      desc.add<bool>("synchronise");
+      desc.add<bool>("synchronise", false);
       descriptions.addWithDefaultLabel(desc);
     }
 
