@@ -247,20 +247,25 @@ process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFR
 from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
 process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest",
     recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
-    pfRecHitsSourceCPU = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
-    pfRecHitsSourceAlpaka = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka")
+    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
+    pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka"),
+    pfRecHitsType1 = cms.untracked.string("legacy"),
+    pfRecHitsType2 = cms.untracked.string("alpaka"),
+    title = cms.untracked.string("Legacy vs Alpaka")
 )
 
-####
+# Convert Alpaka PFRecHits to legacy format and validate against CPU implementation
 process.htlParticleFlowAlpakaToLegacyPFRecHits = cms.EDProducer("LegacyPFRecHitProducer",
     src = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 )
 process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison = DQMEDAnalyzer("PFRecHitProducerTest",
     recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
-    pfRecHitsSourceCPU = cms.untracked.InputTag("htlParticleFlowAlpakaToLegacyPFRecHits"),
-    pfRecHitsSourceAlpaka = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka")
+    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
+    pfRecHitsSource2 = cms.untracked.InputTag("htlParticleFlowAlpakaToLegacyPFRecHits"),
+    pfRecHitsType1 = cms.untracked.string("legacy"),
+    pfRecHitsType2 = cms.untracked.string("legacy"),
+    title = cms.untracked.string("Legacy vs Legacy-from-Alpaka")
 )
-####
 
 
 #
@@ -284,13 +289,9 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowRecHitHBHE      # Construct PFRecHits on CPU
     +process.hltParticleFlowRecHitToSoA     # Convert legacy CaloRecHits to SoA and copy to device
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
-    #+process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
-
-####
+    +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
     +process.htlParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits to legacy format
-    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Compare converted legacy format to Alpaka
-####
-
+    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Validate legacy-format-from-alpaka vs regular legacy format
 )
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
