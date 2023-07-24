@@ -142,6 +142,7 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
     }
 
   int error = 0;
+
   if(GenericCollectionSize(pfRecHits[0]) != GenericCollectionSize(pfRecHits[1]))
     error = 1;
   else

@@ -5,9 +5,9 @@
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
 #include "DataFormats/SoATemplate/interface/SoAView.h"
 
-namespace reco {
+namespace reco2 {
     
-    GENERATE_SOA_LAYOUT(PFClusterSoALayout,
+    GENERATE_SOA_LAYOUT(PFClusterSoA2Layout,
             SOA_COLUMN(int, pfc_depth),
             SOA_COLUMN(int, pfc_seedRHIdx),
             SOA_COLUMN(int, pfc_topoId),
@@ -20,14 +20,14 @@ namespace reco {
             SOA_SCALAR(int, nSeeds),
             SOA_SCALAR(int, nRHFracs)
     )
-    using PFClusterSoA = PFClusterSoALayout<>;
+    using PFClusterSoA2 = PFClusterSoA2Layout<>;
 
-    GENERATE_SOA_LAYOUT(PFRHFracSoALayout,
+    GENERATE_SOA_LAYOUT(PFRHFracSoA2Layout,
             SOA_COLUMN(float, pcrh_frac),
             SOA_COLUMN(int, pcrh_pfrhIdx),
             SOA_COLUMN(int, pcrh_pfcIdx)
     )
-    using PFRHFracSoA = PFRHFracSoALayout<>;
+    using PFRHFracSoA2 = PFRHFracSoA2Layout<>;
 }
 
 #endif

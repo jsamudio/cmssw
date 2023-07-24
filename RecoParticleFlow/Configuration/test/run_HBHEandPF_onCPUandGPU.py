@@ -23,7 +23,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
     #input = cms.untracked.int32(5),
-    input = cms.untracked.int32(100),
+    input = cms.untracked.int32(1),
     #input = cms.untracked.int32(1000),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
@@ -234,7 +234,7 @@ if use_gpu:
 
 #
 # Additional customization
-process.maxEvents.input = 100
+process.maxEvents.input = 1
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*ParticleFlow*HBHE*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*HbherecoLegacy*_*_*')

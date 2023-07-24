@@ -188,6 +188,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           if(denseId_neighbour != 0xffffffff)
           {
             const uint32_t pfRecHit_neighbour = denseId2pfRecHit[denseId_neighbour];
+
             if(pfRecHit_neighbour != 0xffffffff)
               pfRecHits[i].neighbours()(n) = (int32_t)pfRecHit_neighbour;
           }
