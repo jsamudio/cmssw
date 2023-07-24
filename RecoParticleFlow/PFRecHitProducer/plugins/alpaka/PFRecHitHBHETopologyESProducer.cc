@@ -98,9 +98,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         view.positionZ()[index] = pos.z();
 
         auto neigh = navicore.get()->getNeighbours(denseId);
+        // order from navigator: S, SE, SW, E,  W, NE, NW,  N
+        // desired order for PF: N,  S,  E, W, NE, SW, SE, NW
+        const uint32_t order[8] = {1, 6, 5, 2, 3, 4, 7, 0};
 
         for (uint32_t n = 0; n < 8; ++n) {
-          view[index].neighbours()(n) = 0xffffffff;
+          view[index].neighbours()(order[n]) = 0xffffffff;
 
           // cmssdt.cern.ch/lxr/source/RecoParticleFlow/PFClusterProducer/interface/PFHCALDenseIdNavigator.h#0087
           // Order: CENTER(NONE),SOUTH,SOUTHEAST,SOUTHWEST,EAST,WEST,NORTHEAST,NORTHWEST,NORTH
@@ -115,7 +118,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           if (neighDenseId < denseIdMin or neighDenseId > denseIdMax)
             continue;
 
-          view[index].neighbours()(n) = neighDenseId - denseIdMin;
+          view[index].neighbours()(order[n]) = neighDenseId - denseIdMin;
         }
 
         logDebug() << "detId: rawId=" << hid.rawId() << " subdet=" << hid.subdet() << " index=" << index;

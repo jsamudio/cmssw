@@ -181,15 +181,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         pfRecHits[i].y() = topology[denseId].positionY();
         pfRecHits[i].z() = topology[denseId].positionZ();
 
-        pfRecHits[i].num_neighbours() = 0;
         for(uint32_t n = 0; n < 8; n++)
         {
+          pfRecHits[i].neighbours()(n) = -1;
           const uint32_t denseId_neighbour = topology[denseId].neighbours()(n);
           if(denseId_neighbour != 0xffffffff)
           {
             const uint32_t pfRecHit_neighbour = denseId2pfRecHit[denseId_neighbour];
             if(pfRecHit_neighbour != 0xffffffff)
-              pfRecHits[i].neighbours()(pfRecHits[i].num_neighbours()++) = pfRecHit_neighbour;
+              pfRecHits[i].neighbours()(n) = (int32_t)pfRecHit_neighbour;
           }
         }
       }
@@ -230,11 +230,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // performance gain in using multiple blocks, but there is a significant
     // penalty due to the more complex synchronisation.
     const uint32_t items = 64;
-#if ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
-    const uint32_t groups = 1;
-#else
-    const uint32_t groups = divide_up_by(recHits->metadata().size(), items);
-#endif
+    const uint32_t groups = std::is_same_v<Device, alpaka::DevCpu> ? 1 : divide_up_by(recHits->metadata().size(), items);
 
     alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(groups, items), PFRecHitProducerKernelImpl1{},
       params.view(), topology.view(), recHits.view(), recHits->metadata().size(), pfRecHits.view(), denseId2pfRecHit.data(), num_pfRecHits.data());
