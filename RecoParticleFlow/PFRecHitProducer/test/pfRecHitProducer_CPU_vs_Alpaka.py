@@ -251,6 +251,18 @@ process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest"
     pfRecHitsSourceAlpaka = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka")
 )
 
+####
+process.htlParticleFlowAlpakaToLegacyPFRecHits = cms.EDProducer("LegacyPFRecHitProducer",
+    src = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
+)
+process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison = DQMEDAnalyzer("PFRecHitProducerTest",
+    recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
+    pfRecHitsSourceCPU = cms.untracked.InputTag("htlParticleFlowAlpakaToLegacyPFRecHits"),
+    pfRecHitsSourceAlpaka = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka")
+)
+####
+
+
 #
 # Additional customization
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
@@ -272,7 +284,13 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowRecHitHBHE      # Construct PFRecHits on CPU
     +process.hltParticleFlowRecHitToSoA     # Convert legacy CaloRecHits to SoA and copy to device
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
-    +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
+    #+process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
+
+####
+    +process.htlParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits to legacy format
+    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Compare converted legacy format to Alpaka
+####
+
 )
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])

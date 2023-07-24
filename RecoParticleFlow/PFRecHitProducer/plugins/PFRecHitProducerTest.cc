@@ -37,6 +37,7 @@ private:
   edm::EDGetTokenT<reco::PFRecHitHostCollection> pfRecHitsTokenAlpaka;
   int32_t num_events = 0, num_errors = 0;
 
+  // Container for PFRecHit, independent of how it was constructed
   struct GenericPFRecHit {
     uint32_t detId;
     int depth;
@@ -46,8 +47,8 @@ private:
     float x, y, z;
     std::vector<uint32_t> neighbours4, neighbours8;
 
-    GenericPFRecHit(const reco::PFRecHit& pfRecHit);  // Constructor from legacy
-    GenericPFRecHit(const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka, size_t i);  // Constructor from Alpaka
+    GenericPFRecHit(const reco::PFRecHit& pfRecHit);  // Constructor from legacy format
+    GenericPFRecHit(const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka, size_t i);  // Constructor from Alpaka SoA
 
     void Print(const char* prefix, size_t idx);
     int Compare(const GenericPFRecHit& other);
