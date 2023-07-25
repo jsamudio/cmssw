@@ -38,7 +38,8 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/store/relval/CMSSW_12_4_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_124X_mcRun3_2022_realistic_v5-v1/10000/012eda92-aad5-4a95-8dbd-c79546b5f508.root'),
+    #fileNames = cms.untracked.vstring('/store/relval/CMSSW_12_4_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_124X_mcRun3_2022_realistic_v5-v1/10000/012eda92-aad5-4a95-8dbd-c79546b5f508.root'),
+    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0_pre4/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/05ad6501-815f-4df6-b115-03ad028f9b76.root'),
     secondaryFileNames = cms.untracked.vstring()
     #skipEvents = cms.untracked.uint32(9)
 )
@@ -292,8 +293,24 @@ process.hltParticleFlowPFClusterAlpaka.pfClusterBuilder.maxIterations = 50
 from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
 process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest",
     recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
-    pfRecHitsSourceCPU = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
-    pfRecHitsSourceAlpaka = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka")
+    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
+    pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka"),
+    pfRecHitsType1 = cms.untracked.string("legacy"),
+    pfRecHitsType2 = cms.untracked.string("alpaka"),
+    title = cms.untracked.string("Legacy vs Alpaka")
+)
+
+# Convert Alpaka PFRecHits to legacy format and validate against CPU implementation
+process.htlParticleFlowAlpakaToLegacyPFRecHits = cms.EDProducer("LegacyPFRecHitProducer",
+    src = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
+)
+process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison = DQMEDAnalyzer("PFRecHitProducerTest",
+    recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
+    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
+    pfRecHitsSource2 = cms.untracked.InputTag("htlParticleFlowAlpakaToLegacyPFRecHits"),
+    pfRecHitsType1 = cms.untracked.string("legacy"),
+    pfRecHitsType2 = cms.untracked.string("legacy"),
+    title = cms.untracked.string("Legacy vs Legacy-from-Alpaka")
 )
 
 #
@@ -319,6 +336,8 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowRecHitToSoA     # Convert legacy CaloRecHits to SoA and copy to device
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
+    #+process.htlParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits to legacy format
+    #+process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Validate legacy-format-from-alpaka vs regular legacy format
     +process.hltParticleFlowPFClusterAlpaka
 )
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)

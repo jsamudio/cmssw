@@ -122,8 +122,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       tmpPF1[i].pfrh_edgeIdx() = i * 8;
       tmpPF0[i].pfrh_topoId() = 0;
       for (int j = 0; j < 8; j++) {
-        //if (pfRecHits[i].neighbours()(j) == -1)
-        if ((unsigned int)j >= pfRecHits[i].num_neighbours())
+        if (pfRecHits[i].neighbours()(j) == -1)
           tmpPF1[i * 8 + j].pfrh_edgeList() = i;
         else
           tmpPF1[i * 8 + j].pfrh_edgeList() = pfRecHits[i].neighbours()(j);
@@ -680,11 +679,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           (layer == PFLayer::HCAL_ENDCAP && energy > pfClusParams.seedEThresholdEE_vec()[depthOffset] &&
            pt2 > pfClusParams.seedPt2ThresholdEE())) {
         tmpPF0[i].pfrh_isSeed() = 1;
-        for (unsigned int k = 0; k < pfRecHits[i].num_neighbours(); k++) {  // Does this seed candidate have a higher energy than four neighbours
+        for (int k = 0; k < 4; k++) {  // Does this seed candidate have a higher energy than four neighbours
           //printf("index of neighbor: %d\n", pfRecHits[i].neighbours()(k));
           //if (pfRecHits[8 * i + k].neighbours() < 0)
-          //if (pfRecHits[i].neighbours()(k) < 0)
-            //continue;
+          if (pfRecHits[i].neighbours()(k) < 0)
+            continue;
           if (energy < pfRecHits[pfRecHits[i].neighbours()(k)].energy()) {
             tmpPF0[i].pfrh_isSeed() = 0;
             //pfrh_topoId[i]=-1;
@@ -997,10 +996,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     float4 seedInitClusterPos = make_float4(0., 0., 0., 0.);
     if (tid < nSeeds) {
       seedThreadIdx = dev_getSeedRhIdx(seeds, tid);
-      seedNeighbors = make_int4((pfRecHits[seedThreadIdx].num_neighbours() > 0) ? pfRecHits[seedThreadIdx].neighbours()(0) : -1,
-                                (pfRecHits[seedThreadIdx].num_neighbours() > 1) ? pfRecHits[seedThreadIdx].neighbours()(1) : -1,
-                                (pfRecHits[seedThreadIdx].num_neighbours() > 2) ? pfRecHits[seedThreadIdx].neighbours()(2) : -1,
-                                (pfRecHits[seedThreadIdx].num_neighbours() > 3) ? pfRecHits[seedThreadIdx].neighbours()(3) : -1);
+      seedNeighbors = make_int4(pfRecHits[seedThreadIdx].neighbours()(0),
+                                pfRecHits[seedThreadIdx].neighbours()(1),
+                                pfRecHits[seedThreadIdx].neighbours()(2),
+                                pfRecHits[seedThreadIdx].neighbours()(3));
       seedEnergy = pfRecHits[seedThreadIdx].energy();
 
       // Compute initial cluster position shift for seed
@@ -1350,7 +1349,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
         int seedRhIdx = dev_getSeedRhIdx(seeds, s);
         for (int r = 0; r < nRHNotSeed - 1; r++) {
-          unsigned int j = rechits[r];
+          int j = rechits[r];
           float frac = dev_getRhFrac(tmpPF0, topoSeedBegin, fracView, s, r + 1);
 
 
@@ -1656,7 +1655,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                         PFClusterDeviceCollection2& pfClusters) {
      
       const int nRH = pfRecHits->size();
-      const int threadsPerBlock = []() {
+      /*const int threadsPerBlock = []() {
             if constexpr (std::is_same_v<Device, alpaka::DevHost>) {
               return 32;
             } else {
@@ -1672,8 +1671,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
               return (nRH + threadsPerBlock - 1) / threadsPerBlock;
             }
         }();
-      //const int threadsPerBlock = 256;
-      //const int blocks = (nRH + threadsPerBlock - 1) / threadsPerBlock;
+      */
+      #if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
+        const int threadsPerBlock = 256;
+        const int blocks = (nRH + threadsPerBlock - 1) / threadsPerBlock;
+
+      #else 
+        const int threadsPerBlock = 32;
+        const int blocks = nRH;
+      #endif
+
       // NEED CONDITIONAL WORKDIV FOR SERIAL
       //alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>((nRH + threadsPerBlock - 1) / threadsPerBlock, threadsPerBlock), PFClusterProducerKernelImpl{}, tmp.view(), params.view(), pfRecHits.view(), pfClusters.view());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), seedingTopoThreshKernel{}, tmp.view<0>(), params.view(), pfRecHits.view(), pfClusters.view<0>());
@@ -1685,8 +1692,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), eclccFlattenKernel{}, pfRecHits.view(), tmp.view<0>(), tmp.view<1>());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(1, 512), topoClusterContractionKernel{}, pfRecHits.view(), tmp.view<0>(), pfClusters.view<0>());
       //int nTopos = tmp.view<0>().nTopos();
-      alpaka::exec<Acc2D>(queue, make_workdiv<Acc2D>({(nRH + 31)/32, (nRH + 31)/32}, {32, 32}), fillRhfIndexKernel{}, pfRecHits.view(), tmp.view<0>(), pfClusters.view<1>());
-      alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(nRH, threadsPerBlockForClustering), fastClusterKernel{}, pfRecHits.view(), params.view(), tmp.view<0>(), pfClusters.view<0>(), pfClusters.view<1>());
+      //alpaka::exec<Acc2D>(queue, make_workdiv<Acc2D>({(nRH + 31)/32, (nRH + 31)/32}, {32, 32}), fillRhfIndexKernel{}, pfRecHits.view(), tmp.view<0>(), pfClusters.view<1>());
+      //alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(nRH, threadsPerBlockForClustering), fastClusterKernel{}, pfRecHits.view(), params.view(), tmp.view<0>(), pfClusters.view<0>(), pfClusters.view<1>());
   }
 
 
