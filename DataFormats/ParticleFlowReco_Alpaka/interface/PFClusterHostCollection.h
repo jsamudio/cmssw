@@ -4,9 +4,9 @@
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFClusterSoA.h"
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
 
-namespace reco {
+namespace reco2 {
 
-  using PFClusterHostCollection = PortableHostCollection2<reco::PFClusterSoA, reco::PFRHFracSoA>;
+  using PFClusterHostCollection2 = PortableHostCollection2<PFClusterSoA2, PFRHFracSoA2>;
 
 } // namespace reco
 

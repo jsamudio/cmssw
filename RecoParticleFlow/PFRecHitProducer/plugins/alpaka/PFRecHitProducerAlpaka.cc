@@ -31,6 +31,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const PFRecHitHBHETopologyAlpakaESDataDevice& topology = setup.getData(topologyToken);
       const CaloRecHitDeviceCollection& recHits = event.get(recHitsToken);
       const int num_recHits = recHits->metadata().size();
+      std::cout << "num_recHits: " << num_recHits << std::endl;
       PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
 
       if(!kernel)
@@ -48,7 +49,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       desc.add<edm::InputTag>("src");
       desc.add<edm::ESInputTag>("params");
       desc.add<edm::ESInputTag>("topology");
-      desc.add<bool>("synchronise");
+      desc.add<bool>("synchronise", false);
       descriptions.addWithDefaultLabel(desc);
     }
 

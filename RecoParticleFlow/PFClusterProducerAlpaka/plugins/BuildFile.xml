@@ -1,4 +1,4 @@
-<library name="RecoParticleFlowPFRecHitProducersPlugins" file="*.cc">
+<library name="RecoParticleFlowPFClusterProducersPlugins" file="*.cc">
   <use name="FWCore/Framework"/>
   <use name="FWCore/ParameterSet"/>
   <use name="FWCore/Utilities"/>
@@ -9,13 +9,11 @@
   <use name="DataFormats/ParticleFlowReco_Alpaka"/>
   <use name="CommonTools/ParticleFlow"/>
   <use name="DQMServices/Core"/>
-  <use name="Geometry/CaloGeometry"/>
-  <use name="Geometry/Records"/>
   <flags EDM_PLUGIN="1"/>
 </library>
 
 <!-- alpaka-based portable plugins -->
-<library name="RecoParticleFlowPFRecHitProducersPluginsPortable" file="alpaka/*.cc">
+<library name="RecoParticleFlowPFClusterProducersPluginsPortable" file="alpaka/*.cc">
   <use name="alpaka"/>
   <use name="DataFormats/ParticleFlowReco"/>
   <use name="DataFormats/ParticleFlowReco_Alpaka"/>
@@ -28,7 +26,9 @@
   <use name="Geometry/Records"/>
   <use name="HeterogeneousCore/AlpakaCore"/>
   <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoParticleFlow/PFClusterProducer"/>
   <use name="RecoParticleFlow/PFRecHitProducer"/>
+  <use name="RecoParticleFlow/PFClusterProducerAlpaka"/>
   <flags ALPAKA_BACKENDS="1"/>
   <flags EDM_PLUGIN="1"/>
 </library>

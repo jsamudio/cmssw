@@ -25,6 +25,7 @@ process.load("RecoParticleFlow.PFClusterProducer.pfhbheRecHitParamsGPUESProducer
 process.load("RecoParticleFlow.PFClusterProducer.pfhbheTopologyGPUESProducer_cfi")
 
 process.load('Configuration.StandardSequences.Accelerators_cff')
+process.load("HeterogeneousCore.CUDACore.ProcessAcceleratorCUDA_cfi")
 process.load('HeterogeneousCore.AlpakaCore.ProcessAcceleratorAlpaka_cfi')
 
 process.maxEvents = cms.untracked.PSet(
@@ -34,10 +35,12 @@ process.maxEvents = cms.untracked.PSet(
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
 
+
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0_pre4/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/05ad6501-815f-4df6-b115-03ad028f9b76.root'),
+    fileNames = cms.untracked.vstring('/store/relval/CMSSW_12_4_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_124X_mcRun3_2022_realistic_v5-v1/10000/012eda92-aad5-4a95-8dbd-c79546b5f508.root'),
     secondaryFileNames = cms.untracked.vstring()
+    #skipEvents = cms.untracked.uint32(9)
 )
 
 process.options = cms.untracked.PSet(
@@ -243,30 +246,55 @@ process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFR
     synchronise = cms.bool(args.synchronise)
 )
 
+#Move Onto Clustering
+
+process.jobConfAlpakaRcdESSource2 = cms.ESSource('EmptyESSource',
+    recordName = cms.string('JobConfigurationAlpakaRecord2'),
+    iovIsRunNotTime = cms.bool(True),
+    firstValid = cms.vuint32(1)
+)
+process.hltParticleFlowClusterParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFClusterParamsESProducer")
+
+
+#from RecoParticleFlow.PFClusterProducerAlpaka.pfClusterParamsESProducer_cfi import pfClusterParamsESProducer as _pfClusterParamsESProducer
+#process.pfClusterParamsESProducer = _pfClusterParamsESProducer.clone()
+
+
+#for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.initialClusteringStep.thresholdsByDetector):
+#    for idy, y in enumerate(process.hltParticleFlowClusterHBHE.initialClusteringStep.thresholdsByDetector):
+#        if x.detector == y.detector:
+#            x.gatheringThreshold = y.gatheringThreshold
+#for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.pfClusterBuilder.recHitEnergyNorms):
+#    for idy, y in enumerate(process.hltParticleFlowClusterHBHE.pfClusterBuilder.recHitEnergyNorms):
+#        if x.detector == y.detector:
+#            x.recHitEnergyNorm = y.recHitEnergyNorm
+#for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.seedFinder.thresholdsByDetector):
+#    for idy, y in enumerate(process.hltParticleFlowClusterHBHE.seedFinder.thresholdsByDetector):
+#        if x.detector == y.detector:
+#            x.seedingThreshold = y.seedingThreshold
+process.hltParticleFlowPFClusterAlpaka = cms.EDProducer(alpaka_backend_str % "PFClusterProducerAlpaka",
+                                                        pfClusterParams = cms.ESInputTag("hltParticleFlowClusterParamsESProducer:"),
+                                                        pfClusterBuilder = process.hltParticleFlowClusterHBHE.pfClusterBuilder,
+                                                        positionReCalc = process.hltParticleFlowClusterHBHE.positionReCalc,
+                                                        recHitCleaners = process.hltParticleFlowClusterHBHE.recHitCleaners,
+                                                        #recHitsSource = cms.InputTag("hltParticleFlowPFRecHitAlpaka"), # Use GPU version of input
+                                                        seedCleaners = process.hltParticleFlowClusterHBHE.seedCleaners,
+                                                        seedFinder = process.hltParticleFlowClusterHBHE.seedFinder,
+                                                        energyCorrector = process.hltParticleFlowClusterHBHE.energyCorrector,
+                                                        initialClusteringStep = process.hltParticleFlowClusterHBHE.initialClusteringStep,
+                                                        synchronise = cms.bool(args.synchronise))
+process.hltParticleFlowPFClusterAlpaka.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
+process.hltParticleFlowPFClusterAlpaka.PFClustersDeviceOut = cms.string("hltParticleFlowPFClusterAlpaka")
+process.hltParticleFlowPFClusterAlpaka.pfClusterBuilder.maxIterations = 50
+
+
 # Compare legacy PFRecHits to PFRecHitsSoA
 from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
 process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest",
     recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
-    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
-    pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka"),
-    pfRecHitsType1 = cms.untracked.string("legacy"),
-    pfRecHitsType2 = cms.untracked.string("alpaka"),
-    title = cms.untracked.string("Legacy vs Alpaka")
+    pfRecHitsSourceCPU = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
+    pfRecHitsSourceAlpaka = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka")
 )
-
-# Convert Alpaka PFRecHits to legacy format and validate against CPU implementation
-process.htlParticleFlowAlpakaToLegacyPFRecHits = cms.EDProducer("LegacyPFRecHitProducer",
-    src = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
-)
-process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison = DQMEDAnalyzer("PFRecHitProducerTest",
-    recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
-    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
-    pfRecHitsSource2 = cms.untracked.InputTag("htlParticleFlowAlpakaToLegacyPFRecHits"),
-    pfRecHitsType1 = cms.untracked.string("legacy"),
-    pfRecHitsType2 = cms.untracked.string("legacy"),
-    title = cms.untracked.string("Legacy vs Legacy-from-Alpaka")
-)
-
 
 #
 # Additional customization
@@ -277,6 +305,7 @@ process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*HbherecoLegacy*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_*Hbhereco*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowRecHitToSoA_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowPFRecHitAlpaka_*_*')
+process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowPFClusterAlpaka_*_*')
 
 #
 # Run only localreco, PFRecHit and PFCluster producers for HBHE only
@@ -290,10 +319,10 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowRecHitToSoA     # Convert legacy CaloRecHits to SoA and copy to device
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
-    +process.htlParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits to legacy format
-    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Validate legacy-format-from-alpaka vs regular legacy format
+    +process.hltParticleFlowPFClusterAlpaka
 )
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
 
 process.options.numberOfThreads = cms.untracked.uint32(args.threads)
+
