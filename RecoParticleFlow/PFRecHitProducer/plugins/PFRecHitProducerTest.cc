@@ -18,8 +18,7 @@
 #include <iostream>
 #include <string>
 #include <utility>
-
-#define DEBUG false
+#include <variant>
 
 class PFRecHitProducerTest : public DQMEDAnalyzer {
 public:
@@ -30,25 +29,90 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  void DumpEvent(const reco::PFRecHitCollection& pfRecHitsCPU, const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka);
+  // Define generic types for token, handle and collection, such that origin of PFRecHits can be selected at runtime
+  // Idea is to read desired format from config (pfRecHitsType1/2) and construct token accordingly. Then use handle
+  // and collection corresponding to token type. Finally, construct GenericPFRecHits from each source, which are
+  // independent of the format. This way this module can be used with to validate any combination of legacy and 
+  // Alpaka formats (and possibly CUDA?).
+  using LegacyToken = edm::EDGetTokenT<reco::PFRecHitCollection>;
+  using AlpakaToken = edm::EDGetTokenT<reco::PFRecHitHostCollection>;
+  using GenericPFRecHitToken = std::variant<LegacyToken,AlpakaToken>;
+  using LegacyHandle = edm::Handle<reco::PFRecHitCollection>;
+  using AlpakaHandle = edm::Handle<reco::PFRecHitHostCollection>;
+  using GenericHandle = std::variant<LegacyHandle,AlpakaHandle>;
+  using LegacyCollection = const reco::PFRecHitCollection*;
+  using AlpakaCollection = const reco::PFRecHitHostCollection::ConstView*;
+  using GenericCollection = std::variant<LegacyCollection,AlpakaCollection>;
+
+  static size_t GenericCollectionSize(const GenericCollection& collection) {
+    if(std::holds_alternative<LegacyCollection>(collection))
+      return std::get<LegacyCollection>(collection)->size();
+    else
+      return std::get<AlpakaCollection>(collection)->size();
+  };
 
   edm::EDGetTokenT<edm::SortedCollection<HBHERecHit>> recHitsToken;
-  edm::EDGetTokenT<reco::PFRecHitCollection> pfRecHitsTokenCPU;
-  edm::EDGetTokenT<reco::PFRecHitHostCollection> pfRecHitsTokenAlpaka;
+  GenericPFRecHitToken pfRecHitsTokens[2];
+
+  void DumpEvent(const GenericCollection&, const GenericCollection&);
   int32_t num_events = 0, num_errors = 0;
+  const std::string title;
+  const bool dumpFirstEvent, dumpFirstError;
+
+  // Container for PFRecHit, independent of how it was constructed
+  struct GenericPFRecHit {
+    uint32_t detId;
+    int depth;
+    PFLayer::Layer layer;
+    float time;
+    float energy;
+    float x, y, z;
+    std::vector<uint32_t> neighbours4, neighbours8;
+
+    static GenericPFRecHit Construct(const GenericCollection&, size_t i);   // Generic constructor
+    GenericPFRecHit(const reco::PFRecHit& pfRecHit);                        // Constructor from legacy format
+    GenericPFRecHit(const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka, size_t i);  // Constructor from Alpaka SoA
+
+    void Print(const char* prefix, size_t idx);
+  };
 };
+
 
 PFRecHitProducerTest::PFRecHitProducerTest(const edm::ParameterSet& conf)
     : recHitsToken(
           consumes<edm::SortedCollection<HBHERecHit>>(conf.getUntrackedParameter<edm::InputTag>("recHitsSourceCPU"))),
-      pfRecHitsTokenCPU(
-          consumes<reco::PFRecHitCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceCPU"))),
-      pfRecHitsTokenAlpaka(
-          consumes<reco::PFRecHitHostCollection>(conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSourceAlpaka")))
-     {}
+      title(conf.getUntrackedParameter<std::string>("title")),            // identifier added to final printout
+      dumpFirstEvent(conf.getUntrackedParameter<bool>("dumpFirstEvent")), // print PFRecHits from first event
+      dumpFirstError(conf.getUntrackedParameter<bool>("dumpFirstError"))  // print PFRecHits from first event that yields an error
+{
+  const edm::InputTag input[2] = {
+    conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSource1"),
+    conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSource2")
+  };
+  const std::string type[2] = {
+    conf.getUntrackedParameter<std::string>("pfRecHitsType1"),
+    conf.getUntrackedParameter<std::string>("pfRecHitsType2")
+  };
+  for(int i = 0; i < 2; i++)
+  {
+    if(type[i] == "legacy")
+      pfRecHitsTokens[i].emplace<LegacyToken>(consumes<LegacyHandle::element_type>(input[i]));
+    else if(type[i] == "alpaka")
+      pfRecHitsTokens[i].emplace<AlpakaToken>(consumes<AlpakaHandle::element_type>(input[i]));
+    else
+    {
+      fprintf(stderr, "Invalid value for PFRecHitProducerTest::pfRecHitsType%d: \"%s\"\n", i+1, type[i].c_str());
+      std::exit(1);
+    }
+  }
+}
 
 PFRecHitProducerTest::~PFRecHitProducerTest() {
-  fprintf(stderr, "PFRecHitProducerTest has compared %u events and found %u problems\n", num_events, num_errors);
+  fprintf(stderr, "PFRecHitProducerTest%s%s%s has compared %u events and found %u problems\n",
+    title.empty() ? "" : "[",
+    title.c_str(),
+    title.empty() ? "" : "]",
+    num_events, num_errors);
 }
 
 void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup const& c) {
@@ -61,136 +125,199 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
   //  printf("recHit %4lu %u\n", i, recHits->operator[](i).id().rawId());
 
   // PF Rec Hits
-  edm::Handle<reco::PFRecHitCollection> pfRecHitsCPUlegacy;
-  edm::Handle<reco::PFRecHitHostCollection> pfRecHitsAlpakaSoA;
-  event.getByToken(pfRecHitsTokenCPU, pfRecHitsCPUlegacy);
-  event.getByToken(pfRecHitsTokenAlpaka, pfRecHitsAlpakaSoA);
-  
-  const reco::PFRecHitCollection& pfRecHitsCPU = *pfRecHitsCPUlegacy;
-  const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka = pfRecHitsAlpakaSoA->const_view();
+  GenericHandle pfRecHitsHandles[2];
+  GenericCollection pfRecHits[2];
+  for(int i = 0; i < 2; i++)
+    if(std::holds_alternative<LegacyToken>(pfRecHitsTokens[i]))
+    {
+      auto& handle = pfRecHitsHandles[i].emplace<LegacyHandle>();
+      event.getByToken(std::get<LegacyToken>(pfRecHitsTokens[i]), handle);
+      pfRecHits[i].emplace<LegacyCollection>(&*handle);
+    }
+    else
+    {
+      auto& handle = pfRecHitsHandles[i].emplace<AlpakaHandle>();
+      event.getByToken(std::get<AlpakaToken>(pfRecHitsTokens[i]), handle);
+      pfRecHits[i].emplace<AlpakaCollection>(&handle->const_view());
+    }
 
   int error = 0;
-  if(pfRecHitsCPU.size() != pfRecHitsAlpaka.size())
+  const size_t n = GenericCollectionSize(pfRecHits[0]);
+  if(n != GenericCollectionSize(pfRecHits[1]))
     error = 1;
   else
   {
-    for (size_t i = 0; i < pfRecHitsCPU.size() && error == 0; i++)
+    std::vector<GenericPFRecHit> first, second;
+    std::unordered_map<uint32_t, size_t> detId2Idx; // for second vector
+    first.reserve(n);
+    second.reserve(n);
+    for (size_t i = 0; i < n; i++)
     {
-      const uint32_t detId = pfRecHitsCPU[i].detId();
-      bool detId_found = false;
-      for (size_t j = 0; j < pfRecHitsAlpaka.size() && error == 0; j++)
+      first.emplace_back(GenericPFRecHit::Construct(pfRecHits[0], i));
+      second.emplace_back(GenericPFRecHit::Construct(pfRecHits[1], i));
+      detId2Idx[second.at(i).detId] = i;
+    }
+    for(size_t i = 0; i < n && error == 0; i++)
+    {
+      const GenericPFRecHit& rh1 = first.at(i);
+      if(detId2Idx.find(rh1.detId) == detId2Idx.end())
       {
-        if(detId == pfRecHitsAlpaka[j].detId())
-        {
-          if(detId_found)
-            error = 2;
-          detId_found = true;
-          if(pfRecHitsCPU[i].depth() != pfRecHitsAlpaka[j].depth()
-            || pfRecHitsCPU[i].layer() != pfRecHitsAlpaka[j].layer()
-            || pfRecHitsCPU[i].time() != pfRecHitsAlpaka[j].time()
-            || pfRecHitsCPU[i].energy() != pfRecHitsAlpaka[j].energy()
-            || pfRecHitsCPU[i].position().x() != pfRecHitsAlpaka[j].x()
-            || pfRecHitsCPU[i].position().y() != pfRecHitsAlpaka[j].y()
-            || pfRecHitsCPU[i].position().z() != pfRecHitsAlpaka[j].z()
-            )
-            error = 3;
-          else
-          {
-            // check neighbours
-            reco::PFRecHit::Neighbours pfRecHitNeighbours = pfRecHitsCPU[i].neighbours();
-            std::vector<uint32_t> neighbours_cpu(pfRecHitNeighbours.begin(), pfRecHitNeighbours.end());
-            for(size_t k = 0; k < neighbours_cpu.size(); k++)
-              neighbours_cpu[k] = pfRecHitsCPU[neighbours_cpu[k]].detId();
-            std::sort(neighbours_cpu.begin(), neighbours_cpu.end());
-
-            std::vector<uint32_t> neighbours_alpaka(pfRecHitsAlpaka[j].num_neighbours());
-            for(size_t k = 0; k < pfRecHitsAlpaka[j].num_neighbours(); k++)
-              neighbours_alpaka[k] = pfRecHitsAlpaka[pfRecHitsAlpaka[j].neighbours()(k)].detId();
-            std::sort(neighbours_alpaka.begin(), neighbours_alpaka.end());
-
-            if(neighbours_cpu.size() != neighbours_alpaka.size())
-              error = 4;
-            else
-              for(size_t k = 0; k < neighbours_cpu.size() && error == 0; k++)
-                if(neighbours_cpu[k] != neighbours_alpaka[k])
-                  error = 5;
-          }
-        }
+        error = 2;
+        break;
       }
-      if(!detId_found)
-        error = 6;
+
+      const GenericPFRecHit& rh2 = second.at(detId2Idx.at(rh1.detId));
+      assert(rh1.detId == rh2.detId);
+      if(  rh1.depth  != rh2.depth
+        || rh1.layer  != rh2.layer
+        || rh1.time   != rh2.time
+        || rh1.energy != rh2.energy
+        || rh1.x      != rh2.x
+        || rh1.y      != rh2.y
+        || rh1.z      != rh2.z)
+      {
+        error = 3;
+        break;
+      }
+
+      if(rh1.neighbours4.size() != rh2.neighbours4.size()
+        || rh1.neighbours8.size() != rh2.neighbours8.size())
+      {
+        error = 4;
+        break;
+      }
+
+      for(size_t i = 0; i < rh1.neighbours4.size(); i++)
+        if(first.at(rh1.neighbours4[i]).detId != second.at(rh2.neighbours4[i]).detId)
+        {
+          error = 5;
+          break;
+        }
+      for(size_t i = 0; i < rh1.neighbours8.size(); i++)
+        if(first.at(rh1.neighbours8[i]).detId != second.at(rh2.neighbours8[i]).detId)
+        {
+          error = 5;
+          break;
+        }
     }
   }
 
-  //if(num_events == 0)
-  //  DumpEvent(pfRecHitsCPU, pfRecHitsAlpaka);
+  if(num_events == 0 && dumpFirstEvent)
+    DumpEvent(pfRecHits[0], pfRecHits[1]);
 
   if(error)
   {
-    // When enabling this, need to set number of threads to 1 to get useful output
-    if(DEBUG && num_errors == 0)
+    if(dumpFirstError && num_errors == 0)
     {
+      // Error codes:
+      //  1 different number of PFRecHits
+      //  2 detId not found
+      //  3 depth,layer,time,energy or pos different
+      //  4 different number of neighbours
+      //  5 neighbours different (different order?)
       printf("Error: %d\n", error);
-      DumpEvent(pfRecHitsCPU, pfRecHitsAlpaka);
+      DumpEvent(pfRecHits[0], pfRecHits[1]);
     }
     num_errors++;
   }
   num_events++;
 }
 
-void PFRecHitProducerTest::DumpEvent(const reco::PFRecHitCollection& pfRecHitsCPU, const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka) {
-  printf("Found %zd/%d pfRecHits with CPU/Alpaka\n", pfRecHitsCPU.size(), pfRecHitsAlpaka.size());
-  for (size_t i = 0; i < pfRecHitsCPU.size(); i++)
-  {
-    reco::PFRecHit::Neighbours pfRecHitNeighbours = pfRecHitsCPU[i].neighbours();
-    std::vector<uint32_t> neighbours(pfRecHitNeighbours.begin(), pfRecHitNeighbours.end());
-    std::sort(neighbours.begin(), neighbours.end());
-    printf("CPU %4lu detId:%u depth:%d layer:%d time:%f energy:%f pos:%f,%f,%f neighbours:%lu(",
-           i,
-           pfRecHitsCPU[i].detId(),
-           pfRecHitsCPU[i].depth(),
-           pfRecHitsCPU[i].layer(),
-           pfRecHitsCPU[i].time(),
-           pfRecHitsCPU[i].energy(),
-           pfRecHitsCPU[i].position().x(),
-           pfRecHitsCPU[i].position().y(),
-           pfRecHitsCPU[i].position().z(),
-           neighbours.size()
-    );
-    for(uint32_t j = 0; j < neighbours.size(); j++)
-      printf("%s%u", (j == 0) ? "" : ",", pfRecHitsCPU[neighbours[j]].detId());
-    printf(")\n");
-  }
-  for (size_t i = 0; i < pfRecHitsAlpaka.size(); i++)
-  {
-    std::vector<uint32_t> neighbours(pfRecHitsAlpaka[i].num_neighbours());
-    for(size_t k = 0; k < pfRecHitsAlpaka[i].num_neighbours(); k++)
-      neighbours[k] = pfRecHitsAlpaka[pfRecHitsAlpaka[i].neighbours()(k)].detId();
-    std::sort(neighbours.begin(), neighbours.end());
-    printf("Alpaka %4lu detId:%u depth:%d layer:%d time:%f energy:%f pos:%f,%f,%f neighbours:%lu(",
-           i,
-           pfRecHitsAlpaka[i].detId(),
-           pfRecHitsAlpaka[i].depth(),
-           pfRecHitsAlpaka[i].layer(),
-           pfRecHitsAlpaka[i].time(),
-           pfRecHitsAlpaka[i].energy(),
-           pfRecHitsAlpaka[i].x(),
-           pfRecHitsAlpaka[i].y(),
-           pfRecHitsAlpaka[i].z(),
-           neighbours.size()
-    );
-    for(uint32_t j = 0; j < neighbours.size(); j++)
-      printf("%s%u", (j == 0) ? "" : ",", neighbours[j]);
-    printf(")\n");
-  }
+void PFRecHitProducerTest::DumpEvent(const GenericCollection& pfRecHits1, const GenericCollection& pfRecHits2) {
+  printf("Found %zd/%ld pfRecHits from first/second origin\n", GenericCollectionSize(pfRecHits1), GenericCollectionSize(pfRecHits2));
+  for (size_t i = 0; i < GenericCollectionSize(pfRecHits1); i++)
+    GenericPFRecHit::Construct(pfRecHits1, i).Print("First", i);
+  for (size_t i = 0; i < GenericCollectionSize(pfRecHits2); i++)
+    GenericPFRecHit::Construct(pfRecHits2, i).Print("Second", i);
 }
 
 void PFRecHitProducerTest::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.addUntracked<edm::InputTag>("recHitsSourceCPU");
-  desc.addUntracked<edm::InputTag>("pfRecHitsSourceCPU");
-  desc.addUntracked<edm::InputTag>("pfRecHitsSourceAlpaka");
+  desc.addUntracked<edm::InputTag>("pfRecHitsSource1");
+  desc.addUntracked<edm::InputTag>("pfRecHitsSource2");
+  desc.addUntracked<std::string>("pfRecHitsType1", "legacy");
+  desc.addUntracked<std::string>("pfRecHitsType2", "alpaka");
+  desc.addUntracked<std::string>("title", "");
+  desc.addUntracked<bool>("dumpFirstEvent", false);
+  desc.addUntracked<bool>("dumpFirstError", false);
   descriptions.addDefault(desc);
+}
+
+PFRecHitProducerTest::GenericPFRecHit PFRecHitProducerTest::GenericPFRecHit::Construct(const PFRecHitProducerTest::GenericCollection& collection, size_t i)
+{
+  if(std::holds_alternative<LegacyCollection>(collection))
+    return GenericPFRecHit{(*std::get<LegacyCollection>(collection))[i]};
+  else
+    return GenericPFRecHit{*std::get<AlpakaCollection>(collection), i};
+}
+
+PFRecHitProducerTest::GenericPFRecHit::GenericPFRecHit(const reco::PFRecHit& pfRecHit) : 
+    detId(pfRecHit.detId()),
+    depth(pfRecHit.depth()),
+    layer(pfRecHit.layer()),
+    time(pfRecHit.time()),
+    energy(pfRecHit.energy()),
+    x(pfRecHit.position().x()),
+    y(pfRecHit.position().y()),
+    z(pfRecHit.position().z())
+{
+  // Fill neighbours4 and neighbours8, then remove elements of neighbours4 from neighbours8
+  // This is necessary, because there can be duplicates in the neighbour lists
+  // This procedure correctly accounts for these multiplicities
+  reco::PFRecHit::Neighbours pfRecHitNeighbours4 = pfRecHit.neighbours4();
+  reco::PFRecHit::Neighbours pfRecHitNeighbours8 = pfRecHit.neighbours8();
+  neighbours4.reserve(4);
+  neighbours8.reserve(8);
+  for(auto p = pfRecHitNeighbours8.begin(); p < pfRecHitNeighbours8.end(); p++)
+      neighbours8.emplace_back(*p);
+  for(auto p = pfRecHitNeighbours4.begin(); p < pfRecHitNeighbours4.end(); p++)
+  {
+    neighbours4.emplace_back(*p);
+    auto idx = std::find(neighbours8.begin(), neighbours8.end(), *p);
+    std::copy(idx+1, neighbours8.end(), idx);
+  }
+  neighbours8.resize(pfRecHitNeighbours8.size() - pfRecHitNeighbours4.size());
+}
+
+PFRecHitProducerTest::GenericPFRecHit::GenericPFRecHit(const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka, size_t i) : 
+    detId(pfRecHitsAlpaka[i].detId()),
+    depth(pfRecHitsAlpaka[i].depth()),
+    layer(pfRecHitsAlpaka[i].layer()),
+    time(pfRecHitsAlpaka[i].time()),
+    energy(pfRecHitsAlpaka[i].energy()),
+    x(pfRecHitsAlpaka[i].x()),
+    y(pfRecHitsAlpaka[i].y()),
+    z(pfRecHitsAlpaka[i].z())
+{
+  // Copy first four elements into neighbours4 and last four into neighbours8
+  neighbours4.reserve(4);
+  neighbours8.reserve(4);
+  for(size_t k = 0; k < 4; k++)
+    if(pfRecHitsAlpaka[i].neighbours()(k) != -1)
+      neighbours4.emplace_back((uint32_t)pfRecHitsAlpaka[i].neighbours()(k));
+  for(size_t k = 4; k < 8; k++)
+    if(pfRecHitsAlpaka[i].neighbours()(k) != -1)
+      neighbours8.emplace_back((uint32_t)pfRecHitsAlpaka[i].neighbours()(k));
+}
+
+void PFRecHitProducerTest::GenericPFRecHit::Print(const char* prefix, size_t idx) {
+  printf("%s %4lu detId:%u depth:%d layer:%d time:%f energy:%f pos:%f,%f,%f neighbours:%lu+%lu(",
+          prefix, idx,
+          detId,
+          depth,
+          layer,
+          time,
+          energy,
+          x, y, z,
+          neighbours4.size(), neighbours8.size()
+  );
+  for(uint32_t j = 0; j < neighbours4.size(); j++)
+    printf("%s%u", j ? "," : "", neighbours4[j]);
+  printf(";");
+  for(uint32_t j = 0; j < neighbours8.size(); j++)
+    printf("%s%u", j ? "," : "", neighbours8[j]);
+  printf(")\n");
 }
 
 #include "FWCore/Framework/interface/MakerMacros.h"

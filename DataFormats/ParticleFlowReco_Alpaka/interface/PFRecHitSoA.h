@@ -12,19 +12,18 @@
 
 namespace reco {
   
-  using PFRecHitsNeighbours = Eigen::Matrix<uint32_t, 8, 1>;
+  using PFRecHitsNeighbours = Eigen::Matrix<int32_t, 8, 1>;
   GENERATE_SOA_LAYOUT(PFRecHitSoALayout,
     SOA_COLUMN(uint32_t, detId),
     SOA_COLUMN(float, energy),
     SOA_COLUMN(float, time),
     SOA_COLUMN(int, depth),
     SOA_COLUMN(PFLayer::Layer, layer),
-    SOA_COLUMN(uint32_t, num_neighbours),
-    SOA_EIGEN_COLUMN(PFRecHitsNeighbours, neighbours),
+    SOA_EIGEN_COLUMN(PFRecHitsNeighbours, neighbours),  // Neighbour indices (or -1); order: N, S, E, W, NE, SW, SE, NW
     SOA_COLUMN(float, x),
     SOA_COLUMN(float, y),
     SOA_COLUMN(float, z),
-    SOA_SCALAR(uint32_t, size)
+    SOA_SCALAR(uint32_t, size)  // Number of PFRecHits in SoA
   )
 
   using PFRecHitSoA = PFRecHitSoALayout<>;
