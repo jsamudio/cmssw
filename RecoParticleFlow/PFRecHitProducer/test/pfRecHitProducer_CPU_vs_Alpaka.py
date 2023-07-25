@@ -258,7 +258,7 @@ process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest"
     pfRecHitsType1 = cms.untracked.string("legacy"),
     pfRecHitsType2 = cms.untracked.string("alpaka"),
     title = cms.untracked.string("Legacy vs Alpaka"),
-    dumpFirstEvent = cms.untracked.bool(args.debug),  # Set this to True for debugging
+    dumpFirstEvent = cms.untracked.bool(args.debug),
     dumpFirstError = cms.untracked.bool(False)
 )
 
@@ -287,6 +287,41 @@ process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison2 = DQMEDAnalyzer("PFRec
     dumpFirstError = cms.untracked.bool(False)
 )
 
+## Construct CUDA PFRecHits, which also constructs the legacy format. Validate legacy vs legacy-from-CUDA
+## This validation fails because:
+##  - by default, the module does not associate neighbours
+##  - legacy HCAL recHits have time==0, while on GPU, they have a value
+##  - numerics (validation module tests floats for equality); cause is probably HCAL reconstruction
+## When enabling neighbour association, ignoring time and using fuzzy compare, the validation succeeds
+#producersGPU = process.hltParticleFlowRecHitHBHE.clone().producers
+#for idx, x in enumerate(producersGPU):
+#    if x.src.moduleLabel == "hltHbhereco":
+#        x.src.moduleLabel = "hltHbherecoGPU" # use GPU version as input instead of legacy version
+#    for idy, y in enumerate(x.qualityTests):
+#        if y.name._value == "PFRecHitQTestHCALThresholdVsDepth": # apply phase1 depth-dependent HCAL thresholds
+#            for idz, z in enumerate(y.cuts): # convert signed to unsigned
+#                if z.detectorEnum == 1: # HB
+#                    z.detectorEnum = cms.uint32( 1 )
+#                    z.depth = cms.vuint32( 1, 2, 3, 4 )
+#                    process.pfhbheRecHitParamsGPUESProducer.thresholdE_HB = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
+#                if z.detectorEnum == 2: # HE
+#                    z.detectorEnum = cms.uint32( 2 )
+#                    z.depth = cms.vuint32( 1, 2, 3, 4, 5, 6, 7  )
+#                    process.pfhbheRecHitParamsGPUESProducer.thresholdE_HE = z.threshold # propagate to process.pfhbheRecHitParamsGPUESProducer
+#process.hltParticleFlowRecHitHBHEonGPU = cms.EDProducer("PFHBHERecHitProducerGPU", # instead of "PFRecHitProducer"
+#                                                        producers = producersGPU,
+#                                                        navigator = process.hltParticleFlowRecHitHBHE.navigator)
+#process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison3 = DQMEDAnalyzer("PFRecHitProducerTest",
+#    recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
+#    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
+#    pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowRecHitHBHEonGPU"),
+#    pfRecHitsType1 = cms.untracked.string("legacy"),
+#    pfRecHitsType2 = cms.untracked.string("legacy"),
+#    title = cms.untracked.string("Legacy vs Legacy-from-CUDA"),
+#    dumpFirstEvent = cms.untracked.bool(False),
+#    dumpFirstError = cms.untracked.bool(False)
+#)
+
 #
 # Additional customization
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
@@ -312,6 +347,10 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.htlParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits to legacy format
     +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison1  # Validate legacy-format-from-alpaka vs regular legacy format
     +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison2  # Validate Alpaka format vs legacy-format-from-alpaka
+    #+process.hltHcalDigisGPU
+    #+process.hltHbherecoGPU
+    #+process.hltParticleFlowRecHitHBHEonGPU                     # Construct CUDA PFRecHits (and legacy format)
+    #+process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison3  # Validate legacy format vs legacy-format-from-CUDA
 )
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
