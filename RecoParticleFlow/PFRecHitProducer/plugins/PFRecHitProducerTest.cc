@@ -74,7 +74,6 @@ private:
     GenericPFRecHit(const reco::PFRecHitHostCollection::ConstView& pfRecHitsAlpaka, size_t i);  // Constructor from Alpaka SoA
 
     void Print(const char* prefix, size_t idx);
-    int Compare(const GenericPFRecHit& other);
   };
 };
 
@@ -143,11 +142,65 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
     }
 
   int error = 0;
-  if(GenericCollectionSize(pfRecHits[0]) != GenericCollectionSize(pfRecHits[1]))
+  const size_t n = GenericCollectionSize(pfRecHits[0]);
+  if(n != GenericCollectionSize(pfRecHits[1]))
     error = 1;
   else
-    for (size_t i = 0; i < GenericCollectionSize(pfRecHits[0]) && error == 0; i++)
-      error = GenericPFRecHit::Construct(pfRecHits[0], i).Compare(GenericPFRecHit::Construct(pfRecHits[1], i));
+  {
+    std::vector<GenericPFRecHit> first, second;
+    std::unordered_map<uint32_t, size_t> detId2Idx; // for second vector
+    first.reserve(n);
+    second.reserve(n);
+    for (size_t i = 0; i < n; i++)
+    {
+      first.emplace_back(GenericPFRecHit::Construct(pfRecHits[0], i));
+      second.emplace_back(GenericPFRecHit::Construct(pfRecHits[1], i));
+      detId2Idx[second.at(i).detId] = i;
+    }
+    for(size_t i = 0; i < n && error == 0; i++)
+    {
+      const GenericPFRecHit& rh1 = first.at(i);
+      if(detId2Idx.find(rh1.detId) == detId2Idx.end())
+      {
+        error = 2;
+        break;
+      }
+
+      const GenericPFRecHit& rh2 = second.at(detId2Idx.at(rh1.detId));
+      assert(rh1.detId == rh2.detId);
+      if(  rh1.depth  != rh2.depth
+        || rh1.layer  != rh2.layer
+        || rh1.time   != rh2.time
+        || rh1.energy != rh2.energy
+        || rh1.x      != rh2.x
+        || rh1.y      != rh2.y
+        || rh1.z      != rh2.z)
+      {
+        error = 3;
+        break;
+      }
+
+      if(rh1.neighbours4.size() != rh2.neighbours4.size()
+        || rh1.neighbours8.size() != rh2.neighbours8.size())
+      {
+        error = 4;
+        break;
+      }
+
+      for(size_t i = 0; i < rh1.neighbours4.size(); i++)
+        if(first.at(rh1.neighbours4[i]).detId != second.at(rh2.neighbours4[i]).detId)
+        {
+          error = 5;
+          break;
+        }
+      for(size_t i = 0; i < rh1.neighbours8.size(); i++)
+        if(first.at(rh1.neighbours8[i]).detId != second.at(rh2.neighbours8[i]).detId)
+        {
+          error = 5;
+          break;
+        }
+    }
+  }
 
   if(num_events == 0 && dumpFirstEvent)
     DumpEvent(pfRecHits[0], pfRecHits[1]);
@@ -158,10 +211,10 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
     {
       // Error codes:
       //  1 different number of PFRecHits
-      //  2 detId different (different order?)
+      //  2 detId not found
       //  3 depth,layer,time,energy or pos different
       //  4 different number of neighbours
-      //  5 neighbours different (order?)
+      //  5 neighbours different (different order?)
       printf("Error: %d\n", error);
       DumpEvent(pfRecHits[0], pfRecHits[1]);
     }
@@ -265,33 +318,6 @@ void PFRecHitProducerTest::GenericPFRecHit::Print(const char* prefix, size_t idx
   for(uint32_t j = 0; j < neighbours8.size(); j++)
     printf("%s%u", j ? "," : "", neighbours8[j]);
   printf(")\n");
-}
-
-int PFRecHitProducerTest::GenericPFRecHit::Compare(const GenericPFRecHit& other) {
-  if(detId != other.detId)
-    return 2;
-
-  if(  depth  != other.depth
-    || layer  != other.layer
-    || time   != other.time
-    || energy != other.energy
-    || x      != other.x
-    || y      != other.y
-    || z      != other.z)
-    return 3;
-
-  if(neighbours4.size() != other.neighbours4.size()
-    || neighbours8.size() != other.neighbours8.size())
-    return 4;
-
-  for(size_t i = 0; i < neighbours4.size(); i++)
-    if(neighbours4[i] != other.neighbours4[i])
-      return 5;
-  for(size_t i = 0; i < neighbours8.size(); i++)
-    if(neighbours8[i] != other.neighbours8[i])
-      return 5;
-
-  return 0;
 }
 
 #include "FWCore/Framework/interface/MakerMacros.h"
