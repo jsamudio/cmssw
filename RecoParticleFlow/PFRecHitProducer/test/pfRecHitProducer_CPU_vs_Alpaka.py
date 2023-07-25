@@ -251,22 +251,35 @@ process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest"
     pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka"),
     pfRecHitsType1 = cms.untracked.string("legacy"),
     pfRecHitsType2 = cms.untracked.string("alpaka"),
-    title = cms.untracked.string("Legacy vs Alpaka")
+    title = cms.untracked.string("Legacy vs Alpaka"),
+    dumpFirstEvent = cms.untracked.bool(False),  # Set this to True for debugging
+    dumpFirstError = cms.untracked.bool(False)
 )
 
 # Convert Alpaka PFRecHits to legacy format and validate against CPU implementation
 process.htlParticleFlowAlpakaToLegacyPFRecHits = cms.EDProducer("LegacyPFRecHitProducer",
     src = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 )
-process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison = DQMEDAnalyzer("PFRecHitProducerTest",
+process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison1 = DQMEDAnalyzer("PFRecHitProducerTest",
     recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
     pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
     pfRecHitsSource2 = cms.untracked.InputTag("htlParticleFlowAlpakaToLegacyPFRecHits"),
     pfRecHitsType1 = cms.untracked.string("legacy"),
     pfRecHitsType2 = cms.untracked.string("legacy"),
-    title = cms.untracked.string("Legacy vs Legacy-from-Alpaka")
+    title = cms.untracked.string("Legacy vs Legacy-from-Alpaka"),
+    dumpFirstEvent = cms.untracked.bool(False),
+    dumpFirstError = cms.untracked.bool(False)
 )
-
+process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison2 = DQMEDAnalyzer("PFRecHitProducerTest",
+    recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
+    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka"),
+    pfRecHitsSource2 = cms.untracked.InputTag("htlParticleFlowAlpakaToLegacyPFRecHits"),
+    pfRecHitsType1 = cms.untracked.string("alpaka"),
+    pfRecHitsType2 = cms.untracked.string("legacy"),
+    title = cms.untracked.string("Alpaka vs Legacy-from-Alpaka"),
+    dumpFirstEvent = cms.untracked.bool(False),
+    dumpFirstError = cms.untracked.bool(False)
+)
 
 #
 # Additional customization
@@ -291,7 +304,8 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
     +process.htlParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits to legacy format
-    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Validate legacy-format-from-alpaka vs regular legacy format
+    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison1  # Validate legacy-format-from-alpaka vs regular legacy format
+    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison2  # Validate Alpaka format vs legacy-format-from-alpaka
 )
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])

@@ -20,8 +20,6 @@
 #include <utility>
 #include <variant>
 
-#define DEBUG false
-
 class PFRecHitProducerTest : public DQMEDAnalyzer {
 public:
   PFRecHitProducerTest(edm::ParameterSet const& conf);
@@ -59,6 +57,7 @@ private:
   void DumpEvent(const GenericCollection&, const GenericCollection&);
   int32_t num_events = 0, num_errors = 0;
   const std::string title;
+  const bool dumpFirstEvent, dumpFirstError;
 
   // Container for PFRecHit, independent of how it was constructed
   struct GenericPFRecHit {
@@ -83,7 +82,9 @@ private:
 PFRecHitProducerTest::PFRecHitProducerTest(const edm::ParameterSet& conf)
     : recHitsToken(
           consumes<edm::SortedCollection<HBHERecHit>>(conf.getUntrackedParameter<edm::InputTag>("recHitsSourceCPU"))),
-      title(conf.getUntrackedParameter<std::string>("title"))
+      title(conf.getUntrackedParameter<std::string>("title")),            // identifier added to final printout
+      dumpFirstEvent(conf.getUntrackedParameter<bool>("dumpFirstEvent")), // print PFRecHits from first event
+      dumpFirstError(conf.getUntrackedParameter<bool>("dumpFirstError"))  // print PFRecHits from first event that yields an error
 {
   const edm::InputTag input[2] = {
     conf.getUntrackedParameter<edm::InputTag>("pfRecHitsSource1"),
@@ -148,13 +149,12 @@ void PFRecHitProducerTest::analyze(edm::Event const& event, edm::EventSetup cons
     for (size_t i = 0; i < GenericCollectionSize(pfRecHits[0]) && error == 0; i++)
       error = GenericPFRecHit::Construct(pfRecHits[0], i).Compare(GenericPFRecHit::Construct(pfRecHits[1], i));
 
-  //if(num_events == 0)
-  //  DumpEvent(pfRecHits[0], pfRecHits[1]);
+  if(num_events == 0 && dumpFirstEvent)
+    DumpEvent(pfRecHits[0], pfRecHits[1]);
 
   if(error)
   {
-    // When enabling this, need to set number of threads to 1 to get useful output
-    if(DEBUG && num_errors == 0)
+    if(dumpFirstError && num_errors == 0)
     {
       // Error codes:
       //  1 different number of PFRecHits
@@ -186,6 +186,8 @@ void PFRecHitProducerTest::fillDescriptions(edm::ConfigurationDescriptions& desc
   desc.addUntracked<std::string>("pfRecHitsType1", "legacy");
   desc.addUntracked<std::string>("pfRecHitsType2", "alpaka");
   desc.addUntracked<std::string>("title", "");
+  desc.addUntracked<bool>("dumpFirstEvent", false);
+  desc.addUntracked<bool>("dumpFirstError", false);
   descriptions.addDefault(desc);
 }
 
