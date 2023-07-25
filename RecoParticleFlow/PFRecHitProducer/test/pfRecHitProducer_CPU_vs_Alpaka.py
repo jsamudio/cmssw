@@ -158,7 +158,13 @@ parser.add_argument('-s', '--synchronise', action='store_true', default=False,
                     help='Put synchronisation point at the end of Alpaka modules (for benchmarking performance)')
 parser.add_argument('-t', '--threads', type=int, default=8,
                     help='Number of threads. Default: 8')
+parser.add_argument('-d', '--debug', action='store_true', default=False,
+                    help='Dump legacy and Alpaka PFRecHits for first event. Default: off')
 args = parser.parse_args(sys.argv[3:])
+
+if(args.debug and args.threads != 1):
+    args.threads = 1
+    print("Number of threads set to 1 for debugging")
 
 
 #####################################
@@ -252,7 +258,7 @@ process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest"
     pfRecHitsType1 = cms.untracked.string("legacy"),
     pfRecHitsType2 = cms.untracked.string("alpaka"),
     title = cms.untracked.string("Legacy vs Alpaka"),
-    dumpFirstEvent = cms.untracked.bool(False),  # Set this to True for debugging
+    dumpFirstEvent = cms.untracked.bool(args.debug),  # Set this to True for debugging
     dumpFirstError = cms.untracked.bool(False)
 )
 
