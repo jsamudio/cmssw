@@ -27,6 +27,20 @@
   </read>
   <class name="edm::Wrapper<reco::PFRecHitHostCollection>" splitLevel="0"/>
 
+  <class name="reco::PFRHFractionHostCollection"/>
+  <read
+    sourceClass="reco::PFRHFractionHostCollection"
+    targetClass="reco::PFRHFractionHostCollection"
+    version="[1-]"
+    source="reco::PFRHFractionSoA layout_;"
+    target="buffer_,layout_,view_"
+    embed="false">
+  <![CDATA[
+    reco::PFRHFractionHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
+  ]]>
+  </read>
+  <class name="edm::Wrapper<reco::PFRHFractionHostCollection>" splitLevel="0"/>
+
   <!-- Collection declaration for dictionary -->
   <class name="reco2::PFClusterHostCollection2"/>
 
@@ -35,11 +49,11 @@
     sourceClass="reco2::PFClusterHostCollection2"
     targetClass="reco2::PFClusterHostCollection2"
     version="[1-]"
-    source="reco2::PFClusterHostCollection2::Implementation impl_;"
-    target="buffer_,impl_"
+    source="reco2::PFClusterSoA2 layout_;"
+    target="buffer_,layout_,view_"
     embed="false">
   <![CDATA[
-    reco2::PFClusterHostCollection2::ROOTReadStreamer(newObj, onfile.impl_);
+    reco2::PFClusterHostCollection2::ROOTReadStreamer(newObj, onfile.layout_);
   ]]>
   </read>
 

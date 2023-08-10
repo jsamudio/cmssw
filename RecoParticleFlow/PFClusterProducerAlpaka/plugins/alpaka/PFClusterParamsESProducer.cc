@@ -112,6 +112,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           psetDesc.add(psetName, foo);
         }
 
+      psetDesc.setAllowAnything();
       descriptions.addWithDefaultLabel(psetDesc);
     }
 

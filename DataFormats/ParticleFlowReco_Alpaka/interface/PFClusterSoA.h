@@ -17,8 +17,10 @@ namespace reco2 {
             SOA_COLUMN(float, pfc_x),
             SOA_COLUMN(float, pfc_y),
             SOA_COLUMN(float, pfc_z),
+            SOA_COLUMN(int, topoRHCount),
             SOA_SCALAR(int, nSeeds),
-            SOA_SCALAR(int, nRHFracs)
+            SOA_SCALAR(int, nRHFracs),
+            SOA_SCALAR(int, size) // nRH
     )
     using PFClusterSoA2 = PFClusterSoA2Layout<>;
 

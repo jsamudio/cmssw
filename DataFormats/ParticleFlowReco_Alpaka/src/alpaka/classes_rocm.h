@@ -7,3 +7,5 @@
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/CaloRecHitDeviceCollection.h"
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/PFClusterDeviceCollection.h"
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFClusterSoA.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/PFRHFractionSoA.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/alpaka/PFRHFractionDeviceCollection.h"

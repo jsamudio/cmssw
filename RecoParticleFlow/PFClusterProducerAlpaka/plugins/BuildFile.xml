@@ -9,6 +9,9 @@
   <use name="DataFormats/ParticleFlowReco_Alpaka"/>
   <use name="CommonTools/ParticleFlow"/>
   <use name="DQMServices/Core"/>
+  <use name="RecoParticleFlow/PFClusterProducer"/>
+  <use name="RecoParticleFlow/PFClusterProducerAlpaka"/>
+  <use name="vdt_headers"/>
   <flags EDM_PLUGIN="1"/>
 </library>
 

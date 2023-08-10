@@ -2,4 +2,5 @@
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/CaloRecHitSoA.h"
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFClusterHostCollection.h"
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFClusterSoA.h"
+#include "DataFormats/ParticleFlowReco_Alpaka/interface/PFRHFractionSoA.h"
 #include "DataFormats/Common/interface/Wrapper.h"

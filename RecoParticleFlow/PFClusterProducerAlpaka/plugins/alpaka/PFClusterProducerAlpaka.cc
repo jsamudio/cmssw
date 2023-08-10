@@ -26,7 +26,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     PFClusterProducerAlpaka(edm::ParameterSet const& config) :
       pfClusParamsToken(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
       InputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
-      OutputPFClusterSoA_Token_{produces(config.getParameter<std::string>("PFClustersDeviceOut"))},
+      //OutputPFClusterSoA_Token_{produces(config.getParameter<std::string>("PFClustersDeviceOut"))},
+      OutputPFClusterSoA_Token_{produces()},
+      OutputPFRHFractionSoA_Token_{produces()},
       synchronise(config.getParameter<bool>("synchronise")),
       _produceSoA{config.getParameter<bool>("produceSoA")},
       _produceLegacy{config.getParameter<bool>("produceLegacy")}
@@ -62,18 +64,25 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       //auto pfRecHits = event.getHandle(InputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
       std::cout << "nRH:" << " " << nRH << std::endl; 
-      tmpPFDeviceCollection tmp{{{nRH + 1, (nRH * 8) + 1}}, event.queue()};
+
+      tmpPF0DeviceCollection tmp0{nRH + 1, event.queue()};
+      tmpPF1DeviceCollection tmp1{(nRH * 8) + 1, event.queue()};
       //auto tmp = std::make_unique<tmpPFDeviceCollection>((nRH, nRH*8), event.queue());
-      PFClusterDeviceCollection2 pfClusters{{{nRH, nRH*120}}, event.queue()};
+      PFClusterDeviceCollection2 pfClusters{nRH, event.queue()};
+      PFRHFractionDeviceCollection pfrhFractions{nRH*120, event.queue()};
 
       //if(!kernel)
-      //  kernel.emplace(PFClusterProducerKernel::Construct(event.queue()));
-      kernel->execute(event.device(), event.queue(), params, tmp, pfRecHits, pfClusters);
+      kernel.emplace(PFClusterProducerKernel::Construct(event.queue()));
+      kernel->execute(event.device(), event.queue(), params, tmp0, tmp1, pfRecHits, pfClusters, pfrhFractions);
 
-      if(synchronise)
+      if (synchronise)
         alpaka::wait(event.queue());
+    
+      if (_produceSoA) {
+        event.emplace(OutputPFClusterSoA_Token_, std::move(pfClusters));
+        event.emplace(OutputPFRHFractionSoA_Token_, std::move(pfrhFractions));
+      }
 
-      event.emplace(OutputPFClusterSoA_Token_, std::move(pfClusters));
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
@@ -92,10 +101,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const device::ESGetToken<PFClusterParamsAlpakaESDataDevice, JobConfigurationAlpakaRecord2> pfClusParamsToken;
     const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
     const device::EDPutToken<PFClusterDeviceCollection2> OutputPFClusterSoA_Token_;
+    const device::EDPutToken<PFRHFractionDeviceCollection> OutputPFRHFractionSoA_Token_;
     const bool synchronise;
     const bool _produceSoA;
     const bool _produceLegacy;
-    //const device::EDGetToken<reco::PFRecHitCollection> _rechitsLabel;
+    //const edm::EDGetTokenT<reco::PFRecHitCollection> _rechitsLabel;
     //const device::EDPutToken<reco::PFClusterCollection> legacyClusToken;
     int nRH = 0;
     //PFClusterProducerKernel kernel;
