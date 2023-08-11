@@ -473,6 +473,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       tmpPF0.nRHFracs() = totalSeedFracOffset;
       clusterView.nRHFracs() = totalSeedFracOffset;
       clusterView.nSeeds() = *nSeeds;
+      clusterView.nTopos() = tmpPF0.nTopos();
 
       for (int i = 0; i < size; i++) {
           clusterView[i].topoRHCount() = tmpPF0[i].topoRHCount();

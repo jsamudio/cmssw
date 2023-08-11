@@ -18,6 +18,7 @@ namespace reco2 {
             SOA_COLUMN(float, pfc_y),
             SOA_COLUMN(float, pfc_z),
             SOA_COLUMN(int, topoRHCount),
+            SOA_SCALAR(int, nTopos),
             SOA_SCALAR(int, nSeeds),
             SOA_SCALAR(int, nRHFracs),
             SOA_SCALAR(int, size) // nRH

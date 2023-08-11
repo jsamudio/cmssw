@@ -12,6 +12,7 @@
   <use name="RecoParticleFlow/PFClusterProducer"/>
   <use name="RecoParticleFlow/PFClusterProducerAlpaka"/>
   <use name="vdt_headers"/>
+  <use name="DMQServices/Core"/>
   <flags EDM_PLUGIN="1"/>
 </library>
 
