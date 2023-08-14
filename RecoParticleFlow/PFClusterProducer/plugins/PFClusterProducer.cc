@@ -53,7 +53,7 @@ DEFINE_FWK_MODULE(PFClusterProducer);
 #endif
 
 PFClusterProducer::PFClusterProducer(const edm::ParameterSet& conf)
-    : _prodInitClusters(conf.getUntrackedParameter<bool>("prodInitialClusters", false)) {
+    : _prodInitClusters(conf.getUntrackedParameter<bool>("prodInitialClusters", true)) {
   _rechitsLabel = consumes<reco::PFRecHitCollection>(conf.getParameter<edm::InputTag>("recHitsSource"));
   edm::ConsumesCollector cc = consumesCollector();
 
