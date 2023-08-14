@@ -153,7 +153,6 @@ namespace PFClusterCudaHCAL {
         const int beg = nidx[v];
         const int end = nidx[v + 1];
         int deg = end - beg;
-        //printf("degree: %d\n", deg);
         if (deg > 16) {
           int idx;
           if (deg <= 352) {
@@ -254,10 +253,8 @@ namespace PFClusterCudaHCAL {
     if (threadIdx.x == 0) {
       const int idx = atomicAdd(&*posH, -1);
       vB = (idx > *topH) ? wl[idx] : -1;
-      printf("posH: %d\n wl_d: %d\n topH: %d\n idx: %d\n", *posH, wl[idx], *topH, idx);
     }
     __syncthreads();
-    printf("vB after sync: %d\n", vB);
     while (vB >= 0) {
       const int v = vB;
       __syncthreads();
