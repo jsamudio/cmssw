@@ -31,6 +31,7 @@ private:
     edm::Handle<reco2::PFClusterHostCollection2> AlpakaHandle;
     edm::Handle<reco::PFClusterCollection> LegacyHandle;
 
+    MonitorElement* pfCluster_TopoMultiplicity_GPUvsCPU_;
     MonitorElement* pfCluster_TopoMemberMultiplicity_GPUvsCPU_;
 
     std::string pfCaloGPUCompDir;
@@ -51,6 +52,8 @@ void TopoAnalyzer::bookHistograms(DQMStore::IBooker& ibooker,
     char histo[size];
     ibooker.setCurrentFolder("ParticleFlow/" + pfCaloGPUCompDir);
 
+    strncpy(histo, "pfCluster_TopoMultiplicity_GPUvsCPU_", size);
+    pfCluster_TopoMultiplicity_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 2000, 100, 0, 2000);
     strncpy(histo, "pfCluster_TopoMemberMultiplicity_GPUvsCPU_", size);
     pfCluster_TopoMemberMultiplicity_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 2000, 100, 0, 2000);
 }
@@ -60,6 +63,16 @@ void TopoAnalyzer::analyze(edm::Event const& event, edm::EventSetup const& c) {
     event.getByToken(LegacyToken, LegacyHandle);
 
     const reco2::PFClusterHostCollection2::ConstView& alpakaClusters = AlpakaHandle->const_view();
+
+    int counter = 0;
+    for (unsigned i = 0; i < (unsigned)alpakaClusters.size(); i++) {
+        if (alpakaClusters[i].topoRHCount() > 0)
+            counter++;
+    }
+    
+    if (LegacyHandle->size() != (unsigned int)counter)
+        printf("multiplicity problem\n");
+    pfCluster_TopoMultiplicity_GPUvsCPU_->Fill((float)LegacyHandle->size(), (float)alpakaClusters.nTopos());
     // Develop matching criteria between portable collection and initial clusters
     std::vector<int> matched_idx;
     for (unsigned i = 0; i < LegacyHandle->size(); ++i) {
@@ -71,7 +84,7 @@ void TopoAnalyzer::analyze(edm::Event const& event, edm::EventSetup const& c) {
                     matched = true;
                     matched_idx.push_back((int)j);
                 } else {
-                  printf("Another matching?\n");
+                  printf("Another matching %ld rechits?\n", LegacyHandle->at(i).recHitFractions().size());
                 }
             }
         }

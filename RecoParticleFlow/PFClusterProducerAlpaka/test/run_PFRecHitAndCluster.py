@@ -195,7 +195,7 @@ process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
                     cms.PSet(
                         depth = cms.vint32(1, 2, 3, 4),
                         detectorEnum = cms.int32(1),
-                        threshold = cms.vdouble(0.1, 0.2, 0.3, 0.3)
+                        threshold = cms.vdouble(0.4, 0.3, 0.3, 0.3)
                     ),
                     cms.PSet(
                         depth = cms.vint32(1, 2, 3, 4, 5, 6, 7),
@@ -247,7 +247,7 @@ process.pfRecHitHBHETopologyAlpakaESRcdESSource = cms.ESSource('EmptyESSource',
   firstValid = cms.vuint32(1)
 )
 process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitHBHEParamsESProducer",
-    energyThresholdsHB = cms.vdouble( 0.1, 0.2, 0.3, 0.3 ),
+    energyThresholdsHB = cms.vdouble( 0.4, 0.3, 0.3, 0.3 ),
     energyThresholdsHE = cms.vdouble( 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 )
 )
 process.hltParticleFlowRecHitTopologyESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitHBHETopologyESProducer",
@@ -447,10 +447,10 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     +process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
     +process.hltParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits to legacy format
-    #+process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Validate legacy-format-from-alpaka vs regular legacy format
+    +process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison   # Validate legacy-format-from-alpaka vs regular legacy format
     +process.hltParticleFlowClusterHBHE
     +process.hltParticleFlowPFClusterAlpaka
-    #+process.hltParticleFlowAlpakaToLegacyPFClusters
+    +process.hltParticleFlowAlpakaToLegacyPFClusters
 )
 
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)

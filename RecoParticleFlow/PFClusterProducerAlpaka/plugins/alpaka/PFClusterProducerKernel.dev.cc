@@ -183,6 +183,23 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   }
 
+  template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+  ALPAKA_FN_ACC void ECLCC_serialInit(const TAcc& acc,
+                             const int nodes,
+                             tmpPF0DeviceCollection::View tmpPF0,
+                             tmpPF1DeviceCollection::View tmpPF1) {
+    for (int v = 0; v < nodes; v ++) {
+      const int beg = tmpPF1[v].pfrh_edgeIdx();
+      const int end = tmpPF1[v + 1].pfrh_edgeIdx();
+      int m = v;
+      int i = beg;
+      while ((m == v) && (i < end)) {
+        m = std::min(m, tmpPF1[i].pfrh_edgeList());
+        i++;
+      }
+      tmpPF0[v].pfrh_topoId() = m;
+    }
+  }
   /* intermediate pointer jumping */
 
   ALPAKA_FN_ACC int representative(const int idx, tmpPF0DeviceCollection::View tmpPF0) {
@@ -196,6 +213,39 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
     }
     return curr;
+  }
+
+  template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+  ALPAKA_FN_ACC void ECLCC_serialCompute1(const TAcc& acc,
+                                 const int nodes,
+                                 tmpPF0DeviceCollection::View tmpPF0,
+                                 tmpPF1DeviceCollection::View tmpPF1) {
+    for (int v = 0; v < nodes; v ++) {
+      const int vstat = tmpPF0[v].pfrh_topoId();
+      if (v != vstat) {
+        const int beg = tmpPF1[v].pfrh_edgeIdx();
+        const int end = tmpPF1[v + 1].pfrh_edgeIdx();
+        int vstat = representative(v, tmpPF0);
+        for (int i = beg; i < end; i++) {
+          const int nli = tmpPF1[i].pfrh_edgeList();
+          if (v > nli) {
+            int ostat = representative(nli, tmpPF0);
+              if (vstat != ostat) {
+                int ret;
+                if (vstat < ostat) {
+                  if ((ret = alpaka::atomicCas(acc, &tmpPF0[ostat].pfrh_topoId(), ostat, vstat)) != ostat) {
+                    ostat = ret;
+                  }
+                } else {
+                  if ((ret = alpaka::atomicCas(acc, &tmpPF0[vstat].pfrh_topoId(), vstat, ostat)) != vstat) {
+                    vstat = ret;
+                  }
+                }
+              }
+          }
+        }
+      }
+    }
   }
 
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
@@ -352,6 +402,22 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     /* link all vertices to sink */
 
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+  ALPAKA_FN_ACC void ECLCC_serialFlatten(const TAcc& acc,
+                                const int nodes,
+                                tmpPF0DeviceCollection::View tmpPF0,
+                                tmpPF1DeviceCollection::View tmpPF1) {
+    for (int v = 0; v < nodes; v ++) {
+      int next, vstat = tmpPF0[v].pfrh_topoId();
+      const int old = vstat;
+      while (vstat > (next = tmpPF0[vstat].pfrh_topoId())) {
+        vstat = next;
+      }
+      if (old != vstat)
+        tmpPF0[v].pfrh_topoId() = vstat;
+    }
+  }
+
+  template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
   ALPAKA_FN_ACC void ECLCC_flatten(const TAcc& acc,
                                 const int nodes,
                                 tmpPF0DeviceCollection::View tmpPF0,
@@ -371,7 +437,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
   //
   // ECL-CC ends
-  //
   
   // Contraction in a single block
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
@@ -474,6 +539,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       clusterView.nRHFracs() = totalSeedFracOffset;
       clusterView.nSeeds() = *nSeeds;
       clusterView.nTopos() = tmpPF0.nTopos();
+      printf("nTopos at contraction == %d\n", tmpPF0.nTopos());
 
       for (int i = 0; i < size; i++) {
           clusterView[i].topoRHCount() = tmpPF0[i].topoRHCount();
@@ -961,7 +1027,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       notDone = true;
       debug = false;
       //debug = true;
-      //debug = (topoId > 1540 && topoId < 1565) ? true : false;
+      //debug = (nSeeds == 62) ? true : false;
       //debug = (nSeeds == 2 && ( (topoSeedList[topoSeedBegin]==11 && topoSeedList[topoSeedBegin+1]==5) || (topoSeedList[topoSeedBegin]==5 && topoSeedList[topoSeedBegin+1]==11) )) ? true : false;
       //debug = (topoId == 432 || topoId == 438 || topoId == 439) ? true : false;
       //debug = (topoId == 1 || topoId == 5 || topoId == 6 || topoId == 8 || topoId == 9 || topoId == 10 || topoId == 12 || topoId == 13) ? true : false;
@@ -1034,6 +1100,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     float seedEnergy = -1.;
     float4 seedInitClusterPos = make_float4(0., 0., 0., 0.);
     if (tid < nSeeds) {
+      if (debug)
+        printf("tid: %d\n", tid);
       seedThreadIdx = dev_getSeedRhIdx(seeds, tid);
       seedNeighbors = make_int4(pfRecHits[seedThreadIdx].neighbours()(0),
                                 pfRecHits[seedThreadIdx].neighbours()(1),
@@ -1256,6 +1324,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       iter = 0;
       notDone = true;
       debug = false;
+      //debug = (nSeeds == 62) ? true : false;
 
       int i = tmpPF0[topoSeedBegin].topoSeedList();
       if (pfRecHits[i].layer() == PFLayer::HCAL_BARREL1)
@@ -1578,6 +1647,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         }
   };
 
+  class eclccSerialInitKernel {
+      public:
+        template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+        ALPAKA_FN_ACC void operator()(const TAcc& acc,
+                                      const reco::PFRecHitHostCollection::ConstView pfRecHits,
+                                      tmpPF0DeviceCollection::View tmpPF0,
+                                      tmpPF1DeviceCollection::View tmpPF1
+                                      ) const {
+            const int nRH = pfRecHits.size();
+            ECLCC_serialInit(acc, nRH, tmpPF0, tmpPF1);
+
+        }
+  };
+
   class eclccInitKernel {
       public:
         template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
@@ -1588,6 +1671,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                       ) const {
             const int nRH = pfRecHits.size();
             ECLCC_init(acc, nRH, tmpPF0, tmpPF1);
+
+        }
+  };
+
+  class eclccSerialCompute1Kernel {
+      public:
+        template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+        ALPAKA_FN_ACC void operator()(const TAcc& acc,
+                                      const reco::PFRecHitHostCollection::ConstView pfRecHits,
+                                      tmpPF0DeviceCollection::View tmpPF0,
+                                      tmpPF1DeviceCollection::View tmpPF1
+                                      ) const {
+            const int nRH = pfRecHits.size();
+            ECLCC_serialCompute1(acc, nRH, tmpPF0, tmpPF1);
 
         }
   };
@@ -1634,6 +1731,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         }
   };
 
+
+  class eclccSerialFlattenKernel {
+      public:
+        template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+        ALPAKA_FN_ACC void operator()(const TAcc& acc,
+                                      const reco::PFRecHitHostCollection::ConstView pfRecHits,
+                                      tmpPF0DeviceCollection::View tmpPF0,
+                                      tmpPF1DeviceCollection::View tmpPF1
+                                      ) const {
+            const int nRH = pfRecHits.size();
+            ECLCC_serialFlatten(acc, nRH, tmpPF0, tmpPF1);
+
+        }
+  };
 
   class eclccFlattenKernel {
       public:
@@ -1735,31 +1846,35 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             }
         }();
       */
-      #if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
+      //#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
         const int threadsPerBlock = 256;
         const int blocks = (nRH + threadsPerBlock - 1) / threadsPerBlock;
+        const int threadsPerBlockForClustering = 512;
 
-      #else 
-        const int threadsPerBlock = 32;
-        const int threadsPerBlockForClustering = 32;
-        const int blocks = nRH;
-      #endif
+      //#else 
+        //const int threadsPerBlock = 32;
+        //const int threadsPerBlockForClustering = 32;
+        //const int blocks = nRH;
+      //#endif
 
       // NEED CONDITIONAL WORKDIV FOR SERIAL
       alpaka::memset(queue, nSeeds, 0x00); // Reset nSeeds
 
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), seedingTopoThreshKernel{}, tmp0.view(), params.view(), pfRecHits.view(), pfClusters.view(), pfrhFractions.view(), nSeeds.data());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), prepareTopoInputsKernel{}, pfRecHits.view(), tmp0.view(), tmp1.view(), nSeeds.data());
+      //alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(1, 1), eclccSerialInitKernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), eclccInitKernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
+      //alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(1, 1), eclccSerialCompute1Kernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), eclccCompute1Kernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), eclccCompute2Kernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), eclccCompute3Kernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
+      //alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(1, 1), eclccSerialFlattenKernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(blocks, threadsPerBlock), eclccFlattenKernel{}, pfRecHits.view(), tmp0.view(), tmp1.view());
       alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(1, 512), topoClusterContractionKernel{}, pfRecHits.view(), tmp0.view(), pfClusters.view(), nSeeds.data());
       //int nTopos = tmp0.view().nTopos();
       alpaka::exec<Acc2D>(queue, make_workdiv<Acc2D>({(nRH + 31)/32, (nRH + 31)/32}, {32, 32}), fillRhfIndexKernel{}, pfRecHits.view(), tmp0.view(), pfrhFractions.view());
       //alpaka::trait::BlockSharedMemDynSizeBytes(fastClusterKernel{}, nRH, threadsPerBlockForClustering);
-      alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(nRH, threadsPerBlockForClustering), fastClusterKernel{}, pfRecHits.view(), params.view(), tmp0.view(), pfClusters.view(), pfrhFractions.view());
+      alpaka::exec<Acc1D>(queue, make_workdiv<Acc1D>(nRH, 512), fastClusterKernel{}, pfRecHits.view(), params.view(), tmp0.view(), pfClusters.view(), pfrhFractions.view());
   }
 
 
