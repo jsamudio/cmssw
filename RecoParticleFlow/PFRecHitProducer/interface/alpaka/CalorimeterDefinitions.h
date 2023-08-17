@@ -8,9 +8,11 @@
 #include "DataFormats/HcalDetId/interface/HcalSubdetector.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 
+#include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsRecord.h"
+#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitParamsDeviceCollection.h"
+#include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitTopologyRecord.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitTopologyHostCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitTopologyDeviceCollection.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitTopologyRecord.h"
 #include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
 
@@ -25,6 +27,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // structs to be used as template arguments
     struct HCAL {
       using CaloRecHitType = HBHERecHit;
+      using ParameterType = PFRecHitHCALParamsDeviceCollection;
+      using ParameterRecordType = PFRecHitHCALParamsRecord;
       using TopologyTypeHost = reco::PFRecHitHCALTopologyHostCollection;
       using TopologyTypeDevice = PFRecHitHCALTopologyDeviceCollection;
       using TopologyRecordType = PFRecHitHCALTopologyRecord;
@@ -111,6 +115,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     struct ECAL {
       using CaloRecHitType = EcalRecHit;
+      using ParameterType = PFRecHitECALParamsDeviceCollection;
+      using ParameterRecordType = PFRecHitECALParamsRecord;
       using TopologyTypeHost = reco::PFRecHitECALTopologyHostCollection;
       using TopologyTypeDevice = PFRecHitECALTopologyDeviceCollection;
       using TopologyRecordType = PFRecHitECALTopologyRecord;
