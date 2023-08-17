@@ -1,6 +1,9 @@
 <lcgdict>
 <selection>
 
+  <class name="reco::CaloRecHitSoA"/>
+  <class name="reco::CaloRecHitSoA::View"/>
+
   <!-- from classes_def_2.xml -->
   <class name="reco::PFCluster" ClassVersion="17">
    <version ClassVersion="17" checksum="3021111509"/>

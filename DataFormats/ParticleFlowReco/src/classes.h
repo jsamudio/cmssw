@@ -54,3 +54,5 @@
 #include "DataFormats/ParticleFlowReco/interface/HGCalMultiCluster.h"
 
 #include <map>
+
+#include "DataFormats/ParticleFlowReco/interface/CaloRecHitSoA.h"

@@ -1,0 +1,15 @@
+<lcgdict>
+  <class name="reco::CaloRecHitHostCollection"/>
+  <read
+    sourceClass="reco::CaloRecHitHostCollection"
+    targetClass="reco::CaloRecHitHostCollection"
+    version="[1-]"
+    source="reco::CaloRecHitSoA layout_;"
+    target="buffer_,layout_,view_"
+    embed="false">
+  <![CDATA[
+    reco::CaloRecHitHostCollection::ROOTReadStreamer(newObj, onfile.layout_);
+  ]]>
+  </read>
+  <class name="edm::Wrapper<reco::CaloRecHitHostCollection>" splitLevel="0"/>
+</lcgdict>
