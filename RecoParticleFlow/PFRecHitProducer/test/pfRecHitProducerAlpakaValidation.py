@@ -146,6 +146,7 @@ if(args.debug and args.threads != 1):
 
 assert args.cal.lower() in ["hcal", "ecal", "h", "e"], "Invalid calorimeter type"
 hcal = args.cal.lower() in ["hcal", "h"]
+CAL = "HCAL" if hcal else "ECAL"
 
 alpaka_backends = {
     "cpu": "alpaka_serial_sync::%s",  # Execute on CPU
@@ -249,6 +250,14 @@ else:  # ecal
         src = cms.InputTag("hltEcalRecHit","EcalRecHitsEE"),
         synchronise = cms.untracked.bool(args.synchronise)
     )
+
+# Construct topology information
+process.pfRecHitTopologyRecord = cms.ESSource('EmptyESSource',
+    recordName = cms.string(f'PFRecHit{CAL}TopologyRecord'),
+    iovIsRunNotTime = cms.bool(True),
+    firstValid = cms.vuint32(1)
+)
+process.hltParticleFlowRecHitTopologyESProducer = cms.ESProducer(alpaka_backend_str % f"PFRecHit{CAL}TopologyESProducer")
 
 
 # Additional customization

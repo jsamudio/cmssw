@@ -7,7 +7,7 @@
 <use name="HeterogeneousCore/AlpakaCore"/>
 <use name="HeterogeneousCore/AlpakaInterface"/>
 <use name="CondFormats/DataRecord"/>
-<!--<flags ALPAKA_BACKENDS="1"/>-->
+<flags ALPAKA_BACKENDS="1"/>
 <export>
   <lib name="1"/>
 </export>
