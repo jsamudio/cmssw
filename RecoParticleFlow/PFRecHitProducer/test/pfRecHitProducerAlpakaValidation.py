@@ -271,7 +271,33 @@ if hcal:
 else:  # ecal
     process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitECALParamsESProducer")
 
-
+# Construct PFRecHitSoA
+if hcal:
+    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpakaHCAL",
+        producers = cms.VPSet(
+            cms.PSet(
+                src = cms.InputTag("hltParticleFlowRecHitToSoA"),
+                params = cms.ESInputTag("hltParticleFlowRecHitParamsESProducer:"),
+            )
+        ),
+        topology = cms.ESInputTag("hltParticleFlowRecHitTopologyESProducer:"),
+        synchronise = cms.bool(args.synchronise)
+    )
+else:  # ecal
+    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpakaECAL",
+        producers = cms.VPSet(
+            cms.PSet(
+                src = cms.InputTag("hltParticleFlowRecHitEBToSoA"),
+                params = cms.ESInputTag("hltParticleFlowRecHitParamsESProducer:")
+            ),
+            cms.PSet(
+                src = cms.InputTag("hltParticleFlowRecHitEEToSoA"),
+                params = cms.ESInputTag("hltParticleFlowRecHitParamsESProducer:")
+            )
+        ),
+        topology = cms.ESInputTag("hltParticleFlowRecHitTopologyESProducer:"),
+        synchronise = cms.bool(args.synchronise)
+    )
 
 
 
@@ -287,6 +313,7 @@ if hcal:
 else:  # ecal
     path += process.hltParticleFlowRecHitEBToSoA   # Convert legacy calorimeter hits to SoA (ECAL barrel)
     path += process.hltParticleFlowRecHitEEToSoA   # Convert legacy calorimeter hits to SoA (ECAL endcap)
+path += process.hltParticleFlowPFRecHitAlpaka      # Construct PFRecHits SoA
 
 process.PFRecHitAlpakaValidationTask = cms.Path(path)
 process.schedule = cms.Schedule(process.PFRecHitAlpakaValidationTask)

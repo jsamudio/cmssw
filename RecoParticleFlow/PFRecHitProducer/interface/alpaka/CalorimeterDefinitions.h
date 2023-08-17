@@ -125,6 +125,30 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       static constexpr int SubdetectorBarrelId = EcalSubdetector::EcalBarrel;
       static constexpr int SubdetectorEndcapId = EcalSubdetector::EcalEndcap;
 
+      // https://cmssdt.cern.ch/lxr/source/DataFormats/EcalRecHit/interface/EcalRecHit.h#0021
+      enum Flags {
+        kGood = 0,   // channel ok, the energy and time measurement are reliable
+        kPoorReco,   // the energy is available from the UncalibRecHit, but approximate (bad shape, large chi2)
+        kOutOfTime,  // the energy is available from the UncalibRecHit (sync reco), but the event is out of time
+        kFaultyHardware,  // The energy is available from the UncalibRecHit, channel is faulty at some hardware level (e.g. noisy)
+        kNoisy,      // the channel is very noisy
+        kPoorCalib,  // the energy is available from the UncalibRecHit, but the calibration of the channel is poor
+        kSaturated,  // saturated channel (recovery not tried)
+        kLeadingEdgeRecovered,  // saturated channel: energy estimated from the leading edge before saturation
+        kNeighboursRecovered,   // saturated/isolated dead: energy estimated from neighbours
+        kTowerRecovered,        // channel in TT with no data link, info retrieved from Trigger Primitive
+        kDead,                  // channel is dead and any recovery fails
+        kKilled,                // MC only flag: the channel is killed in the real detector
+        kTPSaturated,           // the channel is in a region with saturated TP
+        kL1SpikeFlag,           // the channel is in a region with TP with sFGVB = 0
+        kWeird,                 // the signal is believed to originate from an anomalous deposit (spike)
+        kDiWeird,               // the signal is anomalous, and neighbors another anomalous signal
+        kHasSwitchToGain6,      // at least one data frame is in G6
+        kHasSwitchToGain1,      // at least one data frame is in G1
+                                //
+        kUnknown                // to ease the interface with functions returning flags.
+      };
+
       // https://cmssdt.cern.ch/lxr/source/DataFormats/EcalDetId/interface/EBDetId.h
       struct BARREL {
         static constexpr int MAX_IETA = 85;
