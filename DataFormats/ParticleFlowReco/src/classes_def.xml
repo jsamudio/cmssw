@@ -3,6 +3,8 @@
 
   <class name="reco::CaloRecHitSoA"/>
   <class name="reco::CaloRecHitSoA::View"/>
+  <class name="reco::PFRecHitSoA"/>
+  <class name="reco::PFRecHitSoA::View"/>
 
   <!-- from classes_def_2.xml -->
   <class name="reco::PFCluster" ClassVersion="17">

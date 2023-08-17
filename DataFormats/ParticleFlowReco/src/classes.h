@@ -56,3 +56,4 @@
 #include <map>
 
 #include "DataFormats/ParticleFlowReco/interface/CaloRecHitSoA.h"
+#include "DataFormats/ParticleFlowReco/interface/PFRecHitSoA.h"
