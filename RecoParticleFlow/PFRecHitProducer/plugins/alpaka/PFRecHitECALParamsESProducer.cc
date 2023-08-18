@@ -15,7 +15,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     PFRecHitECALParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig) {
       auto cc = setWhatProduced(this);
-      thresholdsToken = cc.consumes();
+      thresholdsToken_ = cc.consumes();
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
@@ -25,7 +25,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     std::unique_ptr<reco::PFRecHitECALParamsHostCollection> produce(const PFRecHitECALParamsRecord& iRecord) {
-      const auto& thresholds = iRecord.get(thresholdsToken);
+      const auto& thresholds = iRecord.get(thresholdsToken_);
       auto product = std::make_unique<reco::PFRecHitECALParamsHostCollection>(ECAL::SIZE, cms::alpakatools::host());
       for (uint32_t denseId = 0; denseId < ECAL::BARREL::SIZE; denseId++)
         product->view().energyThresholds()[denseId] = thresholds.barrel(denseId);
@@ -35,7 +35,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
   private:
-    edm::ESGetToken<EcalPFRecHitThresholds, EcalPFRecHitThresholdsRcd> thresholdsToken;
+    edm::ESGetToken<EcalPFRecHitThresholds, EcalPFRecHitThresholdsRcd> thresholdsToken_;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

@@ -17,59 +17,60 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class PFRecHitProducerAlpaka : public stream::EDProducer<> {
   public:
     PFRecHitProducerAlpaka(edm::ParameterSet const& config)
-        : topologyToken(esConsumes(config.getParameter<edm::ESInputTag>("topology"))),
-          pfRecHitsToken(produces()),
-          synchronise(config.getParameter<bool>("synchronise")) {
+        : topologyToken_(esConsumes(config.getParameter<edm::ESInputTag>("topology"))),
+          pfRecHitsToken_(produces()),
+          synchronise_(config.getParameter<bool>("synchronise")) {
       const std::vector<edm::ParameterSet> producers = config.getParameter<std::vector<edm::ParameterSet>>("producers");
-      recHitsToken.reserve(producers.size());
+      recHitsToken_.reserve(producers.size());
       for (const edm::ParameterSet& producer : producers) {
-        recHitsToken.emplace_back(consumes(producer.getParameter<edm::InputTag>("src")),
-                                  esConsumes(producer.getParameter<edm::ESInputTag>("params")));
+        recHitsToken_.emplace_back(consumes(producer.getParameter<edm::InputTag>("src")),
+                                   esConsumes(producer.getParameter<edm::ESInputTag>("params")));
       }
     }
 
     void produce(device::Event& event, const device::EventSetup& setup) override {
-      const typename CAL::TopologyTypeDevice& topology = setup.getData(topologyToken);
+      const typename CAL::TopologyTypeDevice& topology = setup.getData(topologyToken_);
 
       int num_recHits = 0;
-      for (const auto& token : recHitsToken)
+      for (const auto& token : recHitsToken_)
         num_recHits += event.get(token.first)->metadata().size();
 
       PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
 
-      if (!kernel)
-        kernel.emplace(event.queue());
+      if (!kernel_)
+        kernel_.emplace(event.queue());
 
-      kernel->prepare_event(event.queue(), num_recHits);
-      for (const auto& token : recHitsToken)
-        kernel->process_rec_hits(event.queue(), event.get(token.first), setup.getData(token.second), pfRecHits);
-      kernel->associate_topology_info(event.queue(), topology, pfRecHits);
+      kernel_->prepareEvent(event.queue(), num_recHits);
+      for (const auto& token : recHitsToken_)
+        kernel_->processRecHits(event.queue(), event.get(token.first), setup.getData(token.second), pfRecHits);
+      kernel_->associateTopologyInfo(event.queue(), topology, pfRecHits);
 
-      if (synchronise)
+      if (synchronise_)
         alpaka::wait(event.queue());
 
-      event.emplace(pfRecHitsToken, std::move(pfRecHits));
+      event.emplace(pfRecHitsToken_, std::move(pfRecHits));
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
       edm::ParameterSetDescription producers;
-      producers.add<edm::InputTag>("src");
-      producers.add<edm::ESInputTag>("params");
-      desc.addVPSet("producers", producers);
-      desc.add<edm::ESInputTag>("topology");
-      desc.add<bool>("synchronise", false);
+      producers.add<edm::InputTag>("src")->setComment("Input CaloRecHitSoA");
+      producers.add<edm::ESInputTag>("params")->setComment("Quality cut parameters");
+      desc.addVPSet("producers", producers)->setComment("List of inputs and quality cuts");
+      desc.add<edm::ESInputTag>("topology")->setComment("Topology information");
+      desc.add<bool>("synchronise", false)
+          ->setComment("Add synchronisation point after execution (for benchmarking asynchronous execution)");
       descriptions.addWithDefaultLabel(desc);
     }
 
   private:
-    const device::ESGetToken<typename CAL::TopologyTypeDevice, typename CAL::TopologyRecordType> topologyToken;
+    const device::ESGetToken<typename CAL::TopologyTypeDevice, typename CAL::TopologyRecordType> topologyToken_;
     std::vector<std::pair<device::EDGetToken<CaloRecHitDeviceCollection>,
                           device::ESGetToken<typename CAL::ParameterType, typename CAL::ParameterRecordType>>>
-        recHitsToken;
-    const device::EDPutToken<PFRecHitDeviceCollection> pfRecHitsToken;
-    const bool synchronise;
-    std::optional<PFRecHitProducerKernel<CAL>> kernel = {};
+        recHitsToken_;
+    const device::EDPutToken<PFRecHitDeviceCollection> pfRecHitsToken_;
+    const bool synchronise_;
+    std::optional<PFRecHitProducerKernel<CAL>> kernel_ = {};
   };
 
   using PFRecHitProducerAlpakaHCAL = PFRecHitProducerAlpaka<HCAL>;

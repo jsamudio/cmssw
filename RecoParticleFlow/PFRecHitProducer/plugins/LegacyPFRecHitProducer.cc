@@ -19,9 +19,9 @@
 class LegacyPFRecHitProducer : public edm::stream::EDProducer<> {
 public:
   LegacyPFRecHitProducer(edm::ParameterSet const& config)
-      : alpakaPfRecHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
-        legacyPfRecHitsToken(produces()),
-        geomToken(esConsumes<edm::Transition::BeginRun>()) {}
+      : alpakaPfRecHitsToken_(consumes(config.getParameter<edm::InputTag>("src"))),
+        legacyPfRecHitsToken_(produces()),
+        geomToken_(esConsumes<edm::Transition::BeginRun>()) {}
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
     edm::ParameterSetDescription desc;
@@ -33,25 +33,25 @@ private:
   void beginRun(edm::Run const&, edm::EventSetup const&) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
 
-  const edm::EDGetTokenT<reco::PFRecHitHostCollection> alpakaPfRecHitsToken;
-  const edm::EDPutTokenT<reco::PFRecHitCollection> legacyPfRecHitsToken;
+  const edm::EDGetTokenT<reco::PFRecHitHostCollection> alpakaPfRecHitsToken_;
+  const edm::EDPutTokenT<reco::PFRecHitCollection> legacyPfRecHitsToken_;
 
-  edm::ESGetToken<CaloGeometry, CaloGeometryRecord> geomToken;
-  edm::ESHandle<CaloGeometry> geoHandle;
-  std::unordered_map<PFLayer::Layer, const CaloSubdetectorGeometry*> caloGeo;
+  edm::ESGetToken<CaloGeometry, CaloGeometryRecord> geomToken_;
+  edm::ESHandle<CaloGeometry> geoHandle_;
+  std::unordered_map<PFLayer::Layer, const CaloSubdetectorGeometry*> caloGeo_;
 };
 
 void LegacyPFRecHitProducer::beginRun(edm::Run const&, const edm::EventSetup& setup) {
-  geoHandle = setup.getHandle(geomToken);
-  caloGeo[PFLayer::HCAL_BARREL1] = geoHandle->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalBarrel);
-  caloGeo[PFLayer::HCAL_ENDCAP] = geoHandle->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalEndcap);
-  caloGeo[PFLayer::ECAL_BARREL] = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalBarrel);
-  caloGeo[PFLayer::ECAL_ENDCAP] = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalEndcap);
+  geoHandle_ = setup.getHandle(geomToken_);
+  caloGeo_[PFLayer::HCAL_BARREL1] = geoHandle_->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalBarrel);
+  caloGeo_[PFLayer::HCAL_ENDCAP] = geoHandle_->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalEndcap);
+  caloGeo_[PFLayer::ECAL_BARREL] = geoHandle_->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalBarrel);
+  caloGeo_[PFLayer::ECAL_ENDCAP] = geoHandle_->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalEndcap);
 }
 
 void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
   edm::Handle<reco::PFRecHitHostCollection> pfRecHitsAlpakaSoA;
-  event.getByToken(alpakaPfRecHitsToken, pfRecHitsAlpakaSoA);
+  event.getByToken(alpakaPfRecHitsToken_, pfRecHitsAlpakaSoA);
   const reco::PFRecHitHostCollection::ConstView& alpakaPfRecHits = pfRecHitsAlpakaSoA->const_view();
 
   reco::PFRecHitCollection out;
@@ -59,7 +59,7 @@ void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& s
 
   for (size_t i = 0; i < alpakaPfRecHits.size(); i++) {
     reco::PFRecHit& pfrh =
-        out.emplace_back(caloGeo.at(alpakaPfRecHits[i].layer())->getGeometry(alpakaPfRecHits[i].detId()),
+        out.emplace_back(caloGeo_.at(alpakaPfRecHits[i].layer())->getGeometry(alpakaPfRecHits[i].detId()),
                          alpakaPfRecHits[i].detId(),
                          alpakaPfRecHits[i].layer(),
                          alpakaPfRecHits[i].energy());
@@ -74,7 +74,7 @@ void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& s
         pfrh.addNeighbour(eta[k], phi[k], 0, alpakaPfRecHits[i].neighbours()(k));
   }
 
-  event.emplace(legacyPfRecHitsToken, out);
+  event.emplace(legacyPfRecHitsToken_, out);
 }
 
 #include "FWCore/Framework/interface/MakerMacros.h"

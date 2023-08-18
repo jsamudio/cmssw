@@ -13,23 +13,23 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     PFRecHitProducerKernel(Queue& queue);
 
     // Prepare for processing next event
-    void prepare_event(Queue& queue, const uint32_t num_recHits);
+    void prepareEvent(Queue& queue, const uint32_t num_recHits);
 
     // Run kernel: apply filters to rec hits and construct PF rec hits
-    void process_rec_hits(Queue& queue,
-                          const CaloRecHitDeviceCollection& recHits,
-                          const typename CAL::ParameterType& params,
-                          PFRecHitDeviceCollection& pfRecHits);
+    void processRecHits(Queue& queue,
+                        const CaloRecHitDeviceCollection& recHits,
+                        const typename CAL::ParameterType& params,
+                        PFRecHitDeviceCollection& pfRecHits);
 
     // Run kernel: Associate topology information (position, neighbours)
-    void associate_topology_info(Queue& queue,
-                                 const typename CAL::TopologyTypeDevice& topology,
-                                 PFRecHitDeviceCollection& pfRecHits);
+    void associateTopologyInfo(Queue& queue,
+                               const typename CAL::TopologyTypeDevice& topology,
+                               PFRecHitDeviceCollection& pfRecHits);
 
   private:
-    cms::alpakatools::device_buffer<Device, uint32_t[]> denseId2pfRecHit;
-    cms::alpakatools::device_buffer<Device, uint32_t> num_pfRecHits;
-    WorkDiv<Dim1D> work_div;
+    cms::alpakatools::device_buffer<Device, uint32_t[]> denseId2pfRecHit_;
+    cms::alpakatools::device_buffer<Device, uint32_t> num_pfRecHits_;
+    WorkDiv<Dim1D> work_div_;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

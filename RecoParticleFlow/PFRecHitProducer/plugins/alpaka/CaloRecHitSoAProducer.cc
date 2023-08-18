@@ -19,12 +19,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class CaloRecHitSoAProducer : public global::EDProducer<> {
   public:
     CaloRecHitSoAProducer(edm::ParameterSet const& config)
-        : recHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
-          deviceToken(produces()),
-          synchronise(config.getUntrackedParameter<bool>("synchronise")) {}
+        : recHitsToken_(consumes(config.getParameter<edm::InputTag>("src"))),
+          deviceToken_(produces()),
+          synchronise_(config.getUntrackedParameter<bool>("synchronise")) {}
 
     void produce(edm::StreamID sid, device::Event& event, device::EventSetup const&) const override {
-      const edm::SortedCollection<typename CAL::CaloRecHitType>& recHits = event.get(recHitsToken);
+      const edm::SortedCollection<typename CAL::CaloRecHitType>& recHits = event.get(recHitsToken_);
       const int32_t num_recHits = recHits.size();
       if (DEBUG)
         printf("Found %d recHits\n", num_recHits);
@@ -33,7 +33,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       auto& view = hostProduct.view();
 
       for (int i = 0; i < num_recHits; i++) {
-        ConvertRecHit(view[i], recHits[i]);
+        convertRecHit(view[i], recHits[i]);
 
         if (DEBUG && i < 10)
           printf("recHit %4d %u %f %f %08x\n", i, view.detId(i), view.energy(i), view.time(i), view.flags(i));
@@ -41,31 +41,30 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       CaloRecHitDeviceCollection deviceProduct{num_recHits, event.queue()};
       alpaka::memcpy(event.queue(), deviceProduct.buffer(), hostProduct.buffer());
-      if (synchronise)
+      if (synchronise_)
         alpaka::wait(event.queue());
-      event.emplace(deviceToken, std::move(deviceProduct));
+      event.emplace(deviceToken_, std::move(deviceProduct));
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      desc.add<edm::InputTag>("src")
-        ->setComment("Input calorimeter rec hit collection");
+      desc.add<edm::InputTag>("src")->setComment("Input calorimeter rec hit collection");
       desc.addUntracked<bool>("synchronise", false)
-        ->setComment("Add synchronisation point after execution (for benchmarking asynchronous execution)");
+          ->setComment("Add synchronisation point after execution (for benchmarking asynchronous execution)");
       descriptions.addWithDefaultLabel(desc);
     }
 
   private:
-    const edm::EDGetTokenT<edm::SortedCollection<typename CAL::CaloRecHitType>> recHitsToken;
-    const device::EDPutToken<CaloRecHitDeviceCollection> deviceToken;
-    const bool synchronise;
+    const edm::EDGetTokenT<edm::SortedCollection<typename CAL::CaloRecHitType>> recHitsToken_;
+    const device::EDPutToken<CaloRecHitDeviceCollection> deviceToken_;
+    const bool synchronise_;
 
-    static void ConvertRecHit(reco::CaloRecHitHostCollection::View::element to,
+    static void convertRecHit(reco::CaloRecHitHostCollection::View::element to,
                               const typename CAL::CaloRecHitType& from);
   };
 
   template <>
-  void CaloRecHitSoAProducer<HCAL>::ConvertRecHit(reco::CaloRecHitHostCollection::View::element to,
+  void CaloRecHitSoAProducer<HCAL>::convertRecHit(reco::CaloRecHitHostCollection::View::element to,
                                                   const HCAL::CaloRecHitType& from) {
     // Fill SoA from HCAL rec hit
     to.detId() = from.id().rawId();
@@ -75,7 +74,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template <>
-  void CaloRecHitSoAProducer<ECAL>::ConvertRecHit(reco::CaloRecHitHostCollection::View::element to,
+  void CaloRecHitSoAProducer<ECAL>::convertRecHit(reco::CaloRecHitHostCollection::View::element to,
                                                   const ECAL::CaloRecHitType& from) {
     // Fill SoA from ECAL rec hit
     to.detId() = from.id().rawId();

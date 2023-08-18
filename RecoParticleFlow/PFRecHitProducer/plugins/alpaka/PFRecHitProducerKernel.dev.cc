@@ -144,14 +144,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename CAL>
   PFRecHitProducerKernel<CAL>::PFRecHitProducerKernel(Queue& queue)
-      : denseId2pfRecHit(cms::alpakatools::make_device_buffer<uint32_t[]>(queue, CAL::SIZE)),
-        num_pfRecHits(cms::alpakatools::make_device_buffer<uint32_t>(queue)),
-        work_div(cms::alpakatools::make_workdiv<Acc1D>(1, 1)) {}
+      : denseId2pfRecHit_(cms::alpakatools::make_device_buffer<uint32_t[]>(queue, CAL::SIZE)),
+        num_pfRecHits_(cms::alpakatools::make_device_buffer<uint32_t>(queue)),
+        work_div_(cms::alpakatools::make_workdiv<Acc1D>(1, 1)) {}
 
   template <typename CAL>
-  void PFRecHitProducerKernel<CAL>::prepare_event(Queue& queue, const uint32_t num_recHits) {
-    alpaka::memset(queue, denseId2pfRecHit, 0xff);  // Reset denseId -> pfRecHit index map
-    alpaka::memset(queue, num_pfRecHits, 0x00);     // Reset global pfRecHit counter
+  void PFRecHitProducerKernel<CAL>::prepareEvent(Queue& queue, const uint32_t num_recHits) {
+    alpaka::memset(queue, denseId2pfRecHit_, 0xff);  // Reset denseId -> pfRecHit index map
+    alpaka::memset(queue, num_pfRecHits_, 0x00);     // Reset global pfRecHit counter
 
     // Use only one block on the synchronous CPU backend, because there is no
     // performance gain in using multiple blocks, but there is a significant
@@ -160,35 +160,35 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const uint32_t groups = cms::alpakatools::requires_single_thread_per_block_v<Acc1D>
                                 ? 1
                                 : cms::alpakatools::divide_up_by(num_recHits, items);
-    work_div = cms::alpakatools::make_workdiv<Acc1D>(groups, items);
+    work_div_ = cms::alpakatools::make_workdiv<Acc1D>(groups, items);
   }
 
   template <typename CAL>
-  void PFRecHitProducerKernel<CAL>::process_rec_hits(Queue& queue,
-                                                     const CaloRecHitDeviceCollection& recHits,
-                                                     const typename CAL::ParameterType& params,
-                                                     PFRecHitDeviceCollection& pfRecHits) {
+  void PFRecHitProducerKernel<CAL>::processRecHits(Queue& queue,
+                                                   const CaloRecHitDeviceCollection& recHits,
+                                                   const typename CAL::ParameterType& params,
+                                                   PFRecHitDeviceCollection& pfRecHits) {
     alpaka::exec<Acc1D>(queue,
-                        work_div,
+                        work_div_,
                         PFRecHitProducerKernelImpl1<CAL>{},
                         params.view(),
                         recHits.view(),
                         pfRecHits.view(),
-                        denseId2pfRecHit.data(),
-                        num_pfRecHits.data());
+                        denseId2pfRecHit_.data(),
+                        num_pfRecHits_.data());
   }
 
   template <typename CAL>
-  void PFRecHitProducerKernel<CAL>::associate_topology_info(Queue& queue,
-                                                            const typename CAL::TopologyTypeDevice& topology,
-                                                            PFRecHitDeviceCollection& pfRecHits) {
+  void PFRecHitProducerKernel<CAL>::associateTopologyInfo(Queue& queue,
+                                                          const typename CAL::TopologyTypeDevice& topology,
+                                                          PFRecHitDeviceCollection& pfRecHits) {
     alpaka::exec<Acc1D>(queue,
-                        work_div,
+                        work_div_,
                         PFRecHitProducerKernelImpl2<CAL>{},
                         topology.view(),
                         pfRecHits.view(),
-                        denseId2pfRecHit.data(),
-                        num_pfRecHits.data());
+                        denseId2pfRecHit_.data(),
+                        num_pfRecHits_.data());
   }
 
   // Instantiate templates
