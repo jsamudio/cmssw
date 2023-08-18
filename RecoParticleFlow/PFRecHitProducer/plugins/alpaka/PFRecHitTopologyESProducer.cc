@@ -75,19 +75,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         }
       }
 
+      // See comment regarding HCAL GetNeighbourDetId below
       // Remove neighbours that are not backward compatible (only for HCAL)
-      if (std::is_same_v<CAL, HCAL>)
-        for (const auto subdet : calEnums)
-          for (auto const detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
-            const uint32_t denseId = CAL::detId2denseId(detId);
-            for (uint32_t n = 0; n < 8; n++) {
-              const reco::PFRecHitsTopologyNeighbours& neighboursOfNeighbour =
-                  view.neighbours(view.neighbours(denseId)[n]);
-              if (std::find(neighboursOfNeighbour.begin(), neighboursOfNeighbour.end(), denseId) ==
-                  neighboursOfNeighbour.end())
-                view.neighbours(denseId)[n] = 0xffffffff;
-            }
-          }
+      //if (std::is_same_v<CAL, HCAL>)
+      //  for (const auto subdet : calEnums)
+      //    for (auto const detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
+      //      const uint32_t denseId = CAL::detId2denseId(detId);
+      //      for (uint32_t n = 0; n < 8; n++) {
+      //        const reco::PFRecHitsTopologyNeighbours& neighboursOfNeighbour =
+      //            view.neighbours(view.neighbours(denseId)[n]);
+      //        if (std::find(neighboursOfNeighbour.begin(), neighboursOfNeighbour.end(), denseId) ==
+      //            neighboursOfNeighbour.end())
+      //          view.neighbours(denseId)[n] = 0xffffffff;
+      //      }
+      //    }
 
       //// Print results (for debugging)
       //for(const auto subdet : calEnums)
@@ -111,8 +112,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     uint32_t GetNeighbourDetId(const uint32_t detId, const uint32_t direction, const CaloSubdetectorTopology& topo);
   };
 
-  template <>
-  uint32_t PFRecHitTopologyESProducer<ECAL>::GetNeighbourDetId(const uint32_t detId,
+  template <typename CAL>
+  uint32_t PFRecHitTopologyESProducer<CAL>::GetNeighbourDetId(const uint32_t detId,
                                                                const uint32_t direction,
                                                                const CaloSubdetectorTopology& topo) {
     // desired order for PF: NORTH, SOUTH, EAST, WEST, NORTHEAST, SOUTHWEST, SOUTHEAST, NORTHWEST
@@ -155,6 +156,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     return 0;
   }
 
+  /*
+  // A pull-request the redefines the HCAL neighbour association is currently in preparation.
+  // When it is accepted, this specialisation should be enabled to adopt the new definition.
+  // The backwards compatibility check in the produce function should also be enabled.
   template <>
   uint32_t PFRecHitTopologyESProducer<HCAL>::GetNeighbourDetId(const uint32_t detId,
                                                                const uint32_t direction,
@@ -198,6 +203,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
     return 0;
   }
+  */
 
   using PFRecHitECALTopologyESProducer = PFRecHitTopologyESProducer<ECAL>;
   using PFRecHitHCALTopologyESProducer = PFRecHitTopologyESProducer<HCAL>;
