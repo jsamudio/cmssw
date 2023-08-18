@@ -1,4 +1,3 @@
-<!--
 <library name="RecoParticleFlowPFRecHitProducersPlugins" file="*.cc">
   <use name="FWCore/Framework"/>
   <use name="FWCore/ParameterSet"/>
@@ -13,7 +12,6 @@
   <use name="Geometry/Records"/>
   <flags EDM_PLUGIN="1"/>
 </library>
--->
 
 <!-- alpaka-based portable plugins -->
 <library name="RecoParticleFlowPFRecHitProducersPluginsPortable" file="alpaka/*.cc">

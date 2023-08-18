@@ -299,6 +299,10 @@ else:  # ecal
         synchronise = cms.bool(args.synchronise)
     )
 
+# Convert Alpaka PFRecHits to legacy format (for validation)
+process.hltParticleFlowAlpakaToLegacyPFRecHits = cms.EDProducer("LegacyPFRecHitProducer",
+    src = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
+)
 
 
 # Additional customization
@@ -314,6 +318,7 @@ else:  # ecal
     path += process.hltParticleFlowRecHitEBToSoA   # Convert legacy calorimeter hits to SoA (ECAL barrel)
     path += process.hltParticleFlowRecHitEEToSoA   # Convert legacy calorimeter hits to SoA (ECAL endcap)
 path += process.hltParticleFlowPFRecHitAlpaka      # Construct PFRecHits SoA
+path += process.hltParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits SoA to legacy format
 
 process.PFRecHitAlpakaValidationTask = cms.Path(path)
 process.schedule = cms.Schedule(process.PFRecHitAlpakaValidationTask)
