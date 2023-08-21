@@ -10,7 +10,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class TestAlgo {
   public:
     void printPFRecHitHBHEESData(Queue& queue,
-      PFRecHitHBHEParamsAlpakaESDataDevice const& esParams, PFRecHitHBHETopologyAlpakaESDataDevice const& esTopo) const;
+                                 PFRecHitHBHEParamsAlpakaESDataDevice const& esParams,
+                                 PFRecHitHBHETopologyAlpakaESDataDevice const& esTopo) const;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

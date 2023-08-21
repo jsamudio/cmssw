@@ -15,14 +15,12 @@
 #include "DataFormats/ParticleFlowReco/interface/PFRecHit.h"
 #include "DataFormats/ParticleFlowReco_Alpaka/interface/PFRecHitHostCollection.h"
 
-
 class LegacyPFRecHitProducer : public edm::stream::EDProducer<> {
 public:
-  LegacyPFRecHitProducer(edm::ParameterSet const& config) :
-    alpakaPfRecHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
-    legacyPfRecHitsToken(produces()),
-    geomToken(esConsumes<edm::Transition::BeginRun>())
-  {}
+  LegacyPFRecHitProducer(edm::ParameterSet const& config)
+      : alpakaPfRecHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
+        legacyPfRecHitsToken(produces()),
+        geomToken(esConsumes<edm::Transition::BeginRun>()) {}
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
     edm::ParameterSetDescription desc;
@@ -56,20 +54,20 @@ void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& s
   reco::PFRecHitCollection out;
   out.reserve(alpakaPfRecHits.size());
 
-  for(size_t i = 0; i < alpakaPfRecHits.size(); i++) {
-    reco::PFRecHit& pfrh = out.emplace_back(
-      hcalGeo.at(alpakaPfRecHits[i].layer())->getGeometry(alpakaPfRecHits[i].detId()),
-      alpakaPfRecHits[i].detId(),
-      alpakaPfRecHits[i].layer(),
-      alpakaPfRecHits[i].energy());
+  for (size_t i = 0; i < alpakaPfRecHits.size(); i++) {
+    reco::PFRecHit& pfrh =
+        out.emplace_back(hcalGeo.at(alpakaPfRecHits[i].layer())->getGeometry(alpakaPfRecHits[i].detId()),
+                         alpakaPfRecHits[i].detId(),
+                         alpakaPfRecHits[i].layer(),
+                         alpakaPfRecHits[i].energy());
     pfrh.setTime(alpakaPfRecHits[i].time());
     pfrh.setDepth(alpakaPfRecHits[i].depth());
 
     // order in Alpaka:   N, S, E, W,NE,SW,SE,NW
-    const short eta[8] = {0, 0, 1,-1, 1,-1, 1,-1};
-    const short phi[8] = {1,-1, 0, 0, 1,-1,-1, 1};
-    for(size_t k = 0; k < 8; k++)
-      if(alpakaPfRecHits[i].neighbours()(k) != -1)
+    const short eta[8] = {0, 0, 1, -1, 1, -1, 1, -1};
+    const short phi[8] = {1, -1, 0, 0, 1, -1, -1, 1};
+    for (size_t k = 0; k < 8; k++)
+      if (alpakaPfRecHits[i].neighbours()(k) != -1)
         pfrh.addNeighbour(eta[k], phi[k], 0, alpakaPfRecHits[i].neighbours()(k));
   }
 

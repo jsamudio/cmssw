@@ -12,8 +12,7 @@
 
 class TestEmptyAnalyzer : public edm::global::EDAnalyzer<> {
 public:
-  TestEmptyAnalyzer(edm::ParameterSet const& config)
-      : token_{consumes(config.getParameter<edm::InputTag>("source"))} {}
+  TestEmptyAnalyzer(edm::ParameterSet const& config) : token_{consumes(config.getParameter<edm::InputTag>("source"))} {}
 
   void analyze(edm::StreamID sid, edm::Event const& event, edm::EventSetup const&) const override {
     portabletest::TestHostCollection const& product = event.get(token_);

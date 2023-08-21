@@ -21,6 +21,6 @@ namespace reco {
 
   using PFRecHitHBHETopologyAlpakaESDataSoA = PFRecHitHBHETopologyAlpakaESDataSoALayout<>;
 
-}
+}  // namespace reco
 
 #endif

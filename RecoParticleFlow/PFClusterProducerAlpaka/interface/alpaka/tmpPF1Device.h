@@ -9,7 +9,7 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
-    using tmpPF1DeviceCollection = PortableCollection<reco::tmpPFDeviceSoA2>;
+  using tmpPF1DeviceCollection = PortableCollection<reco::tmpPFDeviceSoA2>;
 
 }
 

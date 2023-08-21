@@ -8,7 +8,6 @@ namespace reco2 {
 
   using PFClusterHostCollection2 = PortableHostCollection<PFClusterSoA2>;
 
-} // namespace reco
+}  // namespace reco2
 
 #endif
-

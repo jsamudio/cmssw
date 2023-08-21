@@ -64,7 +64,6 @@ private:
 
   //edm::EDPutTokenT<cms::cuda::Product<reco::PFClusterDeviceCollection>> cluster_deviceToken_;
 
-
   int nRH_ = 0;
   // int nClustersMax_ = 0;
   // int nRHFracsMax = 0;
@@ -167,7 +166,7 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
 
   auto const& pfClusParamsProduct = setup.getData(pfClusParamsToken_).getProduct(cudaStream);
 
-  multiCollGPU = reco::PFClusterDeviceMultiCollection({{nRH_, nRH_*120}}, cudaStream);
+  multiCollGPU = reco::PFClusterDeviceMultiCollection({{nRH_, nRH_ * 120}}, cudaStream);
 
   // Calling cuda kernels
   PFClusterCudaHCAL::PFRechitToPFCluster_HCAL_entryPoint(
@@ -179,11 +178,10 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   //
   // --- Data transfers for array
   //
-  
-  multiCollCPU = reco::PFClusterHostMultiCollection({{nRH_, nRH_*120}}, cudaStream);
+
+  multiCollCPU = reco::PFClusterHostMultiCollection({{nRH_, nRH_ * 120}}, cudaStream);
 
   cms::cuda::copyAsync(multiCollCPU.buffer(), multiCollGPU.const_buffer(), multiCollGPU.bufferSize(), ctx.stream());
-  
 }
 
 void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup& setup) {
@@ -204,6 +202,7 @@ void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup
     for (int i = 0; i < multiCollCPU.view<0>().nSeeds(); i++) {
       seedlist1.push_back(multiCollCPU.view<0>()[i].pfc_seedRHIdx());
     }
+    printf("nSeeds: %d\n", multiCollCPU.view<0>().nSeeds());
 
     // Build PFClusters in legacy format
     std::unordered_map<int, int> nTopoSeeds;

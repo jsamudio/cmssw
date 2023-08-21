@@ -7,11 +7,11 @@
 
 namespace reco {
 
-      GENERATE_SOA_LAYOUT(tmpPFDeviceSoA2Layout,
-                                    SOA_COLUMN(int, pfrh_edgeIdx), // needs nRH + 1 allocation
-                                    SOA_COLUMN(int, pfrh_edgeList)) // needs nRH + maxNeighbors allocation
+  GENERATE_SOA_LAYOUT(tmpPFDeviceSoA2Layout,
+                      SOA_COLUMN(int, pfrh_edgeIdx),   // needs nRH + 1 allocation
+                      SOA_COLUMN(int, pfrh_edgeList))  // needs nRH + maxNeighbors allocation
 
-            using tmpPFDeviceSoA2 = tmpPFDeviceSoA2Layout<>;
-}
+  using tmpPFDeviceSoA2 = tmpPFDeviceSoA2Layout<>;
+}  // namespace reco
 
 #endif

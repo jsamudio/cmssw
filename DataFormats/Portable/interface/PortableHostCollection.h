@@ -164,8 +164,7 @@ public:
 
   PortableHostMultiCollection(const std::array<int32_t, members_>& sizes, alpaka_common::DevHost const& host)
       // allocate pinned host memory associated to the given work queue, accessible by the queue's device
-      : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(computeDataSize(sizes))},
-        impl_{buffer_->data(), sizes} {
+      : buffer_{cms::alpakatools::make_host_buffer<std::byte[]>(computeDataSize(sizes))}, impl_{buffer_->data(), sizes} {
     // Alpaka set to a default alignment of 128 bytes defining ALPAKA_DEFAULT_HOST_MEMORY_ALIGNMENT=128
     portablecollection::constexpr_for<0, members_>(
         [&](auto i) { assert(reinterpret_cast<uintptr_t>(buffer_->data()) % Layout<i>::alignment == 0); });

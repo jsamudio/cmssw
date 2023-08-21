@@ -18,13 +18,12 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class PFRecHitProducerAlpaka : public stream::EDProducer<> {
   public:
-    PFRecHitProducerAlpaka(edm::ParameterSet const& config) :
-      paramsToken(esConsumes(config.getParameter<edm::ESInputTag>("params"))),
-      topologyToken(esConsumes(config.getParameter<edm::ESInputTag>("topology"))),
-      recHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
-      pfRecHitsToken(produces()),
-      synchronise(config.getParameter<bool>("synchronise"))
-    {}
+    PFRecHitProducerAlpaka(edm::ParameterSet const& config)
+        : paramsToken(esConsumes(config.getParameter<edm::ESInputTag>("params"))),
+          topologyToken(esConsumes(config.getParameter<edm::ESInputTag>("topology"))),
+          recHitsToken(consumes(config.getParameter<edm::InputTag>("src"))),
+          pfRecHitsToken(produces()),
+          synchronise(config.getParameter<bool>("synchronise")) {}
 
     void produce(device::Event& event, device::EventSetup const& setup) override {
       const PFRecHitHBHEParamsAlpakaESDataDevice& params = setup.getData(paramsToken);
@@ -34,11 +33,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       std::cout << "num_recHits: " << num_recHits << std::endl;
       PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
 
-      if(!kernel)
+      if (!kernel)
         kernel.emplace(PFRecHitProducerKernel::Construct(event.queue()));
       kernel->execute(event.device(), event.queue(), params, topology, recHits, pfRecHits);
 
-      if(synchronise)
+      if (synchronise)
         alpaka::wait(event.queue());
 
       event.emplace(pfRecHitsToken, std::move(pfRecHits));

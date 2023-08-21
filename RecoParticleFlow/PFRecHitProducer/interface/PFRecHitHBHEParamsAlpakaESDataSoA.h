@@ -7,11 +7,10 @@
 
 namespace reco {
 
-  GENERATE_SOA_LAYOUT(PFRecHitHBHEParamsAlpakaESDataSoALayout,
-                      SOA_COLUMN(float, energyThresholds))
+  GENERATE_SOA_LAYOUT(PFRecHitHBHEParamsAlpakaESDataSoALayout, SOA_COLUMN(float, energyThresholds))
 
   using PFRecHitHBHEParamsAlpakaESDataSoA = PFRecHitHBHEParamsAlpakaESDataSoALayout<>;
 
-}
+}  // namespace reco
 
 #endif

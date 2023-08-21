@@ -3,6 +3,7 @@
 
 #include "FWCore/Framework/interface/EventSetupRecordImplementation.h"
 
-class JobConfigurationAlpakaRecord2 : public edm::eventsetup::EventSetupRecordImplementation<JobConfigurationAlpakaRecord2> {};
+class JobConfigurationAlpakaRecord2
+    : public edm::eventsetup::EventSetupRecordImplementation<JobConfigurationAlpakaRecord2> {};
 
 #endif  // RecoParticleFlow_PFRecHitProducer_interface_JobConfigurationAlpakaRecord_h

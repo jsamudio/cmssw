@@ -44,6 +44,6 @@ namespace reco {
 
   using PFClusterParamsAlpakaESDataSoA = PFClusterParamsAlpakaESDataSoALayout<>;
 
-}
+}  // namespace reco
 
 #endif

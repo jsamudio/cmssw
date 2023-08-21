@@ -7,13 +7,12 @@
 
 namespace reco {
 
-    GENERATE_SOA_LAYOUT(PFRHFractionSoALayout,
-            SOA_COLUMN(float, pcrh_frac),
-            SOA_COLUMN(int, pcrh_pfrhIdx),
-            SOA_COLUMN(int, pcrh_pfcIdx)
-    )
+  GENERATE_SOA_LAYOUT(PFRHFractionSoALayout,
+                      SOA_COLUMN(float, pcrh_frac),
+                      SOA_COLUMN(int, pcrh_pfrhIdx),
+                      SOA_COLUMN(int, pcrh_pfcIdx))
 
-    using PFRHFractionSoA = PFRHFractionSoALayout<>;
-}
+  using PFRHFractionSoA = PFRHFractionSoALayout<>;
+}  // namespace reco
 
 #endif

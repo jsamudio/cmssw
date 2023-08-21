@@ -8,8 +8,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class TestAlgo {
   public:
-    void printPFClusterESData(Queue& queue,
-      PFClusterParamsAlpakaESDataDevice const& esParams) const;
+    void printPFClusterESData(Queue& queue, PFClusterParamsAlpakaESDataDevice const& esParams) const;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

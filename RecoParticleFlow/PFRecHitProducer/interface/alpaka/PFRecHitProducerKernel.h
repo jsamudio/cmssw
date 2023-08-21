@@ -13,19 +13,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     static PFRecHitProducerKernel Construct(Queue& queue);
 
-    void execute(const Device& device, Queue& queue,
-      const PFRecHitHBHEParamsAlpakaESDataDevice& params,
-      const PFRecHitHBHETopologyAlpakaESDataDevice& topology,
-      const CaloRecHitDeviceCollection& recHits,
-      PFRecHitDeviceCollection& collection);
+    void execute(const Device& device,
+                 Queue& queue,
+                 const PFRecHitHBHEParamsAlpakaESDataDevice& params,
+                 const PFRecHitHBHETopologyAlpakaESDataDevice& topology,
+                 const CaloRecHitDeviceCollection& recHits,
+                 PFRecHitDeviceCollection& collection);
 
   private:
     PFRecHitProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t[]>&&,
-      cms::alpakatools::device_buffer<Device, uint32_t>&&);
+                           cms::alpakatools::device_buffer<Device, uint32_t>&&);
     cms::alpakatools::device_buffer<Device, uint32_t[]> denseId2pfRecHit;
     cms::alpakatools::device_buffer<Device, uint32_t> num_pfRecHits;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-#endif 
+#endif

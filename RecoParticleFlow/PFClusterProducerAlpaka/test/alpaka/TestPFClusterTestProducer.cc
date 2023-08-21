@@ -16,8 +16,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class TestPFClusterTestProducer : public stream::EDProducer<> {
   public:
-    TestPFClusterTestProducer(edm::ParameterSet const& config) :
-      esParamsToken_{esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))} {
+    TestPFClusterTestProducer(edm::ParameterSet const& config)
+        : esParamsToken_{esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))} {
       devicePutToken_ = produces("");
     }
 

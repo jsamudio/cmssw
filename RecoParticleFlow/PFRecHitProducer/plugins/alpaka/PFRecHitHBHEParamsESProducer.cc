@@ -16,9 +16,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFRecHitHBHEParamsESProducer : public ESProducer {
   public:
-    PFRecHitHBHEParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig),
-        energyThresholdsHB_(iConfig.getParameter<std::array<double, kMaxDepthHB>>("energyThresholdsHB")),
-        energyThresholdsHE_(iConfig.getParameter<std::array<double, kMaxDepthHE>>("energyThresholdsHE")) {
+    PFRecHitHBHEParamsESProducer(edm::ParameterSet const& iConfig)
+        : ESProducer(iConfig),
+          energyThresholdsHB_(iConfig.getParameter<std::array<double, kMaxDepthHB>>("energyThresholdsHB")),
+          energyThresholdsHE_(iConfig.getParameter<std::array<double, kMaxDepthHE>>("energyThresholdsHE")) {
       setWhatProduced(this);
     }
 
@@ -31,12 +32,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     std::unique_ptr<PFRecHitHBHEParamsAlpakaESDataHost> produce(JobConfigurationAlpakaRecord const& iRecord) {
-      auto product = std::make_unique<PFRecHitHBHEParamsAlpakaESDataHost>(kMaxDepthHB + kMaxDepthHE, cms::alpakatools::host());
+      auto product =
+          std::make_unique<PFRecHitHBHEParamsAlpakaESDataHost>(kMaxDepthHB + kMaxDepthHE, cms::alpakatools::host());
       for (int idx = 0; idx < kMaxDepthHB; ++idx) {
         product->view().energyThresholds()[idx] = energyThresholdsHB_[idx];
       }
       for (int idx = 0; idx < kMaxDepthHE; ++idx) {
-        product->view().energyThresholds()[idx+kMaxDepthHB] = energyThresholdsHE_[idx];
+        product->view().energyThresholds()[idx + kMaxDepthHB] = energyThresholdsHE_[idx];
       }
       return product;
     }

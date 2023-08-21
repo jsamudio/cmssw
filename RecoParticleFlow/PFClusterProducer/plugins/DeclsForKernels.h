@@ -148,7 +148,7 @@ namespace PFClustering {
 
     struct OutputPFClusterDataGPU {
       ::hcal::PFClusterCollection<::pf::common::DevStoragePolicy> PFClusters;
-        //reco::PFClusterDeviceCollection::View PFClusters;
+      //reco::PFClusterDeviceCollection::View PFClusters;
 
       void allocate(size_t Num_clusters, cudaStream_t cudaStream) {
         PFClusters.pfc_depth = cms::cuda::make_device_unique<int[]>(Num_clusters, cudaStream);
