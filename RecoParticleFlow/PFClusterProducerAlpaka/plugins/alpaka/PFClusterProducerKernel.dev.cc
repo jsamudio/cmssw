@@ -1188,7 +1188,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-  ALPAKA_FN_ACC void dev_hcalFastCluster_original(const TAcc& acc,
+  ALPAKA_FN_ACC void dev_hcalFastCluster_originalGlobal(const TAcc& acc,
                                                   PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
                                                   int topoId,
                                                   int nSeeds,
@@ -1225,12 +1225,281 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // int* seeds = (int*)&rhFracSum[nRHTopo - nSeeds];         //nSeeds
     // int* rechits = (int*)&seeds[nSeeds];                     //nRHTopo - nSeeds
 
-    auto& clusterPos = alpaka::declareSharedVar<float4[1152], __COUNTER__>(acc);
-    auto& prevClusterPos = alpaka::declareSharedVar<float4[1152], __COUNTER__>(acc);
-    auto& clusterEnergy = alpaka::declareSharedVar<float[1152], __COUNTER__>(acc);
-    auto& rhFracSum = alpaka::declareSharedVar<float[1152], __COUNTER__>(acc);
-    auto& seeds = alpaka::declareSharedVar<int[1152], __COUNTER__>(acc);
-    auto& rechits = alpaka::declareSharedVar<int[1152], __COUNTER__>(acc);
+    float4 clusterPos [1500];
+    float4 prevClusterPos [1500];
+    float clusterEnergy [1500];
+    float rhFracSum [1500];
+    int seeds [1500];
+    int rechits [1500];
+
+    if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
+      nRHNotSeed = nRHTopo - nSeeds + 1;  // 1 + (# rechits per topoId that are NOT seeds)
+      topoSeedBegin = tmpPF0[topoId].topoSeedOffsets();
+      tol = pfClusParams.stoppingTolerance() *
+            powf(fmaxf(1.0, nSeeds - 1.0), 2.0);  // stopping tolerance * tolerance scaling
+      gridStride = alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
+      iter = 0;
+      notDone = true;
+      //debug = false;
+      debug = (nSeeds == 62) ? true : false;
+
+      int i = tmpPF0[topoSeedBegin].topoSeedList();
+      if (pfRecHits[i].layer() == PFLayer::HCAL_BARREL1)
+        rhENormInv = pfClusParams.recHitEnergyNormInvEB_vec()[pfRecHits[i].depth() - 1];
+      else if (pfRecHits[i].layer() == PFLayer::HCAL_ENDCAP)
+        rhENormInv = pfClusParams.recHitEnergyNormInvEE_vec()[pfRecHits[i].depth() - 1];
+      else
+        printf("Rechit %d has invalid layer %d!\n", i, pfRecHits[i].layer());
+    }
+    alpaka::syncBlockThreads(acc);
+
+    for (int n = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; n < nRHTopo; n += gridStride) {
+      if (n < nSeeds)
+        seeds[n] = tmpPF0[topoSeedBegin + n].topoSeedList();
+      if (n < nRHNotSeed - 1)
+        rechits[n] = fracView[tmpPF0[tmpPF0[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1].pcrh_pfrhIdx();
+    }
+    alpaka::syncBlockThreads(acc);
+
+    if (debug) {
+      if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
+        printf("\n===========================================================================================\n");
+        printf("Processing topo cluster %d with nSeeds = %d nRHTopo = %d and seeds (", topoId, nSeeds, nRHTopo);
+        for (int s = 0; s < nSeeds; s++) {
+          if (s != 0)
+            printf(", ");
+          printf("%d", dev_getSeedRhIdx(seeds, s));
+        }
+        if (nRHTopo == nSeeds) {
+          printf(")\n\n");
+        } else {
+          printf(") and other rechits (");
+          for (int r = 1; r < nRHNotSeed; r++) {
+            if (r != 1)
+              printf(", ");
+            printf("%d", dev_getRhFracIdx(rechits, r));
+          }
+          printf(")\n\n");
+        }
+      }
+      alpaka::syncBlockThreads(acc);
+    }
+
+    // Set initial cluster position (energy) to seed rechit position (energy)
+    for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+      int i = seeds[s];
+      clusterPos[s] = make_float4(pfRecHits[i].x(), pfRecHits[i].y(), pfRecHits[i].z(), 1.0);
+      prevClusterPos[s] = clusterPos[s];
+      clusterEnergy[s] = pfRecHits[i].energy();
+      for (int r = 0; r < (nRHNotSeed - 1); r++) {
+        fracView[tmpPF0[i].seedFracOffsets() + r + 1].pcrh_pfrhIdx() = rechits[r];
+        fracView[tmpPF0[i].seedFracOffsets() + r + 1].pcrh_frac() = -1.;
+      }
+    }
+    alpaka::syncBlockThreads(acc);
+
+    do {
+      if (debug && alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
+        printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
+      }
+
+      if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0)
+        diff2 = -1;
+      // Reset rhFracSum
+      for (int tid = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; tid < nRHNotSeed - 1; tid += gridStride) {
+        rhFracSum[tid] = 0.;
+        int rhThreadIdx = rechits[tid];
+        float4 rhThreadPos =
+            make_float4(pfRecHits[rhThreadIdx].x(), pfRecHits[rhThreadIdx].y(), pfRecHits[rhThreadIdx].z(), 1.);
+        for (int s = 0; s < nSeeds; s++) {
+          float dist2 = (clusterPos[s].x - rhThreadPos.x) * (clusterPos[s].x - rhThreadPos.x) +
+                        (clusterPos[s].y - rhThreadPos.y) * (clusterPos[s].y - rhThreadPos.y) +
+                        (clusterPos[s].z - rhThreadPos.z) * (clusterPos[s].z - rhThreadPos.z);
+
+          float d2 = dist2 / pfClusParams.showerSigma2();
+          float fraction = clusterEnergy[s] * rhENormInv * expf(-0.5 * d2);
+
+          rhFracSum[tid] += fraction;
+        }
+      }
+      alpaka::syncBlockThreads(acc);
+
+      for (int tid = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; tid < nRHNotSeed - 1; tid += gridStride) {
+        int rhThreadIdx = rechits[tid];
+        float4 rhThreadPos =
+            make_float4(pfRecHits[rhThreadIdx].x(), pfRecHits[rhThreadIdx].y(), pfRecHits[rhThreadIdx].z(), 1.);
+        for (int s = 0; s < nSeeds; s++) {
+          int i = seeds[s];
+          float dist2 = (clusterPos[s].x - rhThreadPos.x) * (clusterPos[s].x - rhThreadPos.x) +
+                        (clusterPos[s].y - rhThreadPos.y) * (clusterPos[s].y - rhThreadPos.y) +
+                        (clusterPos[s].z - rhThreadPos.z) * (clusterPos[s].z - rhThreadPos.z);
+
+          float d2 = dist2 / pfClusParams.showerSigma2();
+          float fraction = clusterEnergy[s] * rhENormInv * expf(-0.5 * d2);
+
+          if (rhFracSum[tid] > pfClusParams.minFracTot()) {
+            float fracpct = fraction / rhFracSum[tid];
+            if (fracpct > 0.9999 || (d2 < 100. && fracpct > pfClusParams.minFracToKeep())) {
+              fracView[tmpPF0[i].seedFracOffsets() + tid + 1].pcrh_frac() = fracpct;
+            } else {
+              fracView[tmpPF0[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+            }
+          } else {
+            fracView[tmpPF0[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+          }
+        }
+      }
+      alpaka::syncBlockThreads(acc);
+
+      if (debug && alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0)
+        printf("Computing cluster position for topoId %d\n", topoId);
+
+      // Reset cluster position and energy
+      for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+        int seedRhIdx = dev_getSeedRhIdx(seeds, s);
+        float norm = logf(pfRecHits[seedRhIdx].energy() * rhENormInv);
+        clusterPos[s] = make_float4(
+            pfRecHits[seedRhIdx].x() * norm, pfRecHits[seedRhIdx].y() * norm, pfRecHits[seedRhIdx].z() * norm, norm);
+        clusterEnergy[s] = pfRecHits[seedRhIdx].energy();
+        if (debug) {
+          printf("Cluster %d (seed %d) has energy %f\tpos = (%f, %f, %f, %f)\n",
+                 s,
+                 seeds[s],
+                 clusterEnergy[s],
+                 clusterPos[s].x,
+                 clusterPos[s].y,
+                 clusterPos[s].z,
+                 clusterPos[s].w);
+        }
+      }
+      alpaka::syncBlockThreads(acc);
+
+      // Recalculate position
+      for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+        int seedRhIdx = dev_getSeedRhIdx(seeds, s);
+        for (int r = 0; r < nRHNotSeed - 1; r++) {
+          int j = rechits[r];
+          float frac = dev_getRhFrac(tmpPF0, topoSeedBegin, fracView, s, r + 1);
+
+          if (frac > -0.5) {
+            clusterEnergy[s] += frac * pfRecHits[j].energy();
+
+            if (nSeeds == 1 || j == pfRecHits[seedRhIdx].neighbours()(0) || j == pfRecHits[seedRhIdx].neighbours()(1) ||
+                j == pfRecHits[seedRhIdx].neighbours()(2) || j == pfRecHits[seedRhIdx].neighbours()(3))
+              dev_computeClusterPos(pfClusParams, clusterPos[s], frac, j, debug, pfRecHits, rhENormInv);
+          }
+        }
+      }
+      alpaka::syncBlockThreads(acc);
+
+      // Position normalization
+      for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+        if (clusterPos[s].w >= pfClusParams.minAllowedNormalization()) {
+          // Divide by position norm
+          clusterPos[s].x /= clusterPos[s].w;
+          clusterPos[s].y /= clusterPos[s].w;
+          clusterPos[s].z /= clusterPos[s].w;
+
+          if (debug)
+            printf("\tCluster %d (seed %d) energy = %f\tposition = (%f, %f, %f)\n",
+                   s,
+                   seeds[s],
+                   clusterEnergy[s],
+                   clusterPos[s].x,
+                   clusterPos[s].y,
+                   clusterPos[s].z);
+        } else {
+          if (debug)
+            printf("\tCluster %d (seed %d) position norm (%f) less than minimum (%f)\n",
+                   s,
+                   seeds[s],
+                   clusterPos[s].w,
+                   pfClusParams.minAllowedNormalization());
+          clusterPos[s].x = 0.0;
+          clusterPos[s].y = 0.0;
+          clusterPos[s].z = 0.0;
+        }
+      }
+      alpaka::syncBlockThreads(acc);
+
+      for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+        float delta2 = dR2(prevClusterPos[s], clusterPos[s]);
+        if (debug)
+          printf("\tCluster %d (seed %d) has delta2 = %f\n", s, seeds[s], delta2);
+        atomicMaxF(acc, &diff2, delta2);
+        prevClusterPos[s] = clusterPos[s];  // Save clusterPos
+      }
+      alpaka::syncBlockThreads(acc);
+
+      if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
+        float diff = sqrtf(diff2);
+        iter++;
+        notDone = (diff > tol) && ((unsigned int)iter < pfClusParams.maxIterations());
+        if (debug) {
+          if (diff > tol)
+            printf("\tTopoId %d has diff = %f greater than tolerance %f (continuing)\n", topoId, diff, tol);
+          else if (debug)
+            printf("\tTopoId %d has diff = %f LESS than tolerance %f (terminating!)\n", topoId, diff, tol);
+        }
+      }
+      alpaka::syncBlockThreads(acc);
+    } while (notDone);
+    if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0)
+      tmpPF0[topoId].pfc_iter() = iter;
+    for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+      int rhIdx = tmpPF0[s + tmpPF0[topoId].topoSeedOffsets()].topoSeedList();
+      int seedIdx = tmpPF0[rhIdx].rhIdxToSeedIdx();
+      clusterView[seedIdx].pfc_energy() = pfRecHits[s].energy();
+      clusterView[seedIdx].pfc_x() = pfRecHits[s].x();
+      clusterView[seedIdx].pfc_y() = pfRecHits[s].y();
+      clusterView[seedIdx].pfc_z() = pfRecHits[s].z();
+    }
+  }
+
+  template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+  ALPAKA_FN_ACC void dev_hcalFastCluster_originalShared(const TAcc& acc,
+                                                  PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+                                                  int topoId,
+                                                  int nSeeds,
+                                                  int nRHTopo,
+                                                  PFRecHitDeviceCollection::ConstView pfRecHits,
+                                                  tmpPF0DeviceCollection::View tmpPF0,
+                                                  PFClusterDeviceCollection2::View clusterView,
+                                                  PFRHFractionDeviceCollection::View fracView) {
+    // extern __shared__ float4 sharedArr[];
+    // float4* clusterPos = sharedArr;                          //nSeeds
+    // float4* prevClusterPos = (float4*)&clusterPos[nSeeds];   //nSeeds
+    // float* clusterEnergy = (float*)&prevClusterPos[nSeeds];  //nSeeds
+    // float* rhFracSum = (float*)&clusterEnergy[nSeeds];       //nRHTopo - nSeeds
+    // int* seeds = (int*)&rhFracSum[nRHTopo - nSeeds];         //nSeeds
+    // int* rechits = (int*)&seeds[nSeeds];                     //nRHTopo - nSeeds
+
+    int& nRHNotSeed = alpaka::declareSharedVar<int, __COUNTER__>(acc);
+    int& topoSeedBegin = alpaka::declareSharedVar<int, __COUNTER__>(acc);
+    int& gridStride = alpaka::declareSharedVar<int, __COUNTER__>(acc);
+    int& iter = alpaka::declareSharedVar<int, __COUNTER__>(acc);
+    float& tol = alpaka::declareSharedVar<float, __COUNTER__>(acc);
+    float& diff2 = alpaka::declareSharedVar<float, __COUNTER__>(acc);
+    float& rhENormInv = alpaka::declareSharedVar<float, __COUNTER__>(acc);
+    bool& notDone = alpaka::declareSharedVar<bool, __COUNTER__>(acc);
+    bool& debug = alpaka::declareSharedVar<bool, __COUNTER__>(acc);
+
+    // alpaka::trait::BlockSharedMemDynSizeBytes
+    //float4 * sharedArr = alpaka::getDynSharedMem<float4>(acc);
+
+    //float4* clusterPos = sharedArr;                          //nSeeds
+    // float4* prevClusterPos = (float4*)&clusterPos[nSeeds];   //nSeeds
+    // float* clusterEnergy = (float*)&prevClusterPos[nSeeds];  //nSeeds
+    // float* rhFracSum = (float*)&clusterEnergy[nSeeds];       //nRHTopo - nSeeds
+    // int* seeds = (int*)&rhFracSum[nRHTopo - nSeeds];         //nSeeds
+    // int* rechits = (int*)&seeds[nSeeds];                     //nRHTopo - nSeeds
+
+    auto& clusterPos = alpaka::declareSharedVar<float4[400], __COUNTER__>(acc);
+    auto& prevClusterPos = alpaka::declareSharedVar<float4[400], __COUNTER__>(acc);
+    auto& clusterEnergy = alpaka::declareSharedVar<float[400], __COUNTER__>(acc);
+    auto& rhFracSum = alpaka::declareSharedVar<float[1500], __COUNTER__>(acc);
+    auto& seeds = alpaka::declareSharedVar<int[400], __COUNTER__>(acc);
+    auto& rechits = alpaka::declareSharedVar<int[1500], __COUNTER__>(acc);
 
     if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
       nRHNotSeed = nRHTopo - nSeeds + 1;  // 1 + (# rechits per topoId that are NOT seeds)
@@ -1497,7 +1766,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         dev_hcalFastCluster_optimizedComplex(
             acc, pfClusParams, topoId, nSeeds, nRHTopo, pfRecHits, tmpPF0, clusterView, fracView);
       } else if (nSeeds <= 400 && nRHTopo - nSeeds <= 1500) {
-        dev_hcalFastCluster_original(
+        dev_hcalFastCluster_originalShared(
+            acc, pfClusParams, topoId, nSeeds, nRHTopo, pfRecHits, tmpPF0, clusterView, fracView);
+      } else if (nSeeds <= 1500 && nRHTopo - nSeeds <= 1500) {
+        dev_hcalFastCluster_originalGlobal(
             acc, pfClusParams, topoId, nSeeds, nRHTopo, pfRecHits, tmpPF0, clusterView, fracView);
       } else {
         if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0)
@@ -1540,7 +1812,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           clusterView[seedIdx].pfc_z() = pfRecHits[rhIdx].z();
         }
       } else if (nSeeds <= 400 && nRHTopo - nSeeds <= 1500) {
-        dev_hcalFastCluster_original(
+        dev_hcalFastCluster_originalShared(
+            acc, pfClusParams, topoId, nSeeds, nRHTopo, pfRecHits, tmpPF0, clusterView, fracView);
+      } else if (nSeeds <= 1500 && nRHTopo - nSeeds <= 1500) {
+        dev_hcalFastCluster_originalGlobal(
             acc, pfClusParams, topoId, nSeeds, nRHTopo, pfRecHits, tmpPF0, clusterView, fracView);
       } else {
         if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0)
