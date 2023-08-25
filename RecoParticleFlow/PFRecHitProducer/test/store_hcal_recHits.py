@@ -104,7 +104,7 @@ process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
         dataTier = cms.untracked.string('GEN-SIM-DIGI-RAW'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('/data/user/florkows/hcal_recHits.root'),
+    fileName = cms.untracked.string('hcal_recHits.root'),
     #fileName = cms.untracked.string('/data/user/florkows/hcal_recHits_uncompressed.root'),
     #compressionLevel = cms.untracked.int32(0),
     outputCommands = process.FEVTDEBUGHLTEventContent.outputCommands,
