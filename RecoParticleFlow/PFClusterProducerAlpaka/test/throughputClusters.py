@@ -7,6 +7,19 @@ import FWCore.ParameterSet.Config as cms
 
 from Configuration.Eras.Era_Run3_cff import Run3
 
+_thresholdsHB = cms.vdouble(0.8, 0.8, 0.8, 0.8)
+_thresholdsHE = cms.vdouble(0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8)
+_thresholdsHBphase1 = cms.vdouble(0.1, 0.2, 0.3, 0.3)
+_thresholdsHEphase1 = cms.vdouble(0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2)
+_seedingThresholdsHB = cms.vdouble(1.0, 1.0, 1.0, 1.0)
+_seedingThresholdsHE = cms.vdouble(1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1)
+_seedingThresholdsHBphase1 = cms.vdouble(0.125, 0.25, 0.35, 0.35)
+_seedingThresholdsHEphase1 = cms.vdouble(0.1375, 0.275, 0.275, 0.275, 0.275, 0.275, 0.275)
+#updated HB RecHit threshold for 2023
+_thresholdsHBphase1_2023 = cms.vdouble(0.4, 0.3, 0.3, 0.3)
+#updated HB seeding threshold for 2023
+_seedingThresholdsHBphase1_2023 = cms.vdouble(0.6, 0.5, 0.5, 0.5)
+
 process = cms.Process('rereHLT',Run3)
 
 # import of standard configurations
@@ -36,8 +49,31 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    #fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits.root'),
-    fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits_uncompressed.root'),
+    fileNames = cms.untracked.vstring('file:/data/user/jsamudio/gpudev/clusterAlpaka/CMSSW_13_0_8/src/hcal_recHits.root'),
+    #fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits_uncompressed.root'),
+    #fileNames = cms.untracked.vstring([
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/d277bd98-70fb-4c08-8e71-f3ac28259d61.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/bc91bc89-ebeb-4640-8e72-db53d3877580.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/29b546e5-5174-4d0c-8651-1ca8281386e4.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/f7daf819-e717-4207-b9e5-997c762195fa.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/e216dbe0-a590-4937-a63c-3d8ebc2e511d.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/f1aff472-e326-4921-877c-09bcba4679a0.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/99dfb673-329f-4122-b4a1-7af9d7ba8006.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/0a4fbb38-805c-43d8-8644-8b263c1e3aed.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/37abaacf-159f-41b2-9b46-b2d4ba7bbe89.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/9b600d70-b9b7-417f-bb88-b56c351792d8.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/8f283402-7d35-4133-9b17-91841ae6caab.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/08b59217-0b9e-4da9-8b0e-d233ae320666.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/ebc597ab-bea6-4e0a-b1a0-0fd676fa923d.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/ed97a57a-e279-4a3a-b055-4a84873caef8.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/205ef4e6-6e9c-42ad-8af0-c8fdd3130b80.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/83f0dde0-2974-4c95-ac52-6aeaf09434ce.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/170168f2-8dd9-4b5f-a836-60fa1e15db37.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/69f73e1b-cab1-40c3-af62-64b983be9063.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/84378513-909f-49a6-8c71-e572d0bbe561.root',
+    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/cf25e27f-49c3-45a1-901c-7d9eb148c566.root'
+    #]),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -204,6 +240,8 @@ process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
     ))
 )
 
+process.hltParticleFlowClusterLegacy = process.hltParticleFlowClusterHBHE.clone()
+process.hltParticleFlowClusterLegacy.pfClusterBuilder.maxIterations = 50
 
 #####################################
 ##    Alpaka PFRecHit producer     ##
@@ -259,7 +297,7 @@ if backend != "legacy":
         iovIsRunNotTime = cms.bool(True),
         firstValid = cms.vuint32(1)
     )
-    
+
     from Configuration.Eras.Modifier_run3_egamma_2023_cff import run3_egamma_2023
     run3_egamma_2023.toModify(alpaka_backend_str % "PFClusterParamsESProducer",
         seedFinder = dict(thresholdsByDetector = {0 : dict(seedingThreshold = _seedingThresholdsHBphase1_2023) } ),
@@ -268,7 +306,7 @@ if backend != "legacy":
             recHitEnergyNorms = {0 : dict(recHitEnergyNorm = _thresholdsHBphase1_2023) }
         ),
     )
-    
+
     process.hltParticleFlowClusterParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFClusterParamsESProducer",
             seedFinder = cms.PSet(
             thresholdsByDetector = cms.VPSet(
@@ -282,7 +320,7 @@ if backend != "legacy":
                             )
                   ),
             ),
-    
+
             initialClusteringStep = cms.PSet(
             thresholdsByDetector = cms.VPSet(
                 cms.PSet( detector = cms.string("HCAL_BARREL1"),
@@ -293,7 +331,7 @@ if backend != "legacy":
                       )
                 )
             ),
-    
+
             pfClusterBuilder = cms.PSet(
                maxIterations = cms.uint32(50),
                minFracTot = cms.double(1e-20),
@@ -332,11 +370,11 @@ if backend != "legacy":
                           )
                 )
             ),
-    
+
     )
     process.hltParticleFlowClusterParamsESProducer.seedFinder.thresholdsByDetector[0].seedingThresholdPt = cms.double(0.)
     process.hltParticleFlowClusterParamsESProducer.seedFinder.thresholdsByDetector[1].seedingThresholdPt = cms.double(0.)
-    
+
     for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.initialClusteringStep.thresholdsByDetector):
         for idy, y in enumerate(process.hltParticleFlowClusterHBHE.initialClusteringStep.thresholdsByDetector):
             if x.detector == y.detector:
@@ -349,7 +387,7 @@ if backend != "legacy":
         for idy, y in enumerate(process.hltParticleFlowClusterHBHE.seedFinder.thresholdsByDetector):
             if x.detector == y.detector:
                 x.seedingThreshold = y.seedingThreshold
-    
+
     process.hltParticleFlowPFClusterAlpaka = cms.EDProducer(alpaka_backend_str % "PFClusterProducerAlpaka",
                                                             pfClusterParams = cms.ESInputTag("hltParticleFlowClusterParamsESProducer:"),
                                                             pfClusterBuilder = process.hltParticleFlowClusterHBHE.pfClusterBuilder,
@@ -379,17 +417,21 @@ process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop *_*_*_*'
 
 # Path/sequence definitions
 if backend == "legacy":
+    #path = process.hltHcalDigis
+    #path += process.hltHbherecoLegacy
     path = process.hltParticleFlowRecHitHBHE
-    path += process.hltParticleFlowClusterHBHE
+    path += process.hltParticleFlowClusterLegacy
     for i in range(1, args.iterations):
         n = "hltParticleFlowRecHitHBHE%02d" % i
         setattr(process, n, process.hltParticleFlowRecHitHBHE.clone())
         path += getattr(process, n)
-        m = "hltParticleFlowClusterHBHE%02d" % i
-        setattr(process, m, process.hltParticleFlowClusterHBHE.clone())
-        path += getattr(process, m)
+        #m = "hltParticleFlowClusterHBHE%02d" % i
+        #setattr(process, m, process.hltParticleFlowClusterHBHE.clone())
+        #path += getattr(process, m)
     process.HBHEPFCPUGPUTask = cms.Path(path)
 else:
+    #path = process.hltHcalDigis
+    #path += process.hltHbherecoLegacy
     path = process.hltParticleFlowRecHitToSoA      # Convert legacy CaloRecHits to SoA and copy to device
     path += process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     path += process.hltParticleFlowPFClusterAlpaka
@@ -397,9 +439,9 @@ else:
         n = "hltParticleFlowPFRecHitAlpaka%02d" % i
         setattr(process, n, process.hltParticleFlowPFRecHitAlpaka.clone())
         path += getattr(process, n)
-        m = "hltParticleFlowPFClusterAlpaka%02d" % i
-        setattr(process, m, process.hltParticleFlowPFClusterAlpaka.clone())
-        path += getattr(process, m)
+        #m = "hltParticleFlowPFClusterAlpaka%02d" % i
+        #setattr(process, m, process.hltParticleFlowPFClusterAlpaka.clone())
+        #path += getattr(process, m)
     process.HBHEPFCPUGPUTask = cms.Path(path)
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])

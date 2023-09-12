@@ -12,9 +12,17 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
+    typedef struct float4 {
+      float x;
+      float y;
+      float z;
+      float w;
+    } float4;
   class PFClusterProducerKernel {
   public:
-    static PFClusterProducerKernel Construct(Queue& queue);
+    static PFClusterProducerKernel Construct(Queue& queue,
+                 const reco::PFRecHitHostCollection& pfRecHits
+            );
 
     void execute(const Device&,
                  Queue& queue,
@@ -25,9 +33,22 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                  PFClusterDeviceCollection2& pfClusters,
                  PFRHFractionDeviceCollection& pfrhFractions);
 
+
   private:
-    PFClusterProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t>&&);
+    PFClusterProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t>&&,
+                            cms::alpakatools::device_buffer<Device, float4[]>&&,
+                            cms::alpakatools::device_buffer<Device, float4[]>&&,
+                            cms::alpakatools::device_buffer<Device, float[]>&&,
+                            cms::alpakatools::device_buffer<Device, float[]>&&,
+                            cms::alpakatools::device_buffer<Device, int[]>&&,
+                            cms::alpakatools::device_buffer<Device, int[]>&&);
     cms::alpakatools::device_buffer<Device, uint32_t> nSeeds;
+    cms::alpakatools::device_buffer<Device, float4[]> globalClusterPos;
+    cms::alpakatools::device_buffer<Device, float4[]> globalPrevClusterPos;
+    cms::alpakatools::device_buffer<Device, float[]> globalClusterEnergy;
+    cms::alpakatools::device_buffer<Device, float[]> globalRhFracSum;
+    cms::alpakatools::device_buffer<Device, int[]> globalSeeds;
+    cms::alpakatools::device_buffer<Device, int[]> globalRechits;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

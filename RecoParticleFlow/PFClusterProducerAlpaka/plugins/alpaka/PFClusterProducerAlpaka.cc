@@ -59,8 +59,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
       //auto pfRecHits = event.getHandle(InputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
-      std::cout << "nRH:"
-                << " " << nRH << std::endl;
 
       tmpPF0DeviceCollection tmp0{nRH + 1, event.queue()};
       tmpPF1DeviceCollection tmp1{(nRH * 8) + 1, event.queue()};
@@ -68,8 +66,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       PFClusterDeviceCollection2 pfClusters{nRH, event.queue()};
       PFRHFractionDeviceCollection pfrhFractions{nRH * 120, event.queue()};
 
-      //if(!kernel)
-      kernel.emplace(PFClusterProducerKernel::Construct(event.queue()));
+      if(!kernel)
+        kernel.emplace(PFClusterProducerKernel::Construct(event.queue(), pfRecHits));
       kernel->execute(event.device(), event.queue(), params, tmp0, tmp1, pfRecHits, pfClusters, pfrhFractions);
 
       if (synchronise)
