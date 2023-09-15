@@ -319,7 +319,8 @@ process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest"
     pfRecHitsType2 = cms.untracked.string("alpaka"),
     title = cms.untracked.string("Legacy vs Alpaka"),
     dumpFirstEvent = cms.untracked.bool(args.debug == 1),
-    dumpFirstError = cms.untracked.bool(args.debug == -1)
+    dumpFirstError = cms.untracked.bool(args.debug == -1),
+    strictCompare = cms.untracked.bool(True)
 )
 
 # Validate legacy format from legacy module vs legacy format from Alpaka module
@@ -330,7 +331,8 @@ process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison1 = DQMEDAnalyzer("PFRec
     pfRecHitsType2 = cms.untracked.string("legacy"),
     title = cms.untracked.string("Legacy vs Legacy-from-Alpaka"),
     dumpFirstEvent = cms.untracked.bool(args.debug == 2),
-    dumpFirstError = cms.untracked.bool(args.debug == -2)
+    dumpFirstError = cms.untracked.bool(args.debug == -2),
+    strictCompare = cms.untracked.bool(True)
 )
 
 # Validate SoA format from Alpaka module vs legacy format from Alpaka module
@@ -342,7 +344,8 @@ process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison2 = DQMEDAnalyzer("PFRec
     pfRecHitsType2 = cms.untracked.string("legacy"),
     title = cms.untracked.string("Alpaka vs Legacy-from-Alpaka"),
     dumpFirstEvent = cms.untracked.bool(args.debug == 3),
-    dumpFirstError = cms.untracked.bool(args.debug == -3)
+    dumpFirstError = cms.untracked.bool(args.debug == -3),
+    strictCompare = cms.untracked.bool(True)
 )
 
 
@@ -364,8 +367,20 @@ path += process.hltParticleFlowAlpakaToLegacyPFRecHits             # Convert Alp
 path += process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison1  # Validate legacy-format-from-alpaka vs regular legacy format
 path += process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison2  # Validate Alpaka format vs legacy-format-from-alpaka
 
-process.PFRecHitAlpakaValidationTask = cms.Path(path)
+process.PFRecHitAlpakaValidationTask = cms.EndPath(path)
 process.schedule = cms.Schedule(process.PFRecHitAlpakaValidationTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
-
 process.options.numberOfThreads = cms.untracked.uint32(args.threads)
+
+# Save DQM output
+process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
+    dataset = cms.untracked.PSet(
+        dataTier = cms.untracked.string('DQMIO'),
+        filterName = cms.untracked.string('')
+    ),
+    fileName = cms.untracked.string('file:DQMIO.root'),
+    outputCommands = process.DQMEventContent.outputCommands,
+    splitLevel = cms.untracked.int32(0)
+)
+process.DQMTask = cms.EndPath(process.DQMoutput)
+process.schedule.append(process.DQMTask)

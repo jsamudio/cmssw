@@ -21,7 +21,7 @@ public:
   PFRecHitProducerTest(edm::ParameterSet const& conf);
   ~PFRecHitProducerTest() override;
   void analyze(edm::Event const& e, edm::EventSetup const& c) override;
-  void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override{};
+  void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override;
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
@@ -51,7 +51,8 @@ private:
   int32_t num_events_ = 0, num_errors_ = 0;
   std::map<int32_t, uint32_t> errors_;
   const std::string title_;
-  const bool dumpFirstEvent_, dumpFirstError_;
+  const bool strictCompare_, dumpFirstEvent_, dumpFirstError_;
+  MonitorElement *hist_energy_, *hist_time_;
 
   // Container for PFRecHit, independent of how it was constructed
   struct GenericPFRecHit {
@@ -77,6 +78,7 @@ private:
 
 PFRecHitProducerTest::PFRecHitProducerTest(const edm::ParameterSet& conf)
     : title_(conf.getUntrackedParameter<std::string>("title")),
+      strictCompare_(conf.getUntrackedParameter<bool>("strictCompare")),
       dumpFirstEvent_(conf.getUntrackedParameter<bool>("dumpFirstEvent")),
       dumpFirstError_(conf.getUntrackedParameter<bool>("dumpFirstError")) {
   if (conf.existsAs<edm::InputTag>("caloRecHits"))
@@ -149,9 +151,12 @@ void PFRecHitProducerTest::analyze(const edm::Event& event, const edm::EventSetu
 
         const GenericPFRecHit& rh2 = second.at(detId2Idx.at(rh1.detId));
         assert(rh1.detId == rh2.detId);
-        if (rh1.depth != rh2.depth || rh1.layer != rh2.layer || rh1.time != rh2.time || rh1.energy != rh2.energy ||
-            rh1.x != rh2.x || rh1.y != rh2.y || rh1.z != rh2.z)
-          return 3;  // depth,layer,time,energy or pos different
+        if (rh1.depth != rh2.depth || rh1.layer != rh2.layer || rh1.x != rh2.x || rh1.y != rh2.y || rh1.z != rh2.z)
+          return 3;  // depth, layer or pos different
+        if (strictCompare_ && (rh1.time != rh2.time || rh1.energy != rh2.energy))
+          return 3;  // time or energy different
+        hist_energy_->Fill(rh1.energy, rh2.energy);
+        hist_time_->Fill(rh1.time, rh2.time);
 
         if (rh1.neighbours4.size() != rh2.neighbours4.size() || rh1.neighbours8.size() != rh2.neighbours8.size())
           return 4;  // different number of neighbours
@@ -224,7 +229,14 @@ void PFRecHitProducerTest::fillDescriptions(edm::ConfigurationDescriptions& desc
   desc.addUntracked<bool>("dumpFirstEvent", false)
       ->setComment("Dump PFRecHits of first event, regardless of result of comparison");
   desc.addUntracked<bool>("dumpFirstError", false)->setComment("Dump PFRecHits upon first encountered error");
+  desc.addUntracked<bool>("strictCompare", false)->setComment("Compare all floats for equality");
   descriptions.addDefault(desc);
+}
+
+void PFRecHitProducerTest::bookHistograms(DQMStore::IBooker& ibooker, edm::Run const&, edm::EventSetup const&) {
+  ibooker.setCurrentFolder("ParticleFlow/PFRecHitV");
+  hist_energy_ = ibooker.book2D("energy", "energy;Input1;Input2;Entries", 100, 0, 100, 100, 0, 100);
+  hist_time_ = ibooker.book2D("time", "time;Input1;Input2;Entries", 100, 0, 100, 100, 0, 100);
 }
 
 PFRecHitProducerTest::GenericPFRecHit::GenericPFRecHit(const reco::PFRecHit& pfRecHit)
