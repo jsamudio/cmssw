@@ -58,7 +58,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         // Fill product
         for (auto const detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
           const uint32_t denseId = CAL::detId2denseId(detId);
-          assert(denseId <= CAL::SIZE);
+          assert(denseId < CAL::SIZE);
 
           const GlobalPoint pos = geo->getGeometry(detId)->getPosition();
           view.positionX(denseId) = pos.x();
@@ -75,20 +75,19 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         }
       }
 
-      // See comment regarding HCAL getNeighbourDetId below
       // Remove neighbours that are not backward compatible (only for HCAL)
-      //if (std::is_same_v<CAL, HCAL>)
-      //  for (const auto subdet : calEnums)
-      //    for (auto const detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
-      //      const uint32_t denseId = CAL::detId2denseId(detId);
-      //      for (uint32_t n = 0; n < 8; n++) {
-      //        const reco::PFRecHitsTopologyNeighbours& neighboursOfNeighbour =
-      //            view.neighbours(view.neighbours(denseId)[n]);
-      //        if (std::find(neighboursOfNeighbour.begin(), neighboursOfNeighbour.end(), denseId) ==
-      //            neighboursOfNeighbour.end())
-      //          view.neighbours(denseId)[n] = 0xffffffff;
-      //      }
-      //    }
+      if (std::is_same_v<CAL, HCAL>)
+        for (const auto subdet : calEnums)
+          for (auto const detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
+            const uint32_t denseId = CAL::detId2denseId(detId);
+            for (uint32_t n = 0; n < 8; n++) {
+              const reco::PFRecHitsTopologyNeighbours& neighboursOfNeighbour =
+                  view.neighbours(view.neighbours(denseId)[n]);
+              if (std::find(neighboursOfNeighbour.begin(), neighboursOfNeighbour.end(), denseId) ==
+                  neighboursOfNeighbour.end())
+                view.neighbours(denseId)[n] = 0xffffffff;
+            }
+          }
 
       //// Print results (for debugging)
       //for(const auto subdet : calEnums)
@@ -112,10 +111,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     uint32_t getNeighbourDetId(const uint32_t detId, const uint32_t direction, const CaloSubdetectorTopology& topo);
   };
 
-  template <typename CAL>
-  uint32_t PFRecHitTopologyESProducer<CAL>::getNeighbourDetId(const uint32_t detId,
-                                                              const uint32_t direction,
-                                                              const CaloSubdetectorTopology& topo) {
+  template <>
+  uint32_t PFRecHitTopologyESProducer<ECAL>::getNeighbourDetId(const uint32_t detId,
+                                                               const uint32_t direction,
+                                                               const CaloSubdetectorTopology& topo) {
     // desired order for PF: NORTH, SOUTH, EAST, WEST, NORTHEAST, SOUTHWEST, SOUTHEAST, NORTHWEST
     if (detId == 0)
       return 0;
@@ -156,7 +155,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     return 0;
   }
 
-  /*
   // A pull-request the redefines the HCAL neighbour association is currently in preparation.
   // When it is accepted, this specialisation should be enabled to adopt the new definition.
   // The backwards compatibility check in the produce function should also be enabled.
@@ -177,33 +175,36 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (direction == 3)            // WEST
       return topo.goWest(detId);   // larger ieta values
 
+    std::pair<uint32_t, uint32_t> directions;
     if (direction == 4) {             // NORTHEAST
       if (HCAL::getZside(detId) > 0)  // positive eta: east -> move to smaller |ieta| (finner phi granularity) first
-        return getNeighbourDetId(getNeighbourDetId(detId, 2, topo), 0, topo);
+        directions = {2, 0};
       else  // negative eta: move in phi first then move to east (coarser phi granularity)
-        return getNeighbourDetId(getNeighbourDetId(detId, 0, topo), 2, topo);
-    }
-    if (direction == 5) {             // SOUTHWEST
+        directions = {0, 2};
+    } else if (direction == 5) {      // SOUTHWEST
       if (HCAL::getZside(detId) > 0)  // positive eta: move in phi first then move to west (coarser phi granularity)
-        return getNeighbourDetId(getNeighbourDetId(detId, 1, topo), 3, topo);
+        directions = {1, 3};
       else  // negative eta: west -> move to smaller |ieta| (finner phi granularity) first
-        return getNeighbourDetId(getNeighbourDetId(detId, 3, topo), 1, topo);
-    }
-    if (direction == 6) {             // SOUTHEAST
+        directions = {3, 1};
+    } else if (direction == 6) {      // SOUTHEAST
       if (HCAL::getZside(detId) > 0)  // positive eta: east -> move to smaller |ieta| (finner phi granularity) first
-        return getNeighbourDetId(getNeighbourDetId(detId, 2, topo), 1, topo);
+        directions = {2, 1};
       else  // negative eta: move in phi first then move to east (coarser phi granularity)
-        return getNeighbourDetId(getNeighbourDetId(detId, 1, topo), 2, topo);
-    }
-    if (direction == 7) {             // NORTHWEST
+        directions = {1, 2};
+    } else if (direction == 7) {      // NORTHWEST
       if (HCAL::getZside(detId) > 0)  // positive eta: move in phi first then move to west (coarser phi granularity)
-        return getNeighbourDetId(getNeighbourDetId(detId, 0, topo), 3, topo);
+        directions = {0, 3};
       else  // negative eta: west -> move to smaller |ieta| (finner phi granularity) first
-        return getNeighbourDetId(getNeighbourDetId(detId, 3, topo), 0, topo);
-    }
-    return 0;
+        directions = {3, 0};
+    } else
+      return 0;
+    const uint32_t nn1 = getNeighbourDetId(detId, directions.first, topo);   // nearest neighbour in direction 1
+    const uint32_t nn2 = getNeighbourDetId(detId, directions.second, topo);  // nearest neighbour in direction 2
+    const uint32_t nnn = getNeighbourDetId(nn1, directions.second, topo);    // next-to-nearest neighbour
+    if (nnn == nn1 || nnn == nn2)                                            // avoid duplicates
+      return 0;
+    return nnn;
   }
-  */
 
   using PFRecHitECALTopologyESProducer = PFRecHitTopologyESProducer<ECAL>;
   using PFRecHitHCALTopologyESProducer = PFRecHitTopologyESProducer<HCAL>;

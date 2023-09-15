@@ -108,8 +108,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         if (subdet == HcalEndcap)
           return detId2denseIdHE(detId);
 
-        printf("invalid detId\n");
-        return 0;
+        printf("invalid detId: %u\n", detId);
+        return -1;
       }
     };
 
@@ -212,7 +212,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         if (subdet == EcalEndcap)
           return BARREL::SIZE + ENDCAP::denseIndex(detId);
 
-        printf("invalid detId\n");
+        printf("invalid detId: %u\n", detId);
         return 0;
       }
 
