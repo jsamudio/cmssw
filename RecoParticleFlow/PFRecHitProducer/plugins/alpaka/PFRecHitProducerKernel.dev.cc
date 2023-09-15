@@ -13,7 +13,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const typename CAL::ParameterType::ConstView params,
-                                  const CaloRecHitDeviceCollection::ConstView recHits,
+                                  const typename CAL::CaloRecHitSoATypeDevice::ConstView recHits,
                                   PFRecHitDeviceCollection::View pfRecHits,
                                   uint32_t* __restrict__ denseId2pfRecHit,
                                   uint32_t* __restrict__ num_pfRecHits) const {
@@ -36,16 +36,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
     }
 
-    ALPAKA_FN_ACC static bool ApplyCuts(const CaloRecHitDeviceCollection::ConstView::const_element rh,
+    ALPAKA_FN_ACC static bool ApplyCuts(const typename CAL::CaloRecHitSoATypeDevice::ConstView::const_element rh,
                                         const typename CAL::ParameterType::ConstView params);
 
-    ALPAKA_FN_ACC static void ConstructPFRecHit(PFRecHitDeviceCollection::View::element pfrh,
-                                                const CaloRecHitDeviceCollection::ConstView::const_element rh);
+    ALPAKA_FN_ACC static void ConstructPFRecHit(
+        PFRecHitDeviceCollection::View::element pfrh,
+        const typename CAL::CaloRecHitSoATypeDevice::ConstView::const_element rh);
   };
 
   template <>
   ALPAKA_FN_ACC bool PFRecHitProducerKernelImpl1<HCAL>::ApplyCuts(
-      const CaloRecHitDeviceCollection::ConstView::const_element rh, const HCAL::ParameterType::ConstView params) {
+      const typename HCAL::CaloRecHitSoATypeDevice::ConstView::const_element rh,
+      const HCAL::ParameterType::ConstView params) {
     // Reject HCAL recHits below enery threshold
     float threshold = 9999.;
     const uint32_t detId = rh.detId();
@@ -63,7 +65,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <>
   ALPAKA_FN_ACC bool PFRecHitProducerKernelImpl1<ECAL>::ApplyCuts(
-      const CaloRecHitDeviceCollection::ConstView::const_element rh, const ECAL::ParameterType::ConstView params) {
+      const ECAL::CaloRecHitSoATypeDevice::ConstView::const_element rh, const ECAL::ParameterType::ConstView params) {
     // Reject ECAL recHits below energy threshold
     if (rh.energy() < params.energyThresholds()[ECAL::detId2denseId(rh.detId())])
       return false;
@@ -79,7 +81,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <>
   ALPAKA_FN_ACC void PFRecHitProducerKernelImpl1<HCAL>::ConstructPFRecHit(
-      PFRecHitDeviceCollection::View::element pfrh, const CaloRecHitDeviceCollection::ConstView::const_element rh) {
+      PFRecHitDeviceCollection::View::element pfrh, const HCAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
     pfrh.detId() = rh.detId();
     pfrh.energy() = rh.energy();
     pfrh.time() = rh.time();
@@ -95,7 +97,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <>
   ALPAKA_FN_ACC void PFRecHitProducerKernelImpl1<ECAL>::ConstructPFRecHit(
-      PFRecHitDeviceCollection::View::element pfrh, const CaloRecHitDeviceCollection::ConstView::const_element rh) {
+      PFRecHitDeviceCollection::View::element pfrh, const ECAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
     pfrh.detId() = rh.detId();
     pfrh.energy() = rh.energy();
     pfrh.time() = rh.time();
@@ -165,7 +167,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename CAL>
   void PFRecHitProducerKernel<CAL>::processRecHits(Queue& queue,
-                                                   const CaloRecHitDeviceCollection& recHits,
+                                                   const typename CAL::CaloRecHitSoATypeDevice& recHits,
                                                    const typename CAL::ParameterType& params,
                                                    PFRecHitDeviceCollection& pfRecHits) {
     alpaka::exec<Acc1D>(queue,

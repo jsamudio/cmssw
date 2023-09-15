@@ -7,14 +7,16 @@
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/HcalDetId/interface/HcalSubdetector.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
+#include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
+#include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
+#include "DataFormats/ParticleFlowReco/interface/CaloRecHitHostCollection.h"
+#include "DataFormats/ParticleFlowReco/interface/alpaka/CaloRecHitDeviceCollection.h"
 
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsRecord.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitParamsDeviceCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitTopologyRecord.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitTopologyHostCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitTopologyDeviceCollection.h"
-#include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
-#include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   namespace ParticleFlowRecHitProducerAlpaka {
@@ -27,6 +29,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // structs to be used as template arguments
     struct HCAL {
       using CaloRecHitType = HBHERecHit;
+      using CaloRecHitSoATypeHost = reco::CaloRecHitHostCollection;
+      using CaloRecHitSoATypeDevice = CaloRecHitDeviceCollection;
       using ParameterType = PFRecHitHCALParamsDeviceCollection;
       using ParameterRecordType = PFRecHitHCALParamsRecord;
       using TopologyTypeHost = reco::PFRecHitHCALTopologyHostCollection;
@@ -115,6 +119,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     struct ECAL {
       using CaloRecHitType = EcalRecHit;
+      using CaloRecHitSoATypeHost = reco::CaloRecHitHostCollection;
+      using CaloRecHitSoATypeDevice = CaloRecHitDeviceCollection;
       using ParameterType = PFRecHitECALParamsDeviceCollection;
       using ParameterRecordType = PFRecHitECALParamsRecord;
       using TopologyTypeHost = reco::PFRecHitECALTopologyHostCollection;

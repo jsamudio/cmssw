@@ -65,7 +65,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   private:
     const device::ESGetToken<typename CAL::TopologyTypeDevice, typename CAL::TopologyRecordType> topologyToken_;
-    std::vector<std::pair<device::EDGetToken<CaloRecHitDeviceCollection>,
+    std::vector<std::pair<device::EDGetToken<typename CAL::CaloRecHitSoATypeDevice>,
                           device::ESGetToken<typename CAL::ParameterType, typename CAL::ParameterRecordType>>>
         recHitsToken_;
     const device::EDPutToken<PFRecHitDeviceCollection> pfRecHitsToken_;

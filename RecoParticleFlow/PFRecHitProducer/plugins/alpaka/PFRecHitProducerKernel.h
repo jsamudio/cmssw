@@ -3,7 +3,6 @@
 
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitDeviceCollection.h"
-#include "DataFormats/ParticleFlowReco/interface/alpaka/CaloRecHitDeviceCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -17,7 +16,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     // Run kernel: apply filters to rec hits and construct PF rec hits
     void processRecHits(Queue& queue,
-                        const CaloRecHitDeviceCollection& recHits,
+                        const typename CAL::CaloRecHitSoATypeDevice& recHits,
                         const typename CAL::ParameterType& params,
                         PFRecHitDeviceCollection& pfRecHits);
 
