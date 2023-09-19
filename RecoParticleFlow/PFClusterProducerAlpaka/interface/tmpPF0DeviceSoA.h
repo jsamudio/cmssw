@@ -34,6 +34,7 @@ namespace reco {
                       SOA_SCALAR(int, nRHFracs_tmp),
                       SOA_SCALAR(int, nRHFracs),
                       SOA_COLUMN(int, rhIdxToSeedIdx),
+                      SOA_COLUMN(bool, processedTopo),
                       SOA_COLUMN(float, pcrh_fracSum))
 
   using tmpPFDeviceSoA1 = tmpPFDeviceSoA1Layout<>;

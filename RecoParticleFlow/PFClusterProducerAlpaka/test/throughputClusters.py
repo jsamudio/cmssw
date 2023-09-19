@@ -49,10 +49,10 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/data/user/jsamudio/gpudev/clusterAlpaka/CMSSW_13_0_8/src/hcal_recHits.root'),
+    #fileNames = cms.untracked.vstring('file:/data/user/jsamudio/gpudev/clusterAlpaka/CMSSW_13_0_8/src/hcal_recHits.root'),
     #fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits_uncompressed.root'),
     #fileNames = cms.untracked.vstring([
-    #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root',
+    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root'),
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/d277bd98-70fb-4c08-8e71-f3ac28259d61.root',
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/bc91bc89-ebeb-4640-8e72-db53d3877580.root',
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/29b546e5-5174-4d0c-8651-1ca8281386e4.root',
@@ -241,7 +241,7 @@ process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
 )
 
 process.hltParticleFlowClusterLegacy = process.hltParticleFlowClusterHBHE.clone()
-process.hltParticleFlowClusterLegacy.pfClusterBuilder.maxIterations = 50
+process.hltParticleFlowClusterLegacy.pfClusterBuilder.maxIterations = 5
 
 #####################################
 ##    Alpaka PFRecHit producer     ##
@@ -333,7 +333,7 @@ if backend != "legacy":
             ),
 
             pfClusterBuilder = cms.PSet(
-               maxIterations = cms.uint32(50),
+               maxIterations = cms.uint32(5),
                minFracTot = cms.double(1e-20),
                minFractionToKeep = cms.double(1e-7),
                excludeOtherSeeds = cms.bool(True),
@@ -399,7 +399,7 @@ if backend != "legacy":
                                                             initialClusteringStep = process.hltParticleFlowClusterHBHE.initialClusteringStep,
                                                             synchronise = cms.bool(args.synchronise))
     process.hltParticleFlowPFClusterAlpaka.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
-    process.hltParticleFlowPFClusterAlpaka.pfClusterBuilder.maxIterations = 50
+    process.hltParticleFlowPFClusterAlpaka.pfClusterBuilder.maxIterations = 5
 
 #
 # Additional customization
@@ -417,21 +417,21 @@ process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop *_*_*_*'
 
 # Path/sequence definitions
 if backend == "legacy":
-    #path = process.hltHcalDigis
-    #path += process.hltHbherecoLegacy
+    path = process.hltHcalDigis
+    path += process.hltHbherecoLegacy
     path = process.hltParticleFlowRecHitHBHE
     path += process.hltParticleFlowClusterLegacy
     for i in range(1, args.iterations):
         n = "hltParticleFlowRecHitHBHE%02d" % i
         setattr(process, n, process.hltParticleFlowRecHitHBHE.clone())
         path += getattr(process, n)
-        #m = "hltParticleFlowClusterHBHE%02d" % i
-        #setattr(process, m, process.hltParticleFlowClusterHBHE.clone())
-        #path += getattr(process, m)
+        m = "hltParticleFlowClusterHBHE%02d" % i
+        setattr(process, m, process.hltParticleFlowClusterHBHE.clone())
+        path += getattr(process, m)
     process.HBHEPFCPUGPUTask = cms.Path(path)
 else:
-    #path = process.hltHcalDigis
-    #path += process.hltHbherecoLegacy
+    path = process.hltHcalDigis
+    path += process.hltHbherecoLegacy
     path = process.hltParticleFlowRecHitToSoA      # Convert legacy CaloRecHits to SoA and copy to device
     path += process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     path += process.hltParticleFlowPFClusterAlpaka
@@ -439,9 +439,9 @@ else:
         n = "hltParticleFlowPFRecHitAlpaka%02d" % i
         setattr(process, n, process.hltParticleFlowPFRecHitAlpaka.clone())
         path += getattr(process, n)
-        #m = "hltParticleFlowPFClusterAlpaka%02d" % i
-        #setattr(process, m, process.hltParticleFlowPFClusterAlpaka.clone())
-        #path += getattr(process, m)
+        m = "hltParticleFlowPFClusterAlpaka%02d" % i
+        setattr(process, m, process.hltParticleFlowPFClusterAlpaka.clone())
+        path += getattr(process, m)
     process.HBHEPFCPUGPUTask = cms.Path(path)
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])

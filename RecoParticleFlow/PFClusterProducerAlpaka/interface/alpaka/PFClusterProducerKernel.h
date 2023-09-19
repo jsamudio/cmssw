@@ -35,20 +35,22 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
 
   private:
-    PFClusterProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t>&&,
+    PFClusterProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t>&&/*,
+                            cms::alpakatools::host_buffer<uint32_t>&&,
                             cms::alpakatools::device_buffer<Device, float4[]>&&,
                             cms::alpakatools::device_buffer<Device, float4[]>&&,
                             cms::alpakatools::device_buffer<Device, float[]>&&,
                             cms::alpakatools::device_buffer<Device, float[]>&&,
                             cms::alpakatools::device_buffer<Device, int[]>&&,
-                            cms::alpakatools::device_buffer<Device, int[]>&&);
+                            cms::alpakatools::device_buffer<Device, int[]>&&*/);
     cms::alpakatools::device_buffer<Device, uint32_t> nSeeds;
-    cms::alpakatools::device_buffer<Device, float4[]> globalClusterPos;
+    //cms::alpakatools::host_buffer<uint32_t> nTopos;
+    /*cms::alpakatools::device_buffer<Device, float4[]> globalClusterPos;
     cms::alpakatools::device_buffer<Device, float4[]> globalPrevClusterPos;
     cms::alpakatools::device_buffer<Device, float[]> globalClusterEnergy;
     cms::alpakatools::device_buffer<Device, float[]> globalRhFracSum;
     cms::alpakatools::device_buffer<Device, int[]> globalSeeds;
-    cms::alpakatools::device_buffer<Device, int[]> globalRechits;
+    cms::alpakatools::device_buffer<Device, int[]> globalRechits;*/
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
