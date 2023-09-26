@@ -30,7 +30,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const PFRecHitHBHETopologyAlpakaESDataDevice& topology = setup.getData(topologyToken);
       const CaloRecHitDeviceCollection& recHits = event.get(recHitsToken);
       const int num_recHits = recHits->metadata().size();
-      std::cout << "num_recHits: " << num_recHits << std::endl;
       PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
 
       if (!kernel)

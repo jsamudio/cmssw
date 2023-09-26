@@ -736,9 +736,9 @@ namespace PFClusterCudaHCAL {
       gridStride = blockDim.x;
       iter = 0;
       notDone = true;
-      //debug = false;
+      debug = false;
       //debug = true;
-      debug = (nSeeds == 62) ? true : false;
+      //debug = (nSeeds == 62) ? true : false;
       //debug = (nSeeds == 2 && ( (topoSeedList[topoSeedBegin]==11 && topoSeedList[topoSeedBegin+1]==5) || (topoSeedList[topoSeedBegin]==5 && topoSeedList[topoSeedBegin+1]==11) )) ? true : false;
       //debug = (topoId == 432 || topoId == 438 || topoId == 439) ? true : false;
       //debug = (topoId == 1 || topoId == 5 || topoId == 6 || topoId == 8 || topoId == 9 || topoId == 10 || topoId == 12 || topoId == 13) ? true : false;
@@ -1258,7 +1258,8 @@ namespace PFClusterCudaHCAL {
     __shared__ int topoId, nRHTopo, nSeeds;
 
     if (threadIdx.x == 0) {
-      topoId = topoIds[blockIdx.x];
+      //topoId = topoIds[blockIdx.x];
+      topoId = blockIdx.x;
       nRHTopo = topoRHCount[topoId];
       nSeeds = topoSeedCount[topoId];
     }
@@ -1982,7 +1983,7 @@ namespace PFClusterCudaHCAL {
 
     // grid -> topo cluster
     // thread -> pfrechits in each topo cluster
-    hcalFastCluster_selection<<<nTopos_h, threadsPerBlockForClustering, sharedMem, cudaStream>>>(
+    hcalFastCluster_selection<<<nRH, threadsPerBlockForClustering, sharedMem, cudaStream>>>(
         pfClusParams.const_view(),
         nRH,
         HBHEPFRecHits_asInput.pfrh_x.get(),

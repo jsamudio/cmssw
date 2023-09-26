@@ -59,6 +59,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
       //auto pfRecHits = event.getHandle(InputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
+      std::cout << "nRH: " << nRH << std::endl;
 
       tmpPF0DeviceCollection tmp0{nRH + 1, event.queue()};
       tmpPF1DeviceCollection tmp1{(nRH * 8) + 1, event.queue()};

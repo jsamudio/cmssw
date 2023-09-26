@@ -49,10 +49,10 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    #fileNames = cms.untracked.vstring('file:/data/user/jsamudio/gpudev/clusterAlpaka/CMSSW_13_0_8/src/hcal_recHits.root'),
+    fileNames = cms.untracked.vstring('file:/data/user/jsamudio/gpudev/clusterAlpaka/CMSSW_13_0_8/src/hcal_recHits.root'),
     #fileNames = cms.untracked.vstring('file:/data/user/florkows/hcal_recHits_uncompressed.root'),
     #fileNames = cms.untracked.vstring([
-    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root'),
+    #fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root'),
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/d277bd98-70fb-4c08-8e71-f3ac28259d61.root',
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/bc91bc89-ebeb-4640-8e72-db53d3877580.root',
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/29b546e5-5174-4d0c-8651-1ca8281386e4.root',
@@ -417,8 +417,8 @@ process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop *_*_*_*'
 
 # Path/sequence definitions
 if backend == "legacy":
-    path = process.hltHcalDigis
-    path += process.hltHbherecoLegacy
+    #path = process.hltHcalDigis
+    #path += process.hltHbherecoLegacy
     path = process.hltParticleFlowRecHitHBHE
     path += process.hltParticleFlowClusterLegacy
     for i in range(1, args.iterations):
@@ -430,8 +430,8 @@ if backend == "legacy":
         path += getattr(process, m)
     process.HBHEPFCPUGPUTask = cms.Path(path)
 else:
-    path = process.hltHcalDigis
-    path += process.hltHbherecoLegacy
+    #path = process.hltHcalDigis
+    #path += process.hltHbherecoLegacy
     path = process.hltParticleFlowRecHitToSoA      # Convert legacy CaloRecHits to SoA and copy to device
     path += process.hltParticleFlowPFRecHitAlpaka  # Construct PFRecHits on device
     path += process.hltParticleFlowPFClusterAlpaka

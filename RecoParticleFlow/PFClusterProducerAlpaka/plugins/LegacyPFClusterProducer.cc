@@ -97,7 +97,6 @@ void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& 
   auto const& alpakaPfRhFrac = fractionSoA.const_view();
 
   nRH = pfRecHits.view().size();
-  std::cout << "size: " << nRH << std::endl;
   //auto out = std::make_unique<reco::PFClusterCollection>();
   reco::PFClusterCollection out;
   out.reserve(nRH);
