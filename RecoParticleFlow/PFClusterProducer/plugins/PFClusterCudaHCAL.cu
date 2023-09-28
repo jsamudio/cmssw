@@ -1258,8 +1258,8 @@ namespace PFClusterCudaHCAL {
     __shared__ int topoId, nRHTopo, nSeeds;
 
     if (threadIdx.x == 0) {
-      //topoId = topoIds[blockIdx.x];
-      topoId = blockIdx.x;
+      topoId = topoIds[blockIdx.x];
+      //topoId = blockIdx.x;
       nRHTopo = topoRHCount[topoId];
       nSeeds = topoSeedCount[topoId];
     }
@@ -1444,7 +1444,6 @@ namespace PFClusterCudaHCAL {
       *nRHFracs = totalSeedFracOffset;
       clusterView.nRHFracs() = totalSeedFracOffset;
       clusterView.nSeeds() = *nSeeds;
-      printf("nTopos at contraction == %d\n", *nTopos);
       if (*pcrhFracSize > 200000)  // Warning in case the fraction is too large
         printf("At the end of topoClusterContraction, found large *pcrhFracSize = %d\n", *pcrhFracSize);
     }
@@ -1684,7 +1683,6 @@ namespace PFClusterCudaHCAL {
                                     int* pfrh_parent) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
       *nEdges = nRH * 8;
-      printf("nedges == %d\n nRH == %d", *nEdges, nRH);
       pfrh_edgeIdx[nRH] = nRH * 8;
     }
 
@@ -1983,7 +1981,7 @@ namespace PFClusterCudaHCAL {
 
     // grid -> topo cluster
     // thread -> pfrechits in each topo cluster
-    hcalFastCluster_selection<<<nRH, threadsPerBlockForClustering, sharedMem, cudaStream>>>(
+    hcalFastCluster_selection<<<nTopos_h, threadsPerBlockForClustering, sharedMem, cudaStream>>>(
         pfClusParams.const_view(),
         nRH,
         HBHEPFRecHits_asInput.pfrh_x.get(),

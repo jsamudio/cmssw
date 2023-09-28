@@ -153,10 +153,6 @@ void PFClusterProducerCudaHCAL::acquire(edm::Event const& event,
   auto cudaStream = ctx.stream();
 
   nRH_ = PFRecHits.size;
-  if (nRH_ == 0)
-    return;
-  if (nRH_ > 4000)
-    std::cout << "nRH(PFRecHitSize)>4000: " << nRH_ << std::endl;
 
   // Allocate outputGPU & scratchGPU data
   scratchGPU.allocate(cudaConfig_, nRH_, cudaStream);
@@ -202,7 +198,6 @@ void PFClusterProducerCudaHCAL::produce(edm::Event& event, const edm::EventSetup
     for (int i = 0; i < multiCollCPU.view<0>().nSeeds(); i++) {
       seedlist1.push_back(multiCollCPU.view<0>()[i].pfc_seedRHIdx());
     }
-    printf("nSeeds: %d\n", multiCollCPU.view<0>().nSeeds());
 
     // Build PFClusters in legacy format
     std::unordered_map<int, int> nTopoSeeds;

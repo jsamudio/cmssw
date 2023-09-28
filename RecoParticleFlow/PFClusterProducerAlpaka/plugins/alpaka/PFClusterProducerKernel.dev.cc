@@ -1178,10 +1178,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     //auto& clusterPos = alpaka::declareSharedVar<float4[1000], __COUNTER__>(acc);
     //auto& prevClusterPos = alpaka::declareSharedVar<float4[1000], __COUNTER__>(acc);
-    //auto& clusterEnergy = alpaka::declareSharedVar<float[100], __COUNTER__>(acc);
-    //auto& rhFracSum = alpaka::declareSharedVar<float[100], __COUNTER__>(acc);
-    //auto& seeds = alpaka::declareSharedVar<int[100], __COUNTER__>(acc);
-    //auto& rechits = alpaka::declareSharedVar<int[100], __COUNTER__>(acc);
+    auto& clusterEnergy = alpaka::declareSharedVar<float[1000], __COUNTER__>(acc);
+    auto& rhFracSum = alpaka::declareSharedVar<float[1000], __COUNTER__>(acc);
+    auto& seeds = alpaka::declareSharedVar<int[1000], __COUNTER__>(acc);
+    auto& rechits = alpaka::declareSharedVar<int[1000], __COUNTER__>(acc);
     // alpaka::trait::BlockSharedMemDynSizeBytes
     //float4 * sharedArr = alpaka::getDynSharedMem<float4>(acc);
 
@@ -1195,10 +1195,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     int blockIdx = 1000 * alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u];
     float4* clusterPos = &globalClusterPos[blockIdx];
     float4* prevClusterPos = &globalPrevClusterPos[blockIdx];
-    float* clusterEnergy = &globalClusterEnergy[blockIdx];
-    float* rhFracSum = &globalRhFracSum[blockIdx];
-    int* seeds = &globalSeeds[blockIdx];
-    int* rechits = &globalRechits[blockIdx];
+    //float* clusterEnergy = &globalClusterEnergy[blockIdx];
+    //float* rhFracSum = &globalRhFracSum[blockIdx];
+    //int* seeds = &globalSeeds[blockIdx];
+    //int* rechits = &globalRechits[blockIdx];
 
     alpaka::syncBlockThreads(acc);
 
@@ -1464,11 +1464,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // int* seeds = (int*)&rhFracSum[nRHTopo - nSeeds];         //nSeeds
     // int* rechits = (int*)&seeds[nSeeds];                     //nRHTopo - nSeeds
 
-    auto& clusterPos = alpaka::declareSharedVar<float4[400], __COUNTER__>(acc);
-    auto& prevClusterPos = alpaka::declareSharedVar<float4[400], __COUNTER__>(acc);
-    auto& clusterEnergy = alpaka::declareSharedVar<float[400], __COUNTER__>(acc);
+    auto& clusterPos = alpaka::declareSharedVar<float4[300], __COUNTER__>(acc);
+    auto& prevClusterPos = alpaka::declareSharedVar<float4[300], __COUNTER__>(acc);
+    auto& clusterEnergy = alpaka::declareSharedVar<float[300], __COUNTER__>(acc);
     auto& rhFracSum = alpaka::declareSharedVar<float[1500], __COUNTER__>(acc);
-    auto& seeds = alpaka::declareSharedVar<int[400], __COUNTER__>(acc);
+    auto& seeds = alpaka::declareSharedVar<int[300], __COUNTER__>(acc);
     auto& rechits = alpaka::declareSharedVar<int[1500], __COUNTER__>(acc);
 
     if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
@@ -2035,10 +2035,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         //cms::alpakatools::make_host_buffer<uint32_t>(queue),
         cms::alpakatools::make_device_buffer<float4[]>(queue, 3000*1000),
         cms::alpakatools::make_device_buffer<float4[]>(queue, 3000*1000),
-        cms::alpakatools::make_device_buffer<float[]>(queue, 3000*1000),
-        cms::alpakatools::make_device_buffer<float[]>(queue, 3000*1000),
-        cms::alpakatools::make_device_buffer<int[]>(queue, 3000*1000),
-        cms::alpakatools::make_device_buffer<int[]>(queue, 3000*1000)};
+        cms::alpakatools::make_device_buffer<float[]>(queue, 1),
+        cms::alpakatools::make_device_buffer<float[]>(queue, 1),
+        cms::alpakatools::make_device_buffer<int[]>(queue, 1),
+        cms::alpakatools::make_device_buffer<int[]>(queue, 1)};
   }
 
   void PFClusterProducerKernel::execute(const Device& device,
