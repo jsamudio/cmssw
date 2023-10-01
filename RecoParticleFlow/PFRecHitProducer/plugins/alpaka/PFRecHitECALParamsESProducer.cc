@@ -9,7 +9,7 @@
 #include <array>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducerAlpaka;
+  using namespace ParticleFlowRecHitProducer;
 
   class PFRecHitECALParamsESProducer : public ESProducer {
   public:
@@ -20,7 +20,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      desc.add<std::string>("appendToDataLabel", "");
       descriptions.addWithDefaultLabel(desc);
     }
 

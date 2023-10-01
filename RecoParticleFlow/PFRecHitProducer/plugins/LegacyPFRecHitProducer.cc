@@ -37,16 +37,15 @@ private:
   const edm::EDPutTokenT<reco::PFRecHitCollection> legacyPfRecHitsToken_;
 
   edm::ESGetToken<CaloGeometry, CaloGeometryRecord> geomToken_;
-  edm::ESHandle<CaloGeometry> geoHandle_;
   std::unordered_map<PFLayer::Layer, const CaloSubdetectorGeometry*> caloGeo_;
 };
 
 void LegacyPFRecHitProducer::beginRun(edm::Run const&, const edm::EventSetup& setup) {
-  geoHandle_ = setup.getHandle(geomToken_);
-  caloGeo_[PFLayer::HCAL_BARREL1] = geoHandle_->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalBarrel);
-  caloGeo_[PFLayer::HCAL_ENDCAP] = geoHandle_->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalEndcap);
-  caloGeo_[PFLayer::ECAL_BARREL] = geoHandle_->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalBarrel);
-  caloGeo_[PFLayer::ECAL_ENDCAP] = geoHandle_->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalEndcap);
+  edm::ESHandle<CaloGeometry> geoHandle = setup.getHandle(geomToken_);
+  caloGeo_[PFLayer::HCAL_BARREL1] = geoHandle->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalBarrel);
+  caloGeo_[PFLayer::HCAL_ENDCAP] = geoHandle->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalEndcap);
+  caloGeo_[PFLayer::ECAL_BARREL] = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalBarrel);
+  caloGeo_[PFLayer::ECAL_ENDCAP] = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalEndcap);
 }
 
 void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& setup) {

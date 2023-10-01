@@ -1,25 +1,24 @@
-#include "HeterogeneousCore/AlpakaCore/interface/alpaka/stream/EDProducer.h"
+#include "HeterogeneousCore/AlpakaCore/interface/alpaka/global/EDProducer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
-#include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-#include "RecoParticleFlow/PFRecHitProducer/plugins/alpaka/PFRecHitProducerKernel.h"
+#include "PFRecHitProducerKernel.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
 
 #include <utility>
 #include <vector>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducerAlpaka;
+  using namespace ParticleFlowRecHitProducer;
 
   template <typename CAL>
-  class PFRecHitProducerAlpaka : public stream::EDProducer<> {
+  class PFRecHitProducerAlpaka : public global::EDProducer<> {
   public:
     PFRecHitProducerAlpaka(edm::ParameterSet const& config)
         : topologyToken_(esConsumes(config.getParameter<edm::ESInputTag>("topology"))),
           pfRecHitsToken_(produces()),
-          synchronise_(config.getParameter<bool>("synchronise")) {
+          synchronise_(config.getUntrackedParameter<bool>("synchronise")) {
       const std::vector<edm::ParameterSet> producers = config.getParameter<std::vector<edm::ParameterSet>>("producers");
       recHitsToken_.reserve(producers.size());
       for (const edm::ParameterSet& producer : producers) {
@@ -28,7 +27,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
     }
 
-    void produce(device::Event& event, const device::EventSetup& setup) override {
+    void produce(edm::StreamID, device::Event& event, const device::EventSetup& setup) const override {
       const typename CAL::TopologyTypeDevice& topology = setup.getData(topologyToken_);
 
       int num_recHits = 0;
@@ -37,13 +36,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
 
-      if (!kernel_)
-        kernel_.emplace(event.queue());
-
-      kernel_->prepareEvent(event.queue(), num_recHits);
+      PFRecHitProducerKernel<CAL> kernel{event.queue()};
+      kernel.prepareEvent(event.queue(), num_recHits);
       for (const auto& token : recHitsToken_)
-        kernel_->processRecHits(event.queue(), event.get(token.first), setup.getData(token.second), pfRecHits);
-      kernel_->associateTopologyInfo(event.queue(), topology, pfRecHits);
+        kernel.processRecHits(event.queue(), event.get(token.first), setup.getData(token.second), pfRecHits);
+      kernel.associateTopologyInfo(event.queue(), topology, pfRecHits);
 
       if (synchronise_)
         alpaka::wait(event.queue());
@@ -58,7 +55,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       producers.add<edm::ESInputTag>("params")->setComment("Quality cut parameters");
       desc.addVPSet("producers", producers)->setComment("List of inputs and quality cuts");
       desc.add<edm::ESInputTag>("topology")->setComment("Topology information");
-      desc.add<bool>("synchronise", false)
+      desc.addUntracked<bool>("synchronise", false)
           ->setComment("Add synchronisation point after execution (for benchmarking asynchronous execution)");
       descriptions.addWithDefaultLabel(desc);
     }
@@ -70,7 +67,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         recHitsToken_;
     const device::EDPutToken<PFRecHitDeviceCollection> pfRecHitsToken_;
     const bool synchronise_;
-    std::optional<PFRecHitProducerKernel<CAL>> kernel_ = {};
   };
 
   using PFRecHitProducerAlpakaHCAL = PFRecHitProducerAlpaka<HCAL>;

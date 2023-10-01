@@ -3,7 +3,6 @@
   <use name="FWCore/ParameterSet"/>
   <use name="FWCore/Utilities"/>
   <use name="alpaka"/>
-  <use name="HeterogeneousCore/AlpakaTest"/>
   <use name="DataFormats/Common"/>
   <use name="DataFormats/ParticleFlowReco"/>
   <use name="CommonTools/ParticleFlow"/>

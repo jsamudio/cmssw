@@ -8,7 +8,7 @@
 #include <array>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducerAlpaka;
+  using namespace ParticleFlowRecHitProducer;
 
   class PFRecHitHCALParamsESProducer : public ESProducer {
   public:
@@ -21,7 +21,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      desc.add<std::string>("appendToDataLabel", "");
       desc.add<std::vector<double>>("energyThresholdsHB", {0.1, 0.2, 0.3, 0.3});
       desc.add<std::vector<double>>("energyThresholdsHE", {0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
       descriptions.addWithDefaultLabel(desc);

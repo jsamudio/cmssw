@@ -3,13 +3,15 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 
-#include "RecoParticleFlow/PFRecHitProducer/plugins/alpaka/PFRecHitProducerKernel.h"
+#include "PFRecHitProducerKernel.h"
+
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducerAlpaka;
+  using namespace ParticleFlowRecHitProducer;
 
+  // Kernel to apply cuts to calorimeter hits and construct PFRecHits
   template <typename CAL>
-  struct PFRecHitProducerKernelImpl1 {
+  struct PFRecHitProducerKernelConstruct {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const typename CAL::ParameterType::ConstView params,
@@ -20,32 +22,32 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       // Strided loop over CaloRecHits
       for (int32_t i : cms::alpakatools::elements_with_stride(acc, recHits.metadata().size())) {
         // Check energy thresholds/quality cuts (specialised for HCAL/ECAL)
-        if (!ApplyCuts(recHits[i], params))
+        if (!applyCuts(recHits[i], params))
           continue;
 
-        // Use the appropriate synchronisation for the kernel layout
-        const uint32_t j = cms::alpakatools::requires_single_thread_per_block_v<Acc1D>
-                               ? alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Blocks{})
-                               : alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Grids{});
+        // Use atomic operation to determine index of the PFRecHit to be constructed
+	// The index needs to be unique and consequtive across all threads in all blocks.
+	// This is achieved using the alpaka::hierarchy::Blocks argument.
+        const uint32_t j = alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Blocks{});
 
         // Construct PFRecHit from CAL recHit (specialised for HCAL/ECAL)
-        ConstructPFRecHit(pfRecHits[j], recHits[i]);
+        constructPFRecHit(pfRecHits[j], recHits[i]);
 
         // Fill denseId -> pfRecHit index map
         denseId2pfRecHit[CAL::detId2denseId(pfRecHits.detId(j))] = j;
       }
     }
 
-    ALPAKA_FN_ACC static bool ApplyCuts(const typename CAL::CaloRecHitSoATypeDevice::ConstView::const_element rh,
+    ALPAKA_FN_ACC static bool applyCuts(const typename CAL::CaloRecHitSoATypeDevice::ConstView::const_element rh,
                                         const typename CAL::ParameterType::ConstView params);
 
-    ALPAKA_FN_ACC static void ConstructPFRecHit(
+    ALPAKA_FN_ACC static void constructPFRecHit(
         PFRecHitDeviceCollection::View::element pfrh,
         const typename CAL::CaloRecHitSoATypeDevice::ConstView::const_element rh);
   };
 
   template <>
-  ALPAKA_FN_ACC bool PFRecHitProducerKernelImpl1<HCAL>::ApplyCuts(
+  ALPAKA_FN_ACC bool PFRecHitProducerKernelConstruct<HCAL>::applyCuts(
       const typename HCAL::CaloRecHitSoATypeDevice::ConstView::const_element rh,
       const HCAL::ParameterType::ConstView params) {
     // Reject HCAL recHits below enery threshold
@@ -64,7 +66,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template <>
-  ALPAKA_FN_ACC bool PFRecHitProducerKernelImpl1<ECAL>::ApplyCuts(
+  ALPAKA_FN_ACC bool PFRecHitProducerKernelConstruct<ECAL>::applyCuts(
       const ECAL::CaloRecHitSoATypeDevice::ConstView::const_element rh, const ECAL::ParameterType::ConstView params) {
     // Reject ECAL recHits below energy threshold
     if (rh.energy() < params.energyThresholds()[ECAL::detId2denseId(rh.detId())])
@@ -80,7 +82,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template <>
-  ALPAKA_FN_ACC void PFRecHitProducerKernelImpl1<HCAL>::ConstructPFRecHit(
+  ALPAKA_FN_ACC void PFRecHitProducerKernelConstruct<HCAL>::constructPFRecHit(
       PFRecHitDeviceCollection::View::element pfrh, const HCAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
     pfrh.detId() = rh.detId();
     pfrh.energy() = rh.energy();
@@ -96,7 +98,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   template <>
-  ALPAKA_FN_ACC void PFRecHitProducerKernelImpl1<ECAL>::ConstructPFRecHit(
+  ALPAKA_FN_ACC void PFRecHitProducerKernelConstruct<ECAL>::constructPFRecHit(
       PFRecHitDeviceCollection::View::element pfrh, const ECAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
     pfrh.detId() = rh.detId();
     pfrh.energy() = rh.energy();
@@ -111,8 +113,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       pfrh.layer() = PFLayer::NONE;
   }
 
+  // Kernel to associate topology information of PFRecHits
   template <typename CAL>
-  struct PFRecHitProducerKernelImpl2 {
+  struct PFRecHitProducerKernelTopology {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const typename CAL::TopologyTypeDevice::ConstView topology,
@@ -155,13 +158,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::memset(queue, denseId2pfRecHit_, 0xff);  // Reset denseId -> pfRecHit index map
     alpaka::memset(queue, num_pfRecHits_, 0x00);     // Reset global pfRecHit counter
 
-    // Use only one block on the synchronous CPU backend, because there is no
-    // performance gain in using multiple blocks, but there is a significant
-    // penalty due to the more complex synchronisation.
     const uint32_t items = 64;
-    const uint32_t groups = cms::alpakatools::requires_single_thread_per_block_v<Acc1D>
-                                ? 1
-                                : cms::alpakatools::divide_up_by(num_recHits, items);
+    const uint32_t groups = cms::alpakatools::divide_up_by(num_recHits, items);
     work_div_ = cms::alpakatools::make_workdiv<Acc1D>(groups, items);
   }
 
@@ -172,7 +170,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                    PFRecHitDeviceCollection& pfRecHits) {
     alpaka::exec<Acc1D>(queue,
                         work_div_,
-                        PFRecHitProducerKernelImpl1<CAL>{},
+                        PFRecHitProducerKernelConstruct<CAL>{},
                         params.view(),
                         recHits.view(),
                         pfRecHits.view(),
@@ -186,7 +184,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                           PFRecHitDeviceCollection& pfRecHits) {
     alpaka::exec<Acc1D>(queue,
                         work_div_,
-                        PFRecHitProducerKernelImpl2<CAL>{},
+                        PFRecHitProducerKernelTopology<CAL>{},
                         topology.view(),
                         pfRecHits.view(),
                         denseId2pfRecHit_.data(),

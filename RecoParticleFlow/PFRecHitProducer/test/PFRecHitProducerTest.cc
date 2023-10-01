@@ -19,23 +19,22 @@
 class PFRecHitProducerTest : public DQMEDAnalyzer {
 public:
   PFRecHitProducerTest(edm::ParameterSet const& conf);
-  ~PFRecHitProducerTest() override;
   void analyze(edm::Event const& e, edm::EventSetup const& c) override;
   void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override;
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+  void endStream() override;
 
 private:
   // Define generic types for token, handle and collection, such that origin of PFRecHits can be selected at runtime.
   // The idea is to read desired format from config (pfRecHitsType1/2) and construct token accordingly. Then use handle
-  // and collection corresponding to token type. Finally, construct GenericPFRecHits from each source, which are
-  // independent of the format. This way, this module can be used to validate any combination of legacy and
-  // Alpaka formats.
+  // and collection corresponding to token type. Finally, construct GenericPFRecHits from each source.
+  // This way, this module can be used to validate any combination of legacy and Alpaka formats.
+
   using LegacyToken = edm::EDGetTokenT<reco::PFRecHitCollection>;
   using AlpakaToken = edm::EDGetTokenT<reco::PFRecHitHostCollection>;
   using GenericPFRecHitToken = std::variant<LegacyToken, AlpakaToken>;
   using LegacyHandle = edm::Handle<reco::PFRecHitCollection>;
   using AlpakaHandle = edm::Handle<reco::PFRecHitHostCollection>;
-  using GenericHandle = std::variant<LegacyHandle, AlpakaHandle>;
   using LegacyCollection = const reco::PFRecHitCollection*;
   using AlpakaCollection = const reco::PFRecHitHostCollection::ConstView*;
   using GenericCollection = std::variant<LegacyCollection, AlpakaCollection>;
@@ -95,12 +94,12 @@ PFRecHitProducerTest::PFRecHitProducerTest(const edm::ParameterSet& conf)
       pfRecHitsTokens_[i].emplace<AlpakaToken>(consumes<AlpakaHandle::element_type>(input[i]));
     else {
       fprintf(stderr, "Invalid value for PFRecHitProducerTest::pfRecHitsType%d: \"%s\"\n", i + 1, type[i].c_str());
-      std::exit(1);
+      throw;
     }
   }
 }
 
-PFRecHitProducerTest::~PFRecHitProducerTest() {
+void PFRecHitProducerTest::endStream() {
   fprintf(stderr,
           "PFRecHitProducerTest%s%s%s has compared %u events and found %u problems: [%u, %u, %u, %u, %u]\n",
           title_.empty() ? "" : "[",
@@ -116,17 +115,12 @@ PFRecHitProducerTest::~PFRecHitProducerTest() {
 }
 
 void PFRecHitProducerTest::analyze(const edm::Event& event, const edm::EventSetup&) {
-  GenericHandle pfRecHitsHandles[2];
   GenericCollection pfRecHits[2];
   for (int i = 0; i < 2; i++)
     if (std::holds_alternative<LegacyToken>(pfRecHitsTokens_[i])) {
-      auto& handle = pfRecHitsHandles[i].emplace<LegacyHandle>();
-      event.getByToken(std::get<LegacyToken>(pfRecHitsTokens_[i]), handle);
-      pfRecHits[i].emplace<LegacyCollection>(&*handle);
+      pfRecHits[i].emplace<LegacyCollection>(&event.get(std::get<LegacyToken>(pfRecHitsTokens_[i])));
     } else {
-      auto& handle = pfRecHitsHandles[i].emplace<AlpakaHandle>();
-      event.getByToken(std::get<AlpakaToken>(pfRecHitsTokens_[i]), handle);
-      pfRecHits[i].emplace<AlpakaCollection>(&handle->const_view());
+      pfRecHits[i].emplace<AlpakaCollection>(&event.get(std::get<AlpakaToken>(pfRecHitsTokens_[i])).const_view());
     }
 
   int error = 0;

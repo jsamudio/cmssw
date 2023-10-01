@@ -17,7 +17,7 @@
 #include <variant>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducerAlpaka;
+  using namespace ParticleFlowRecHitProducer;
 
   template <typename CAL>
   class PFRecHitTopologyESProducer : public ESProducer {
@@ -31,7 +31,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      desc.add<std::string>("appendToDataLabel", "");
       descriptions.addWithDefaultLabel(desc);
     }
 
@@ -89,16 +88,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             }
           }
 
-      //// Print results (for debugging)
-      //for(const auto subdet : calEnums)
-      //  for (const auto detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
-      //    const uint32_t denseId = CAL::detId2denseId(detId);
-      //    printf("PFRecHitTopologyESProducer: detId:%u denseId:%u pos:%f,%f,%f neighbours:%d,%d,%d,%d;%d,%d,%d,%d\n",
-      //      (uint32_t)detId, denseId,
-      //      view[denseId].positionX(), view[denseId].positionY(), view[denseId].positionZ(),
-      //      view[denseId].neighbours()(0), view[denseId].neighbours()(1), view[denseId].neighbours()(2), view[denseId].neighbours()(3),
-      //      view[denseId].neighbours()(4), view[denseId].neighbours()(5), view[denseId].neighbours()(6), view[denseId].neighbours()(7));
-      //  }
+      // Print results (for debugging)
+      LogDebug("PFRecHitTopologyESProducer").log([&](auto& log){
+        for(const auto subdet : calEnums)
+          for (const auto detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
+            const uint32_t denseId = CAL::detId2denseId(detId);
+            log.format("detId:{} denseId:{} pos:{},{},{} neighbours:{},{},{},{};{},{},{},{}\n",
+              (uint32_t)detId, denseId,
+              view[denseId].positionX(), view[denseId].positionY(), view[denseId].positionZ(),
+              view[denseId].neighbours()(0), view[denseId].neighbours()(1), view[denseId].neighbours()(2), view[denseId].neighbours()(3),
+              view[denseId].neighbours()(4), view[denseId].neighbours()(5), view[denseId].neighbours()(6), view[denseId].neighbours()(7));
+          }
+      });
 
       return product;
     }

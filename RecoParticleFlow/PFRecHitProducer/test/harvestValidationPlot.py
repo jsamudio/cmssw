@@ -14,10 +14,7 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.StandardSequences.DQMSaverAtRunEnd_cff')
 
-process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(1),
-    output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
-)
+process.maxEvents.input = 1
 
 # Input source
 process.source = cms.Source("DQMRootSource",

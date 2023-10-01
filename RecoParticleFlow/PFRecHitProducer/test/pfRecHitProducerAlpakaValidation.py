@@ -279,7 +279,7 @@ if hcal:
             )
         ),
         topology = cms.ESInputTag("hltParticleFlowRecHitTopologyESProducer:"),
-        synchronise = cms.bool(args.synchronise)
+        synchronise = cms.untracked.bool(args.synchronise)
     )
 else:  # ecal
     process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpakaECAL",
@@ -294,7 +294,7 @@ else:  # ecal
             )
         ),
         topology = cms.ESInputTag("hltParticleFlowRecHitTopologyESProducer:"),
-        synchronise = cms.bool(args.synchronise)
+        synchronise = cms.untracked.bool(args.synchronise)
     )
 
 # Convert Alpaka PFRecHits to legacy format (for validation)

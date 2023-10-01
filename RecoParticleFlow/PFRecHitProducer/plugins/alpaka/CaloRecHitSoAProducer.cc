@@ -13,7 +13,7 @@
 #define DEBUG false
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducerAlpaka;
+  using namespace ParticleFlowRecHitProducer;
 
   template <typename CAL>
   class CaloRecHitSoAProducer : public global::EDProducer<> {

@@ -19,7 +19,7 @@
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitTopologyDeviceCollection.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  namespace ParticleFlowRecHitProducerAlpaka {
+  namespace ParticleFlowRecHitProducer {
     // Get subdetector encoded in detId to narrow the range of reference table values to search
     // https://cmssdt.cern.ch/lxr/source/DataFormats/DetId/interface/DetId.h#0048
     constexpr inline uint32_t getSubdet(uint32_t detId) {
@@ -113,7 +113,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           return detId2denseIdHE(detId);
 
         printf("invalid detId: %u\n", detId);
-        return -1;
+        return 0xffffffff;
       }
     };
 
@@ -235,7 +235,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       static constexpr uint32_t SIZE = BARREL::SIZE + ENDCAP::SIZE;  // maximum possible ECAL denseId (=75848)
     };
-  }  // namespace ParticleFlowRecHitProducerAlpaka
+  }  // namespace ParticleFlowRecHitProducer
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #endif
