@@ -99,8 +99,14 @@ process.pfHBHEGPUComparisonTask_HLT = DQMEDAnalyzer("PFCaloGPUComparisonTask",
                                                     pfClusterToken_target = cms.untracked.InputTag('hltParticleFlowAlpakaToLegacyPFClusters'),
                                                     pfCaloGPUCompDir = cms.untracked.string("pfClusterHBHEGPUHLTv")
 )
+process.pfHCALGPUComparisonTask_HLT = DQMEDAnalyzer("PFCaloGPUComparisonTask",
+                                                    pfClusterToken_ref = cms.untracked.InputTag('hltParticleFlowClusterHCAL'),
+                                                    pfClusterToken_target = cms.untracked.InputTag('hltParticleFlowClusterAlpakaHCAL'),
+                                                    pfCaloGPUCompDir = cms.untracked.string("pfClusterHBHEGPUHLTv")
+)
 process.pfGPUSequence_HLT = cms.Sequence(
-    process.pfHBHEGPUComparisonTask_HLT
+    #process.pfHBHEGPUComparisonTask_HLT
+    process.pfHCALGPUComparisonTask_HLT
 )
 process.dqmhlt_step = cms.EndPath(process.pfGPUSequence_HLT)
 process.DQMoutput_step = cms.EndPath(process.DQMoutput)

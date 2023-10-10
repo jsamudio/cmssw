@@ -63,6 +63,10 @@ private:
   MonitorElement* pfCluster_Multiplicity_GPUvsCPU_;
   MonitorElement* pfCluster_Energy_GPUvsCPU_;
   MonitorElement* pfCluster_RecHitMultiplicity_GPUvsCPU_;
+  MonitorElement* pfCluster_Layer_GPUvsCPU_;
+  MonitorElement* pfCluster_Depth_GPUvsCPU_;
+  MonitorElement* pfCluster_Eta_GPUvsCPU_;
+  MonitorElement* pfCluster_Phi_GPUvsCPU_;
 
   std::string pfCaloGPUCompDir;
 };
@@ -92,6 +96,18 @@ void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
 
   strncpy(histo, "pfCluster_RecHitMultiplicity_GPUvsCPU_", size);
   pfCluster_RecHitMultiplicity_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+
+  strncpy(histo, "pfCluster_Layer_GPUvsCPU_", size);
+  pfCluster_Layer_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+
+  strncpy(histo, "pfCluster_Depth_GPUvsCPU_", size);
+  pfCluster_Depth_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+  
+  strncpy(histo, "pfCluster_Eta_GPUvsCPU_", size);
+  pfCluster_Eta_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+
+  strncpy(histo, "pfCluster_Phi_GPUvsCPU_", size);
+  pfCluster_Phi_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
 }
 void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup const& c) {
   edm::Handle<reco::PFClusterCollection> pfClusters_ref;
@@ -148,7 +164,18 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
                   << pfClusters_ref->at(i).eta() << " " << pfClusters_ref->at(i).phi() << " "
                   << pfClusters_target->at(j).energy() << " " << pfClusters_target->at(j).eta() << " "
                   << pfClusters_target->at(j).phi() << std::endl;
+      //if (pfClusters_ref->at(i).energy() != pfClusters_target->at(j).energy())
+      //  std::cout << std::fixed << std::setprecision(8) << "Off-diagonal energy bin entries: " << pfClusters_ref->at(i).energy() << " "
+      //            << pfClusters_ref->at(i).eta() << " " << pfClusters_ref->at(i).phi() << " "
+      //            << pfClusters_target->at(j).energy() << " " << pfClusters_target->at(j).eta() << " "
+      //            << pfClusters_target->at(j).phi() << std::endl;
       pfCluster_Energy_GPUvsCPU_->Fill(pfClusters_ref->at(i).energy(), pfClusters_target->at(j).energy());
+      pfCluster_Layer_GPUvsCPU_->Fill(pfClusters_ref->at(i).layer(), pfClusters_target->at(j).layer());
+      pfCluster_Eta_GPUvsCPU_->Fill(pfClusters_ref->at(i).eta(), pfClusters_target->at(j).eta());
+      pfCluster_Phi_GPUvsCPU_->Fill(pfClusters_ref->at(i).phi(), pfClusters_target->at(j).phi());
+      pfCluster_Depth_GPUvsCPU_->Fill(pfClusters_ref->at(i).depth(), pfClusters_target->at(j).depth());
+      if (pfClusters_ref->at(i).eta() != pfClusters_target->at(j).eta() || pfClusters_ref->at(i).phi() != pfClusters_target->at(j).phi())
+          std::cout << "Eta or Phi not matching with rhf sizes: " << pfClusters_ref->at(i).recHitFractions().size() << " " << pfClusters_target->at(j).recHitFractions().size() << std::endl;
       pfCluster_RecHitMultiplicity_GPUvsCPU_->Fill((float)pfClusters_ref->at(i).recHitFractions().size(),
                                                    (float)pfClusters_target->at(j).recHitFractions().size());
     }

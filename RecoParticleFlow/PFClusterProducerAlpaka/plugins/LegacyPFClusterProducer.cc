@@ -83,6 +83,11 @@ private:
   int nRH = 0;
 };
 
+// Sort by cluster depth
+bool sortClusterDepth(const reco::PFCluster cluster1, const reco::PFCluster cluster2) {
+    return (cluster2.depth() < cluster1.depth());
+}
+
 void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
   //edm::Handle<reco2::PFClusterHostCollection2> pfClustersAlpakaSoA;
   //event.getByToken(alpakaPfClustersToken, pfClustersAlpakaSoA);
@@ -146,13 +151,18 @@ void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& 
              alpakaPfClusters[i].pfc_rhfracSize(),
              offset);
     // Now PFRecHitFraction of this PFCluster is set. Now compute calculateAndSetPosition (energy, position etc)
-    if (nTopoSeeds.count(alpakaPfClusters[i].pfc_topoId()) == 1 && _allCellsPositionCalc) {
+    if (nTopoSeeds[alpakaPfClusters[i].pfc_topoId()] == 1 && _allCellsPositionCalc) {
       _allCellsPositionCalc->calculateAndSetPosition(temp);
     } else {
       _positionCalc->calculateAndSetPosition(temp);
     }
     out.emplace_back(std::move(temp));
+    //out.emplace(out.begin(), std::move(temp));
   }
+
+
+  //sort(out.rbegin(), out.rend());
+  //std::reverse(out.begin(), out.end());
 
   event.emplace(legacyPfClustersToken, std::move(out));
 

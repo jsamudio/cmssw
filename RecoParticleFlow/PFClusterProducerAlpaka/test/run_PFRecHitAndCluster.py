@@ -42,7 +42,7 @@ process.load("HeterogeneousCore.CUDACore.ProcessAcceleratorCUDA_cfi")
 process.load('HeterogeneousCore.AlpakaCore.ProcessAcceleratorAlpaka_cfi')
 
 process.maxEvents = cms.untracked.PSet(
-    #input = cms.untracked.int32(5),
+    #input = cms.untracked.int32(2),
     #input = cms.untracked.int32(100),
     input = cms.untracked.int32(1000),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
@@ -53,7 +53,8 @@ process.maxEvents = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     #fileNames = cms.untracked.vstring('/store/relval/CMSSW_12_4_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_124X_mcRun3_2022_realistic_v5-v1/10000/012eda92-aad5-4a95-8dbd-c79546b5f508.root'),
     #fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0_pre4/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/05ad6501-815f-4df6-b115-03ad028f9b76.root'),
-    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root'),
+    #fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root'),
+    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_8/RelValQCD_FlatPt_15_3000HS_14/GEN-SIM-DIGI-RAW/130X_mcRun3_2022_realistic_v3_2022-v1/2580000/0e63ba30-251b-4034-93ca-4d400aaa399e.root'),
     #fileNames = cms.untracked.vstring([
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/85c3b693-68ce-478e-b1bd-dfed8be747ad.root',
     #    '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/d277bd98-70fb-4c08-8e71-f3ac28259d61.root',
@@ -235,7 +236,7 @@ process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
                 name = cms.string('PFRecHitQTestHCALChannel')
             )
         ),
-        src = cms.InputTag("hltHbhereco")
+        src = cms.InputTag("hltHbherecoLegacy")
     ))
 )
 
@@ -254,7 +255,7 @@ else:
 
 # Convert legacy CaloRecHits to CaloRecHitSoA
 process.hltParticleFlowRecHitToSoA = cms.EDProducer(alpaka_backend_str % "CaloRecHitSoAProducer",
-    src = cms.InputTag("hltHbhereco"),
+    src = cms.InputTag("hltHbherecoLegacy"),
     synchronise = cms.bool(args.synchronise)
 )
 
@@ -420,13 +421,15 @@ process.hltParticleFlowAlpakaToLegacyPFClusters = cms.EDProducer("LegacyPFCluste
 process.hltParticleFlowAlpakaToLegacyPFClusters.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 #process.hltParticleFlowAlpakaToLegacyPFClusters.PFClustersAlpakaOut = cms.string("hltParticleFlowAlpakaToLegacyPFClusters")
 
-
+process.hltParticleFlowClusterAlpakaHCAL = process.hltParticleFlowClusterHCAL.clone()
+process.hltParticleFlowClusterAlpakaHCAL.clustersSource = cms.InputTag("hltParticleFlowAlpakaToLegacyPFClusters")
+process.hltParticleFlowClusterHCAL.clustersSource = cms.InputTag("hltParticleFlowClusterHBHE")
 
 
 # Compare legacy PFRecHits to PFRecHitsSoA
 from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
 process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest",
-    recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
+    recHitsSourceCPU = cms.untracked.InputTag("hltHbherecoLegacy"),
     pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
     pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowPFRecHitAlpaka"),
     pfRecHitsType1 = cms.untracked.string("legacy"),
@@ -436,7 +439,7 @@ process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest"
 
 # Convert Alpaka PFRecHits to legacy format and validate against CPU implementation
 process.htlParticleFlowAlpakaToLegacyPFRecHitsComparison = DQMEDAnalyzer("PFRecHitProducerTest",
-    recHitsSourceCPU = cms.untracked.InputTag("hltHbhereco"),
+    recHitsSourceCPU = cms.untracked.InputTag("hltHbherecoLegacy"),
     pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
     pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowAlpakaToLegacyPFRecHits"),
     pfRecHitsType1 = cms.untracked.string("legacy"),
@@ -455,6 +458,8 @@ process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowRecHitTo
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowPFRecHitAlpaka_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowPFClusterAlpaka_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowAlpakaToLegacyPFClusters_*_*')
+process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowClusterHCAL_*_*')
+process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowClusterAlpakaHCAL_*_*')
 
 #
 
@@ -474,6 +479,8 @@ process.HBHEPFCPUGPUTask = cms.Path(
     +process.hltParticleFlowClusterHBHE
     +process.hltParticleFlowPFClusterAlpaka
     +process.hltParticleFlowAlpakaToLegacyPFClusters
+    +process.hltParticleFlowClusterAlpakaHCAL
+    +process.hltParticleFlowClusterHCAL
 )
 
 process.schedule = cms.Schedule(process.HBHEPFCPUGPUTask)
