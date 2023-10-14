@@ -5,6 +5,10 @@
   <class name="reco::CaloRecHitSoA::View"/>
   <class name="reco::PFRecHitSoA"/>
   <class name="reco::PFRecHitSoA::View"/>
+  <class name="reco::PFClusterSoA"/>
+  <class name="reco::PFClusterSoA::View"/>
+  <class name="reco::PFRecHitFractionSoA"/>
+  <class name="reco::PFRecHitFractionSoA::View"/>
 
   <!-- from classes_def_2.xml -->
   <class name="reco::PFCluster" ClassVersion="17">
