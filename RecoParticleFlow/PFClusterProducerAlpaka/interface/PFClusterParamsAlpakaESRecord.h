@@ -1,0 +1,10 @@
+#ifndef RecoParticleFlow_PFClusterProducerAlpaka_interface_PFClusterParamsAlpakaESRecord_h
+#define RecoParticleFlow_PFClusterProducerAlpaka_interface_PFClusterParamsAlpakaESRecord_h
+
+#include "FWCore/Framework/interface/EventSetupRecordImplementation.h"
+
+class PFClusterParamsAlpakaESRecord
+    : public edm::eventsetup::EventSetupRecordImplementation<PFClusterParamsAlpakaESRecord> {};
+
+#endif  // RecoParticleFlow_PFRecHitProducer_interface_PFClusterParamsAlpakaRecord_h
+
