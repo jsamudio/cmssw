@@ -5,7 +5,6 @@
 
 #include "PFRecHitProducerKernel.h"
 
-
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   using namespace ParticleFlowRecHitProducer;
 

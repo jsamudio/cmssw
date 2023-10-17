@@ -89,15 +89,24 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           }
 
       // Print results (for debugging)
-      LogDebug("PFRecHitTopologyESProducer").log([&](auto& log){
-        for(const auto subdet : calEnums)
+      LogDebug("PFRecHitTopologyESProducer").log([&](auto& log) {
+        for (const auto subdet : calEnums)
           for (const auto detId : geom.getValidDetIds(CAL::kDetectorId, subdet)) {
             const uint32_t denseId = CAL::detId2denseId(detId);
             log.format("detId:{} denseId:{} pos:{},{},{} neighbours:{},{},{},{};{},{},{},{}\n",
-              (uint32_t)detId, denseId,
-              view[denseId].positionX(), view[denseId].positionY(), view[denseId].positionZ(),
-              view[denseId].neighbours()(0), view[denseId].neighbours()(1), view[denseId].neighbours()(2), view[denseId].neighbours()(3),
-              view[denseId].neighbours()(4), view[denseId].neighbours()(5), view[denseId].neighbours()(6), view[denseId].neighbours()(7));
+                       (uint32_t)detId,
+                       denseId,
+                       view[denseId].positionX(),
+                       view[denseId].positionY(),
+                       view[denseId].positionZ(),
+                       view[denseId].neighbours()(0),
+                       view[denseId].neighbours()(1),
+                       view[denseId].neighbours()(2),
+                       view[denseId].neighbours()(3),
+                       view[denseId].neighbours()(4),
+                       view[denseId].neighbours()(5),
+                       view[denseId].neighbours()(6),
+                       view[denseId].neighbours()(7));
           }
       });
 

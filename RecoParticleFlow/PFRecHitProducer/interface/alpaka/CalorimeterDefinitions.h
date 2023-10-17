@@ -52,10 +52,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
              (getSubdet(detId) == HcalSubdetector::HcalBarrel || getSubdet(detId) == HcalSubdetector::HcalEndcap);
     }
 
-    static constexpr uint32_t getDepth(uint32_t detId)   { return HcalDetId(detId).depth();   }
+    static constexpr uint32_t getDepth(uint32_t detId) { return HcalDetId(detId).depth(); }
     static constexpr uint32_t getIetaAbs(uint32_t detId) { return HcalDetId(detId).ietaAbs(); }
-    static constexpr uint32_t getIphi(uint32_t detId)    { return HcalDetId(detId).iphi();    }
-    static constexpr int      getZside(uint32_t detId)   { return HcalDetId(detId).zside();   }
+    static constexpr uint32_t getIphi(uint32_t detId) { return HcalDetId(detId).iphi(); }
+    static constexpr int getZside(uint32_t detId) { return HcalDetId(detId).zside(); }
 
     // https://cmssdt.cern.ch/lxr/source/Geometry/CaloTopology/src/HcalTopology.cc#1170
     static constexpr uint32_t detId2denseIdHB(uint32_t detId) {
@@ -198,6 +198,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     static constexpr uint32_t kSize = Barrel::kSize + Endcap::kSize;  // maximum possible ECAL denseId (=75848)
   };
 
-}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducerAlpaka
+}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer
 
 #endif  // RecoParticleFlow_PFRecHitProducer_interface_alpaka_CalorimeterDefinitions_h
