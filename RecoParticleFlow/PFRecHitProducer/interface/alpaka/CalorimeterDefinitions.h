@@ -32,20 +32,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     using TopologyTypeDevice = reco::PFRecHitHCALTopologyDeviceCollection;
     using TopologyRecordType = PFRecHitHCALTopologyRecord;
 
-    static constexpr DetId::Detector DetectorId = DetId::Detector::Hcal;
-    static constexpr int SubdetectorBarrelId = HcalSubdetector::HcalBarrel;
-    static constexpr int SubdetectorEndcapId = HcalSubdetector::HcalEndcap;
+    static constexpr DetId::Detector kDetectorId = DetId::Detector::Hcal;
+    static constexpr int kSubdetectorBarrelId = HcalSubdetector::HcalBarrel;
+    static constexpr int kSubdetectorEndcapId = HcalSubdetector::HcalEndcap;
 
-    static constexpr uint32_t maxDepthHB = 4;
-    static constexpr uint32_t maxDepthHE = 7;
-    static constexpr uint32_t firstHBRing = 1;
-    static constexpr uint32_t lastHBRing = 16;
-    static constexpr uint32_t firstHERing = 16;
-    static constexpr uint32_t lastHERing = 29;
-    static constexpr uint32_t IPHI_MAX = 72;
-    static constexpr uint32_t SIZE_BARREL = maxDepthHB * (lastHBRing - firstHBRing + 1) * IPHI_MAX * 2;
-    static constexpr uint32_t SIZE_ENDCAP = maxDepthHE * (lastHERing - firstHERing + 1) * IPHI_MAX * 2;
-    static constexpr uint32_t SIZE = SIZE_BARREL + SIZE_ENDCAP;  // maximum possible HCAL denseId (=23328)
+    static constexpr uint32_t kMaxDepthHB = 4;
+    static constexpr uint32_t kMaxDepthHE = 7;
+    static constexpr uint32_t kFirstHBRing = 1;
+    static constexpr uint32_t kLastHBRing = 16;
+    static constexpr uint32_t kFirstHERing = 16;
+    static constexpr uint32_t kLastHERing = 29;
+    static constexpr uint32_t kMaxIPhi = 72;
+    static constexpr uint32_t kSizeBarrel = kMaxDepthHB * (kLastHBRing - kFirstHBRing + 1) * kMaxIPhi * 2;
+    static constexpr uint32_t kSizeEndcap = kMaxDepthHE * (kLastHERing - kFirstHERing + 1) * kMaxIPhi * 2;
+    static constexpr uint32_t kSize = kSizeBarrel + kSizeEndcap;  // maximum possible HCAL denseId (=23328)
 
     static constexpr bool detIdInRange(uint32_t detId) {
       return detId != 0 && DetId(detId).det() == DetId::Detector::Hcal &&
@@ -70,34 +70,34 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
 
     // https://cmssdt.cern.ch/lxr/source/Geometry/CaloTopology/src/HcalTopology.cc#1170
     static constexpr uint32_t detId2denseIdHB(uint32_t detId) {
-      const uint32_t nEtaHB = (lastHBRing - firstHBRing + 1);
+      const uint32_t nEtaHB = (kLastHBRing - kFirstHBRing + 1);
       const uint32_t ip = getIphi(detId);
       const uint32_t ie = getIetaAbs(detId);
       const uint32_t dp = getDepth(detId);
       const int zn = getZside(detId);
-      uint32_t retval = (dp - 1) + maxDepthHB * (ip - 1);
+      uint32_t retval = (dp - 1) + kMaxDepthHB * (ip - 1);
       if (zn > 0)
-        retval += maxDepthHB * IPHI_MAX * (ie * zn - firstHBRing);
+        retval += kMaxDepthHB * kMaxIPhi * (ie * zn - kFirstHBRing);
       else
-        retval += maxDepthHB * IPHI_MAX * (ie * zn + lastHBRing + nEtaHB);
+        retval += kMaxDepthHB * kMaxIPhi * (ie * zn + kLastHBRing + nEtaHB);
 
       return retval;
     }
 
     // https://cmssdt.cern.ch/lxr/source/Geometry/CaloTopology/src/HcalTopology.cc#1189
     static constexpr uint32_t detId2denseIdHE(uint32_t detId) {
-      const uint32_t nEtaHE = (lastHERing - firstHERing + 1);
+      const uint32_t nEtaHE = (kLastHERing - kFirstHERing + 1);
       const uint32_t ip = getIphi(detId);
       const uint32_t ie = getIetaAbs(detId);
       const uint32_t dp = getDepth(detId);
       const int zn = getZside(detId);
-      uint32_t retval = (dp - 1) + maxDepthHE * (ip - 1);
+      uint32_t retval = (dp - 1) + kMaxDepthHE * (ip - 1);
       if (zn > 0)
-        retval += maxDepthHE * IPHI_MAX * (ie * zn - firstHERing);
+        retval += kMaxDepthHE * kMaxIPhi * (ie * zn - kFirstHERing);
       else
-        retval += maxDepthHE * IPHI_MAX * (ie * zn + lastHERing + nEtaHE);
+        retval += kMaxDepthHE * kMaxIPhi * (ie * zn + kLastHERing + nEtaHE);
 
-      return retval + SIZE_BARREL;
+      return retval + kSizeBarrel;
     }
 
     static constexpr uint32_t detId2denseId(uint32_t detId) {
@@ -122,9 +122,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     using TopologyTypeDevice = reco::PFRecHitECALTopologyDeviceCollection;
     using TopologyRecordType = PFRecHitECALTopologyRecord;
 
-    static constexpr DetId::Detector DetectorId = DetId::Detector::Ecal;
-    static constexpr int SubdetectorBarrelId = EcalSubdetector::EcalBarrel;
-    static constexpr int SubdetectorEndcapId = EcalSubdetector::EcalEndcap;
+    static constexpr DetId::Detector kDetectorId = DetId::Detector::Ecal;
+    static constexpr int kSubdetectorBarrelId = EcalSubdetector::EcalBarrel;
+    static constexpr int kSubdetectorEndcapId = EcalSubdetector::EcalEndcap;
 
     // https://cmssdt.cern.ch/lxr/source/DataFormats/EcalRecHit/interface/EcalRecHit.h#0021
     enum Flags {
@@ -151,23 +151,23 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     };
 
     // https://cmssdt.cern.ch/lxr/source/DataFormats/EcalDetId/interface/EBDetId.h
-    struct BARREL {
-      static constexpr int MAX_IETA = 85;
-      static constexpr int MAX_IPHI = 360;
-      static constexpr int SIZE = 2 * MAX_IPHI * MAX_IETA;
+    struct Barrel {
+      static constexpr int kMaxIEta = 85;
+      static constexpr int kMaxIPhi = 360;
+      static constexpr int kSize = 2 * kMaxIPhi * kMaxIEta;
 
       static constexpr int ietaAbs(uint32_t detId) { return (detId >> 9) & 0x7F; }
       static constexpr int iphi(uint32_t detId) { return detId & 0x1FF; }
       static constexpr bool positiveZ(uint32_t detId) { return detId & 0x10000; }
       static constexpr uint32_t denseIndex(uint32_t detId) {
-        return (MAX_IETA + (positiveZ(detId) ? ietaAbs(detId) - 1 : -ietaAbs(detId))) * MAX_IPHI + iphi(detId) - 1;
+        return (kMaxIEta + (positiveZ(detId) ? ietaAbs(detId) - 1 : -ietaAbs(detId))) * kMaxIPhi + iphi(detId) - 1;
       }
     };
 
     // https://cmssdt.cern.ch/lxr/source/DataFormats/EcalDetId/interface/EEDetId.h
-    struct ENDCAP {
+    struct Endcap {
       static constexpr uint32_t kEEhalf = 7324;
-      static constexpr uint32_t SIZE = kEEhalf * 2;
+      static constexpr uint32_t kSize = kEEhalf * 2;
 
       static constexpr int ix(uint32_t detId) { return (detId >> 7) & 0x7F; }
       static constexpr int iy(uint32_t detId) { return detId & 0x7F; }
@@ -209,9 +209,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     static constexpr uint32_t detId2denseId(uint32_t detId) {
       const uint32_t subdet = getSubdet(detId);
       if (subdet == EcalBarrel)
-        return BARREL::denseIndex(detId);
+        return Barrel::denseIndex(detId);
       if (subdet == EcalEndcap)
-        return BARREL::SIZE + ENDCAP::denseIndex(detId);
+        return Barrel::kSize + Endcap::denseIndex(detId);
 
       printf("invalid detId: %u\n", detId);
       return 0;
@@ -223,12 +223,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     }
 
     static constexpr int getZside(uint32_t detId) {
-      return ((getSubdet(detId) == EcalSubdetector::EcalBarrel) ? BARREL::positiveZ(detId) : ENDCAP::positiveZ(detId))
+      return ((getSubdet(detId) == EcalSubdetector::EcalBarrel) ? Barrel::positiveZ(detId) : Endcap::positiveZ(detId))
                  ? (1)
                  : (-1);
     }
 
-    static constexpr uint32_t SIZE = BARREL::SIZE + ENDCAP::SIZE;  // maximum possible ECAL denseId (=75848)
+    static constexpr uint32_t kSize = Barrel::kSize + Endcap::kSize;  // maximum possible ECAL denseId (=75848)
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducerAlpaka

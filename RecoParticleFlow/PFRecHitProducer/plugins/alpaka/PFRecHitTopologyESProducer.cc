@@ -36,15 +36,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     std::unique_ptr<typename CAL::TopologyTypeHost> produce(const typename CAL::TopologyRecordType& iRecord) {
       const auto& geom = iRecord.get(geomToken_);
-      auto product = std::make_unique<typename CAL::TopologyTypeHost>(CAL::SIZE, cms::alpakatools::host());
+      auto product = std::make_unique<typename CAL::TopologyTypeHost>(CAL::kSize, cms::alpakatools::host());
       auto view = product->view();
 
-      const int calEnums[2] = {CAL::SubdetectorBarrelId, CAL::SubdetectorEndcapId};
+      const int calEnums[2] = {CAL::kSubdetectorBarrelId, CAL::kSubdetectorEndcapId};
       for (const auto subdet : calEnums) {
         // Construct topology
         //  for HCAL: using dedicated record
         //  for ECAL: from CaloGeometry (separate for barrel and endcap)
-        const CaloSubdetectorGeometry* geo = geom.getSubdetectorGeometry(CAL::DetectorId, subdet);
+        const CaloSubdetectorGeometry* geo = geom.getSubdetectorGeometry(CAL::kDetectorId, subdet);
         const CaloSubdetectorTopology* topo;
         std::variant<EcalBarrelTopology, EcalEndcapTopology> topoVar;  // need to store ECAL topology temporarily
         if constexpr (std::is_same_v<CAL, HCAL>)
@@ -55,9 +55,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           topo = &topoVar.emplace<EcalEndcapTopology>(geom);
 
         // Fill product
-        for (auto const detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
+        for (auto const detId : geom.getValidDetIds(CAL::kDetectorId, subdet)) {
           const uint32_t denseId = CAL::detId2denseId(detId);
-          assert(denseId < CAL::SIZE);
+          assert(denseId < CAL::kSize);
 
           const GlobalPoint pos = geo->getGeometry(detId)->getPosition();
           view.positionX(denseId) = pos.x();
@@ -77,7 +77,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       // Remove neighbours that are not backward compatible (only for HCAL)
       if (std::is_same_v<CAL, HCAL>)
         for (const auto subdet : calEnums)
-          for (auto const detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
+          for (auto const detId : geom.getValidDetIds(CAL::kDetectorId, subdet)) {
             const uint32_t denseId = CAL::detId2denseId(detId);
             for (uint32_t n = 0; n < 8; n++) {
               const ::reco::PFRecHitsTopologyNeighbours& neighboursOfNeighbour =
@@ -91,7 +91,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       // Print results (for debugging)
       LogDebug("PFRecHitTopologyESProducer").log([&](auto& log){
         for(const auto subdet : calEnums)
-          for (const auto detId : geom.getValidDetIds(CAL::DetectorId, subdet)) {
+          for (const auto detId : geom.getValidDetIds(CAL::kDetectorId, subdet)) {
             const uint32_t denseId = CAL::detId2denseId(detId);
             log.format("detId:{} denseId:{} pos:{},{},{} neighbours:{},{},{},{};{},{},{},{}\n",
               (uint32_t)detId, denseId,

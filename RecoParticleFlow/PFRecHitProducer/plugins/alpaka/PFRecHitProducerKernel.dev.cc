@@ -58,7 +58,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (subdet == HcalBarrel) {
       threshold = params.energyThresholds()[depth - 1];
     } else if (subdet == HcalEndcap) {
-      threshold = params.energyThresholds()[depth - 1 + HCAL::maxDepthHB];
+      threshold = params.energyThresholds()[depth - 1 + HCAL::kMaxDepthHB];
     } else {
       printf("Rechit with detId %u has invalid subdetector %u!\n", detId, subdet);
     }
@@ -151,7 +151,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename CAL>
   PFRecHitProducerKernel<CAL>::PFRecHitProducerKernel(Queue& queue)
-      : denseId2pfRecHit_(cms::alpakatools::make_device_buffer<uint32_t[]>(queue, CAL::SIZE)),
+      : denseId2pfRecHit_(cms::alpakatools::make_device_buffer<uint32_t[]>(queue, CAL::kSize)),
         num_pfRecHits_(cms::alpakatools::make_device_buffer<uint32_t>(queue)),
         work_div_(cms::alpakatools::make_workdiv<Acc1D>(1, 1)) {}
 

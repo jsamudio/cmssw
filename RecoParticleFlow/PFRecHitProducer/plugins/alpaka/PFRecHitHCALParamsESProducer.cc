@@ -14,8 +14,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     PFRecHitHCALParamsESProducer(edm::ParameterSet const& iConfig)
         : ESProducer(iConfig),
-          energyThresholdsHB_(iConfig.getParameter<std::array<double, HCAL::maxDepthHB>>("energyThresholdsHB")),
-          energyThresholdsHE_(iConfig.getParameter<std::array<double, HCAL::maxDepthHE>>("energyThresholdsHE")) {
+          energyThresholdsHB_(iConfig.getParameter<std::array<double, HCAL::kMaxDepthHB>>("energyThresholdsHB")),
+          energyThresholdsHE_(iConfig.getParameter<std::array<double, HCAL::kMaxDepthHE>>("energyThresholdsHE")) {
       setWhatProduced(this);
     }
 
@@ -27,20 +27,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     std::unique_ptr<reco::PFRecHitHCALParamsHostCollection> produce(PFRecHitHCALParamsRecord const& iRecord) {
-      auto product = std::make_unique<reco::PFRecHitHCALParamsHostCollection>(HCAL::maxDepthHB + HCAL::maxDepthHE,
+      auto product = std::make_unique<reco::PFRecHitHCALParamsHostCollection>(HCAL::kMaxDepthHB + HCAL::kMaxDepthHE,
                                                                               cms::alpakatools::host());
-      for (uint32_t idx = 0; idx < HCAL::maxDepthHB; ++idx) {
+      for (uint32_t idx = 0; idx < HCAL::kMaxDepthHB; ++idx) {
         product->view().energyThresholds()[idx] = energyThresholdsHB_[idx];
       }
-      for (uint32_t idx = 0; idx < HCAL::maxDepthHE; ++idx) {
-        product->view().energyThresholds()[idx + HCAL::maxDepthHB] = energyThresholdsHE_[idx];
+      for (uint32_t idx = 0; idx < HCAL::kMaxDepthHE; ++idx) {
+        product->view().energyThresholds()[idx + HCAL::kMaxDepthHB] = energyThresholdsHE_[idx];
       }
       return product;
     }
 
   private:
-    std::array<double, HCAL::maxDepthHB> energyThresholdsHB_;
-    std::array<double, HCAL::maxDepthHE> energyThresholdsHE_;
+    std::array<double, HCAL::kMaxDepthHB> energyThresholdsHB_;
+    std::array<double, HCAL::kMaxDepthHE> energyThresholdsHE_;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
