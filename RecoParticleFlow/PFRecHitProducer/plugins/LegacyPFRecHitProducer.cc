@@ -7,7 +7,6 @@
 #include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/Utilities/interface/EDPutToken.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-#include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/HcalDetId/interface/HcalSubdetector.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
@@ -49,9 +48,8 @@ void LegacyPFRecHitProducer::beginRun(edm::Run const&, const edm::EventSetup& se
 }
 
 void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
-  edm::Handle<reco::PFRecHitHostCollection> pfRecHitsAlpakaSoA;
-  event.getByToken(alpakaPfRecHitsToken_, pfRecHitsAlpakaSoA);
-  const reco::PFRecHitHostCollection::ConstView& alpakaPfRecHits = pfRecHitsAlpakaSoA->const_view();
+  const reco::PFRecHitHostCollection& pfRecHitsAlpakaSoA = event.get(alpakaPfRecHitsToken_);
+  const reco::PFRecHitHostCollection::ConstView& alpakaPfRecHits = pfRecHitsAlpakaSoA.const_view();
 
   reco::PFRecHitCollection out;
   out.reserve(alpakaPfRecHits.size());

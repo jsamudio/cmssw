@@ -110,7 +110,7 @@ from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEar
 process = customiseEarlyDelete(process)
 
 process.load( "HLTrigger.Timer.FastTimerService_cfi" )
-if 'MessageLogger' in process.__dict__:
+if hasattr(process, 'MessageLogger'):
     process.MessageLogger.TriggerSummaryProducerAOD = cms.untracked.PSet()
     process.MessageLogger.L1GtTrigReport = cms.untracked.PSet()
     process.MessageLogger.L1TGlobalSummary = cms.untracked.PSet()
@@ -136,7 +136,7 @@ parser.add_argument('-t', '--threads', type=int, default=8,
                     help='Number of threads. Default: 8')
 parser.add_argument('-d', '--debug', type=int, default=0, const=1, nargs="?",
                     help='Dump PFRecHits for first event (n>0) or first error (n<0). This applies to the n-th validation (1: Legacy vs Alpaka, 2: Legacy vs Legacy-from-Alpaka, 3: Alpaka vs Legacy-from-Alpaka). Default: 0')
-args = parser.parse_args(sys.argv[3:])
+args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
 
 if(args.debug and args.threads != 1):
     args.threads = 1

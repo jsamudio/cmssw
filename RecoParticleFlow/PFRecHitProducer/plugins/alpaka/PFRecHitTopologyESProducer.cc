@@ -75,7 +75,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
 
       // Remove neighbours that are not backward compatible (only for HCAL)
-      if (std::is_same_v<CAL, HCAL>)
+      if constexpr (std::is_same_v<CAL, HCAL>) {
         for (const auto subdet : calEnums)
           for (auto const detId : geom.getValidDetIds(CAL::kDetectorId, subdet)) {
             const uint32_t denseId = CAL::detId2denseId(detId);
@@ -87,6 +87,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                 view.neighbours(denseId)[n] = 0xffffffff;
             }
           }
+      }
 
       // Print results (for debugging)
       LogDebug("PFRecHitTopologyESProducer").log([&](auto& log) {
