@@ -1,5 +1,5 @@
-#ifndef RecoParticleFlow_PFRecHitProducer_TopologySoA_h
-#define RecoParticleFlow_PFRecHitProducer_TopologySoA_h
+#ifndef RecoParticleFlow_PFRecHitProducer_interface_PFRecHitTopologySoA_h
+#define RecoParticleFlow_PFRecHitProducer_interface_PFRecHitTopologySoA_h
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -26,4 +26,4 @@ namespace reco {
   using PFRecHitECALTopologySoA = PFRecHitECALTopologySoALayout<>;
 }  // namespace reco
 
-#endif
+#endif  // RecoParticleFlow_PFRecHitProducer_interface_PFRecHitTopologySoA_h

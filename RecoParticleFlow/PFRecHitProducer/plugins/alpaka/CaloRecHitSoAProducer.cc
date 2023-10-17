@@ -39,7 +39,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           printf("recHit %4d %u %f %f %08x\n", i, view.detId(i), view.energy(i), view.time(i), view.flags(i));
       }
 
-      CaloRecHitDeviceCollection deviceProduct{num_recHits, event.queue()};
+      reco::CaloRecHitDeviceCollection deviceProduct{num_recHits, event.queue()};
       alpaka::memcpy(event.queue(), deviceProduct.buffer(), hostProduct.buffer());
       if (synchronise_)
         alpaka::wait(event.queue());
@@ -56,7 +56,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   private:
     const edm::EDGetTokenT<edm::SortedCollection<typename CAL::CaloRecHitType>> recHitsToken_;
-    const device::EDPutToken<CaloRecHitDeviceCollection> deviceToken_;
+    const device::EDPutToken<reco::CaloRecHitDeviceCollection> deviceToken_;
     const bool synchronise_;
 
     static void convertRecHit(reco::CaloRecHitHostCollection::View::element to,

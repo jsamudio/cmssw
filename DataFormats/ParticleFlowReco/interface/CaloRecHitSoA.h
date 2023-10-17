@@ -1,5 +1,5 @@
-#ifndef DataFormats_ParticleFlowReco_CaloRecHitSoA_h
-#define DataFormats_ParticleFlowReco_CaloRecHitSoA_h
+#ifndef DataFormats_ParticleFlowReco_interface_CaloRecHitSoA_h
+#define DataFormats_ParticleFlowReco_interface_CaloRecHitSoA_h
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -17,6 +17,7 @@ namespace reco {
                       SOA_COLUMN(uint32_t, flags))
 
   using CaloRecHitSoA = CaloRecHitSoALayout<>;
+
 }  // namespace reco
 
-#endif
+#endif  // DataFormats_ParticleFlowReco_interface_CaloRecHitSoA_h

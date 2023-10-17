@@ -16,7 +16,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const typename CAL::ParameterType::ConstView params,
                                   const typename CAL::CaloRecHitSoATypeDevice::ConstView recHits,
-                                  PFRecHitDeviceCollection::View pfRecHits,
+                                  reco::PFRecHitDeviceCollection::View pfRecHits,
                                   uint32_t* __restrict__ denseId2pfRecHit,
                                   uint32_t* __restrict__ num_pfRecHits) const {
       // Strided loop over CaloRecHits
@@ -26,8 +26,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           continue;
 
         // Use atomic operation to determine index of the PFRecHit to be constructed
-	// The index needs to be unique and consequtive across all threads in all blocks.
-	// This is achieved using the alpaka::hierarchy::Blocks argument.
+        // The index needs to be unique and consequtive across all threads in all blocks.
+        // This is achieved using the alpaka::hierarchy::Blocks argument.
         const uint32_t j = alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Blocks{});
 
         // Construct PFRecHit from CAL recHit (specialised for HCAL/ECAL)
@@ -42,7 +42,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                         const typename CAL::ParameterType::ConstView params);
 
     ALPAKA_FN_ACC static void constructPFRecHit(
-        PFRecHitDeviceCollection::View::element pfrh,
+        reco::PFRecHitDeviceCollection::View::element pfrh,
         const typename CAL::CaloRecHitSoATypeDevice::ConstView::const_element rh);
   };
 
@@ -83,7 +83,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <>
   ALPAKA_FN_ACC void PFRecHitProducerKernelConstruct<HCAL>::constructPFRecHit(
-      PFRecHitDeviceCollection::View::element pfrh, const HCAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
+      reco::PFRecHitDeviceCollection::View::element pfrh,
+      const HCAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
     pfrh.detId() = rh.detId();
     pfrh.energy() = rh.energy();
     pfrh.time() = rh.time();
@@ -99,7 +100,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <>
   ALPAKA_FN_ACC void PFRecHitProducerKernelConstruct<ECAL>::constructPFRecHit(
-      PFRecHitDeviceCollection::View::element pfrh, const ECAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
+      reco::PFRecHitDeviceCollection::View::element pfrh,
+      const ECAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
     pfrh.detId() = rh.detId();
     pfrh.energy() = rh.energy();
     pfrh.time() = rh.time();
@@ -119,7 +121,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const typename CAL::TopologyTypeDevice::ConstView topology,
-                                  PFRecHitDeviceCollection::View pfRecHits,
+                                  reco::PFRecHitDeviceCollection::View pfRecHits,
                                   const uint32_t* __restrict__ denseId2pfRecHit,
                                   uint32_t* __restrict__ num_pfRecHits) const {
       // First thread updates size field pfRecHits SoA
@@ -167,7 +169,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   void PFRecHitProducerKernel<CAL>::processRecHits(Queue& queue,
                                                    const typename CAL::CaloRecHitSoATypeDevice& recHits,
                                                    const typename CAL::ParameterType& params,
-                                                   PFRecHitDeviceCollection& pfRecHits) {
+                                                   reco::PFRecHitDeviceCollection& pfRecHits) {
     alpaka::exec<Acc1D>(queue,
                         work_div_,
                         PFRecHitProducerKernelConstruct<CAL>{},
@@ -181,7 +183,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename CAL>
   void PFRecHitProducerKernel<CAL>::associateTopologyInfo(Queue& queue,
                                                           const typename CAL::TopologyTypeDevice& topology,
-                                                          PFRecHitDeviceCollection& pfRecHits) {
+                                                          reco::PFRecHitDeviceCollection& pfRecHits) {
     alpaka::exec<Acc1D>(queue,
                         work_div_,
                         PFRecHitProducerKernelTopology<CAL>{},

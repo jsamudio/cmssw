@@ -1,14 +1,13 @@
-#ifndef ParticleFlowReco_PFRecHitSoA_h
-#define ParticleFlowReco_PFRecHitSoA_h
+#ifndef DataFormats_ParticleFlowReco_interface_PFRecHitSoA_h
+#define DataFormats_ParticleFlowReco_interface_PFRecHitSoA_h
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include "DataFormats/ParticleFlowReco/interface/PFLayer.h"
 #include "DataFormats/SoATemplate/interface/SoACommon.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
 #include "DataFormats/SoATemplate/interface/SoAView.h"
-
-#include "DataFormats/ParticleFlowReco/interface/PFLayer.h"
 
 namespace reco {
 
@@ -28,6 +27,7 @@ namespace reco {
   )
 
   using PFRecHitSoA = PFRecHitSoALayout<>;
+
 }  // namespace reco
 
-#endif
+#endif  // DataFormats_ParticleFlowReco_interface_PFRecHitSoA_h

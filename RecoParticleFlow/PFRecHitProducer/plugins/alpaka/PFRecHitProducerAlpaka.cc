@@ -34,7 +34,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       for (const auto& token : recHitsToken_)
         num_recHits += event.get(token.first)->metadata().size();
 
-      PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
+      reco::PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
 
       PFRecHitProducerKernel<CAL> kernel{event.queue()};
       kernel.prepareEvent(event.queue(), num_recHits);
@@ -65,7 +65,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     std::vector<std::pair<device::EDGetToken<typename CAL::CaloRecHitSoATypeDevice>,
                           device::ESGetToken<typename CAL::ParameterType, typename CAL::ParameterRecordType>>>
         recHitsToken_;
-    const device::EDPutToken<PFRecHitDeviceCollection> pfRecHitsToken_;
+    const device::EDPutToken<reco::PFRecHitDeviceCollection> pfRecHitsToken_;
     const bool synchronise_;
   };
 
