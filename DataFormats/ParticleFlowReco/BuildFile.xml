@@ -21,9 +21,9 @@
 <use name="DataFormats/Portable"/>
 <use name="DataFormats/SoATemplate"/>
 <use name="HeterogeneousCore/AlpakaInterface"/>
-<flags LCG_DICT_HEADER="classes_1.h classes_2.h"/>
-<flags LCG_DICT_XML="classes_def_1.xml classes_def_2.xml"/>
-<flags ALPAKA_BACKENDS="cuda rocm"/>
+<flags LCG_DICT_HEADER="classes_1.h classes_2.h classes_serial.h"/>
+<flags LCG_DICT_XML="classes_def_1.xml classes_def_2.xml classes_serial_def.xml"/>
+<flags ALPAKA_BACKENDS="!serial"/>
 <export>
   <lib name="1"/>
 </export>
