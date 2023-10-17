@@ -52,21 +52,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
              (getSubdet(detId) == HcalSubdetector::HcalBarrel || getSubdet(detId) == HcalSubdetector::HcalEndcap);
     }
 
-    //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0163
-    static constexpr uint32_t getDepth(uint32_t detId) {
-      return ((detId >> HcalDetId::kHcalDepthOffset2) & HcalDetId::kHcalDepthMask2);
-    }
-
-    //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0148
-    static constexpr uint32_t getIetaAbs(uint32_t detId) {
-      return ((detId >> HcalDetId::kHcalEtaOffset2) & HcalDetId::kHcalEtaMask2);
-    }
-
-    //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0157
-    static constexpr uint32_t getIphi(uint32_t detId) { return (detId & HcalDetId::kHcalPhiMask2); }
-
-    //https://cmssdt.cern.ch/lxr/source/DataFormats/HcalDetId/interface/HcalDetId.h#0141
-    static constexpr int getZside(uint32_t detId) { return ((detId & HcalDetId::kHcalZsideMask2) ? (1) : (-1)); }
+    static constexpr uint32_t getDepth(uint32_t detId)   { return HcalDetId(detId).depth();   }
+    static constexpr uint32_t getIetaAbs(uint32_t detId) { return HcalDetId(detId).ietaAbs(); }
+    static constexpr uint32_t getIphi(uint32_t detId)    { return HcalDetId(detId).iphi();    }
+    static constexpr int      getZside(uint32_t detId)   { return HcalDetId(detId).zside();   }
 
     // https://cmssdt.cern.ch/lxr/source/Geometry/CaloTopology/src/HcalTopology.cc#1170
     static constexpr uint32_t detId2denseIdHB(uint32_t detId) {
@@ -126,29 +115,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     static constexpr int kSubdetectorBarrelId = EcalSubdetector::EcalBarrel;
     static constexpr int kSubdetectorEndcapId = EcalSubdetector::EcalEndcap;
 
-    // https://cmssdt.cern.ch/lxr/source/DataFormats/EcalRecHit/interface/EcalRecHit.h#0021
-    enum Flags {
-      kGood = 0,   // channel ok, the energy and time measurement are reliable
-      kPoorReco,   // the energy is available from the UncalibRecHit, but approximate (bad shape, large chi2)
-      kOutOfTime,  // the energy is available from the UncalibRecHit (sync reco), but the event is out of time
-      kFaultyHardware,  // The energy is available from the UncalibRecHit, channel is faulty at some hardware level (e.g. noisy)
-      kNoisy,           // the channel is very noisy
-      kPoorCalib,  // the energy is available from the UncalibRecHit, but the calibration of the channel is poor
-      kSaturated,  // saturated channel (recovery not tried)
-      kLeadingEdgeRecovered,  // saturated channel: energy estimated from the leading edge before saturation
-      kNeighboursRecovered,   // saturated/isolated dead: energy estimated from neighbours
-      kTowerRecovered,        // channel in TT with no data link, info retrieved from Trigger Primitive
-      kDead,                  // channel is dead and any recovery fails
-      kKilled,                // MC only flag: the channel is killed in the real detector
-      kTPSaturated,           // the channel is in a region with saturated TP
-      kL1SpikeFlag,           // the channel is in a region with TP with sFGVB = 0
-      kWeird,                 // the signal is believed to originate from an anomalous deposit (spike)
-      kDiWeird,               // the signal is anomalous, and neighbors another anomalous signal
-      kHasSwitchToGain6,      // at least one data frame is in G6
-      kHasSwitchToGain1,      // at least one data frame is in G1
-                              //
-      kUnknown                // to ease the interface with functions returning flags.
-    };
+    using Flags = EcalRecHit::Flags;
 
     // https://cmssdt.cern.ch/lxr/source/DataFormats/EcalDetId/interface/EBDetId.h
     struct Barrel {
