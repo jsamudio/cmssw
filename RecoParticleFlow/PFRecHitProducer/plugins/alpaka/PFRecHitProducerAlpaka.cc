@@ -1,13 +1,16 @@
-#include "HeterogeneousCore/AlpakaCore/interface/alpaka/global/EDProducer.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
-#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
-#include "FWCore/Utilities/interface/InputTag.h"
-#include "PFRecHitProducerKernel.h"
-#include "CalorimeterDefinitions.h"
-
 #include <utility>
 #include <vector>
+
+#include <alpaka/alpaka.hpp>
+
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+#include "HeterogeneousCore/AlpakaCore/interface/alpaka/global/EDProducer.h"
+#include "CalorimeterDefinitions.h"
+
+#include "PFRecHitProducerKernel.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   using namespace particleFlowRecHitProducer;

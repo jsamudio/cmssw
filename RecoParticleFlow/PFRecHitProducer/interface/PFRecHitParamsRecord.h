@@ -1,10 +1,10 @@
-#ifndef RecoParticleFlow_PFRecHitProducer_ParamsRecord_h
-#define RecoParticleFlow_PFRecHitProducer_ParamsRecord_h
+#ifndef RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsRecord_h
+#define RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsRecord_h
 
-#include "FWCore/Framework/interface/EventSetupRecordImplementation.h"
-#include "FWCore/Framework/interface/DependentRecordImplementation.h"
 #include "CondFormats/DataRecord/interface/EcalPFRecHitThresholdsRcd.h"
+#include "FWCore/Framework/interface/DependentRecordImplementation.h"
+#include "FWCore/Framework/interface/EventSetupRecordImplementation.h"
 
 class PFRecHitHCALParamsRecord : public edm::eventsetup::EventSetupRecordImplementation<PFRecHitHCALParamsRecord> {};
 
-#endif  // RecoParticleFlow_PFRecHitProducer_ParamsRecord_h
+#endif  // RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsRecord_h

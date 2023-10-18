@@ -1,12 +1,17 @@
 <use name="eigen"/>
-<use name="FWCore/Framework"/>
-<use name="FWCore/Utilities"/>
+<use name="CondFormats/DataRecord"/>
+<use name="DataFormats/DetId"/>
+<use name="DataFormats/EcalDetId"/>
+<use name="DataFormats/EcalRecHit"/>
+<use name="DataFormats/HcalDetId"/>
+<use name="DataFormats/HcalRecHit"/>
+<use name="DataFormats/ParticleFlowReco"/>
 <use name="DataFormats/Portable"/>
 <use name="DataFormats/SoATemplate"/>
+<use name="FWCore/Framework"/>
+<use name="FWCore/Utilities"/>
 <use name="Geometry/Records"/>
 <use name="HeterogeneousCore/AlpakaCore"/>
-<use name="HeterogeneousCore/AlpakaInterface"/>
-<use name="CondFormats/DataRecord"/>
 <flags ALPAKA_BACKENDS="1"/>
 <export>
   <lib name="1"/>

@@ -1,5 +1,5 @@
-#ifndef RecoParticleFlow_PFRecHitProducer_ParamsHostCollection_h
-#define RecoParticleFlow_PFRecHitProducer_ParamsHostCollection_h
+#ifndef RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsHostCollection_h
+#define RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsHostCollection_h
 
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsSoA.h"
@@ -9,4 +9,4 @@ namespace reco {
   using PFRecHitECALParamsHostCollection = PortableHostCollection<PFRecHitECALParamsSoA>;
 }  // namespace reco
 
-#endif
+#endif  // RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsHostCollection_h

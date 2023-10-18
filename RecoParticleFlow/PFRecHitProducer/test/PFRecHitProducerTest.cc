@@ -1,20 +1,24 @@
+#include <algorithm>
+#include <cstdio>
+#include <string>
+#include <optional>
+#include <map>
+#include <unordered_map>
+#include <utility>
+#include <variant>
+
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/DetId/interface/DetId.h"
+#include "DataFormats/ParticleFlowReco/interface/CaloRecHitHostCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecHit.h"
+#include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/allowedValues.h"
-#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
-#include "DataFormats/ParticleFlowReco/interface/CaloRecHitHostCollection.h"
-#include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
-
-#include <cstdio>
-#include <string>
-#include <utility>
-#include <variant>
 
 class PFRecHitProducerTest : public DQMEDAnalyzer {
 public:

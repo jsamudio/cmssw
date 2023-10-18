@@ -1,4 +1,3 @@
-#include <array>
 #include <memory>
 
 #include "CondFormats/EcalObjects/interface/EcalPFRecHitThresholds.h"

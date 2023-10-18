@@ -1,11 +1,13 @@
+#include <array>
+#include <memory>
+#include <vector>
+
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/ESProducer.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsRecord.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsHostCollection.h"
+#include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsRecord.h"
 #include "CalorimeterDefinitions.h"
-
-#include <array>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   using namespace particleFlowRecHitProducer;

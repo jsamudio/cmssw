@@ -1,5 +1,5 @@
-#ifndef RecoParticleFlow_PFRecHitProducer_ParamsSoA_h
-#define RecoParticleFlow_PFRecHitProducer_ParamsSoA_h
+#ifndef RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsSoA_h
+#define RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsSoA_h
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -19,4 +19,4 @@ namespace reco {
   using PFRecHitECALParamsSoA = PFRecHitECALParamsSoALayout<>;
 }  // namespace reco
 
-#endif
+#endif  // RecoParticleFlow_PFRecHitProducer_interface_PFRecHitParamsSoA_h

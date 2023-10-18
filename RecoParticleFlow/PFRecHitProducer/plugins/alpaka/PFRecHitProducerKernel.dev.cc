@@ -1,3 +1,5 @@
+#include <type_traits>
+
 #include <alpaka/alpaka.hpp>
 
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
@@ -136,6 +138,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         pfRecHits.y(i) = topology.positionY(denseId);
         pfRecHits.z(i) = topology.positionZ(denseId);
 
+        for (uint32_t n = 0; n < 8; n++) {
           pfRecHits.neighbours(i)(n) = -1;
           const uint32_t denseId_neighbour = topology.neighbours(denseId)(n);
           if (denseId_neighbour != 0xffffffff) {

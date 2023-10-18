@@ -1,20 +1,22 @@
+#include <algorithm>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <variant>
+
+#include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
-#include "HeterogeneousCore/AlpakaCore/interface/alpaka/ESProducer.h"
-
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
-#include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
-#include "Geometry/CaloTopology/interface/HcalTopology.h"
-#include "Geometry/Records/interface/HcalRecNumberingRecord.h"
-#include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "Geometry/CaloTopology/interface/EcalBarrelTopology.h"
 #include "Geometry/CaloTopology/interface/EcalEndcapTopology.h"
+#include "Geometry/CaloTopology/interface/HcalTopology.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/Records/interface/HcalRecNumberingRecord.h"
+#include "HeterogeneousCore/AlpakaCore/interface/alpaka/ESProducer.h"
 #include "CalorimeterDefinitions.h"
-
-#include <memory>
-#include <variant>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   using namespace particleFlowRecHitProducer;
