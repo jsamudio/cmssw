@@ -11,13 +11,13 @@
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "Geometry/CaloTopology/interface/EcalBarrelTopology.h"
 #include "Geometry/CaloTopology/interface/EcalEndcapTopology.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
+#include "CalorimeterDefinitions.h"
 
 #include <memory>
 #include <variant>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducer;
+  using namespace particleFlowRecHitProducer;
 
   template <typename CAL>
   class PFRecHitTopologyESProducer : public ESProducer {
@@ -166,9 +166,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     return 0;
   }
 
-  // A pull-request the redefines the HCAL neighbour association is currently in preparation.
-  // When it is accepted, this specialisation should be enabled to adopt the new definition.
-  // The backwards compatibility check in the produce function should also be enabled.
   template <>
   uint32_t PFRecHitTopologyESProducer<HCAL>::getNeighbourDetId(const uint32_t detId,
                                                                const uint32_t direction,
@@ -187,26 +184,26 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       return topo.goWest(detId);   // larger ieta values
 
     std::pair<uint32_t, uint32_t> directions;
-    if (direction == 4) {             // NORTHEAST
-      if (HCAL::getZside(detId) > 0)  // positive eta: east -> move to smaller |ieta| (finner phi granularity) first
-        directions = {2, 0};
-      else  // negative eta: move in phi first then move to east (coarser phi granularity)
-        directions = {0, 2};
-    } else if (direction == 5) {      // SOUTHWEST
-      if (HCAL::getZside(detId) > 0)  // positive eta: move in phi first then move to west (coarser phi granularity)
-        directions = {1, 3};
-      else  // negative eta: west -> move to smaller |ieta| (finner phi granularity) first
-        directions = {3, 1};
-    } else if (direction == 6) {      // SOUTHEAST
-      if (HCAL::getZside(detId) > 0)  // positive eta: east -> move to smaller |ieta| (finner phi granularity) first
-        directions = {2, 1};
-      else  // negative eta: move in phi first then move to east (coarser phi granularity)
-        directions = {1, 2};
-    } else if (direction == 7) {      // NORTHWEST
-      if (HCAL::getZside(detId) > 0)  // positive eta: move in phi first then move to west (coarser phi granularity)
-        directions = {0, 3};
-      else  // negative eta: west -> move to smaller |ieta| (finner phi granularity) first
-        directions = {3, 0};
+    if (direction == 4) {  // NORTHEAST
+      if (HCAL::getZside(detId) > 0)
+        directions = {2, 0};  // positive eta: east -> move to smaller |ieta| (finner phi granularity) first
+      else
+        directions = {0, 2};      // negative eta: move in phi first then move to east (coarser phi granularity)
+    } else if (direction == 5) {  // SOUTHWEST
+      if (HCAL::getZside(detId) > 0)
+        directions = {1, 3};  // positive eta: move in phi first then move to west (coarser phi granularity)
+      else
+        directions = {3, 1};      // negative eta: west -> move to smaller |ieta| (finner phi granularity) first
+    } else if (direction == 6) {  // SOUTHEAST
+      if (HCAL::getZside(detId) > 0)
+        directions = {2, 1};  // positive eta: east -> move to smaller |ieta| (finner phi granularity) first
+      else
+        directions = {1, 2};      // negative eta: move in phi first then move to east (coarser phi granularity)
+    } else if (direction == 7) {  // NORTHWEST
+      if (HCAL::getZside(detId) > 0)
+        directions = {0, 3};  // positive eta: move in phi first then move to west (coarser phi granularity)
+      else
+        directions = {3, 0};  // negative eta: west -> move to smaller |ieta| (finner phi granularity) first
     } else
       return 0;
     const uint32_t nn1 = getNeighbourDetId(detId, directions.first, topo);   // nearest neighbour in direction 1

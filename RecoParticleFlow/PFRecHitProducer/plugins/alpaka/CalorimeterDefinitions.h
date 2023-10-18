@@ -15,13 +15,17 @@
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitParamsDeviceCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitTopologyDeviceCollection.h"
 
-namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
+// This file defines to structs:
+// 1) ALPAKA_ACCELERATOR_NAMESPACE::particleFlowRecHitProducer::HCAL
+// 2) ALPAKA_ACCELERATOR_NAMESPACE::particleFlowRecHitProducer::ECAL
+// These are used as template arguments of the PFRecHitProducerAlpaka class and
+// related classes. This allows to specialise behaviour for the two calorimeter
+// types.
+namespace ALPAKA_ACCELERATOR_NAMESPACE::particleFlowRecHitProducer {
 
   // Get subdetector encoded in detId to narrow the range of reference table values to search
-  // https://cmssdt.cern.ch/lxr/source/DataFormats/DetId/interface/DetId.h#0048
-  constexpr inline uint32_t getSubdet(uint32_t detId) { return ((detId >> DetId::kSubdetOffset) & DetId::kSubdetMask); }
+  constexpr inline uint32_t getSubdet(uint32_t detId) { return DetId(detId).subdetId(); }
 
-  // structs to be used as template arguments
   struct HCAL {
     using CaloRecHitType = HBHERecHit;
     using CaloRecHitSoATypeHost = reco::CaloRecHitHostCollection;
@@ -106,7 +110,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     using CaloRecHitSoATypeHost = reco::CaloRecHitHostCollection;
     using CaloRecHitSoATypeDevice = reco::CaloRecHitDeviceCollection;
     using ParameterType = reco::PFRecHitECALParamsDeviceCollection;
-    using ParameterRecordType = PFRecHitECALParamsRecord;
+    using ParameterRecordType = EcalPFRecHitThresholdsRcd;
     using TopologyTypeHost = reco::PFRecHitECALTopologyHostCollection;
     using TopologyTypeDevice = reco::PFRecHitECALTopologyDeviceCollection;
     using TopologyRecordType = PFRecHitECALTopologyRecord;
@@ -198,6 +202,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer {
     static constexpr uint32_t kSize = Barrel::kSize + Endcap::kSize;  // maximum possible ECAL denseId (=75848)
   };
 
-}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::ParticleFlowRecHitProducer
+}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::particleFlowRecHitProducer
 
 #endif  // RecoParticleFlow_PFRecHitProducer_interface_alpaka_CalorimeterDefinitions_h

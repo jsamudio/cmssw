@@ -2,11 +2,9 @@
   <use name="FWCore/Framework"/>
   <use name="FWCore/ParameterSet"/>
   <use name="FWCore/Utilities"/>
-  <use name="alpaka"/>
   <use name="DataFormats/Common"/>
   <use name="DataFormats/ParticleFlowReco"/>
   <use name="CommonTools/ParticleFlow"/>
-  <use name="DQMServices/Core"/>
   <use name="Geometry/CaloGeometry"/>
   <use name="Geometry/Records"/>
   <flags EDM_PLUGIN="1"/>

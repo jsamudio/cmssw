@@ -3,19 +3,17 @@
 
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitDeviceCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
+#include "CalorimeterDefinitions.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename CAL>
   class PFRecHitProducerKernel {
   public:
-    PFRecHitProducerKernel(Queue& queue);
-
-    // Prepare for processing next event
-    void prepareEvent(Queue& queue, const uint32_t num_recHits);
+    PFRecHitProducerKernel(Queue& queue, const uint32_t num_recHits);
 
     // Run kernel: apply filters to rec hits and construct PF rec hits
+    // This may be executed multiple times per event
     void processRecHits(Queue& queue,
                         const typename CAL::CaloRecHitSoATypeDevice& recHits,
                         const typename CAL::ParameterType& params,

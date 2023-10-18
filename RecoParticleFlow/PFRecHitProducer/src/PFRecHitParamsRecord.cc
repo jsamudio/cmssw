@@ -2,4 +2,3 @@
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsRecord.h"
 
 EVENTSETUP_RECORD_REG(PFRecHitHCALParamsRecord);
-EVENTSETUP_RECORD_REG(PFRecHitECALParamsRecord);

@@ -8,12 +8,12 @@
 #include "DataFormats/Common/interface/SortedCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/CaloRecHitHostCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/alpaka/CaloRecHitDeviceCollection.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
+#include "CalorimeterDefinitions.h"
 
 #define DEBUG false
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducer;
+  using namespace particleFlowRecHitProducer;
 
   template <typename CAL>
   class CaloRecHitSoAProducer : public global::EDProducer<> {

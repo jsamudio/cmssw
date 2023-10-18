@@ -6,7 +6,7 @@
 #include "PFRecHitProducerKernel.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducer;
+  using namespace particleFlowRecHitProducer;
 
   // Kernel to apply cuts to calorimeter hits and construct PFRecHits
   template <typename CAL>
@@ -27,7 +27,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         // Use atomic operation to determine index of the PFRecHit to be constructed
         // The index needs to be unique and consequtive across all threads in all blocks.
         // This is achieved using the alpaka::hierarchy::Blocks argument.
-        const uint32_t j = alpaka::atomicAdd(acc, num_pfRecHits, 1u, alpaka::hierarchy::Blocks{});
+        const uint32_t j = alpaka::atomicInc(acc, num_pfRecHits, 0xffffffff, alpaka::hierarchy::Blocks{});
 
         // Construct PFRecHit from CAL recHit (specialised for HCAL/ECAL)
         constructPFRecHit(pfRecHits[j], recHits[i]);
@@ -60,6 +60,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       threshold = params.energyThresholds()[depth - 1 + HCAL::kMaxDepthHB];
     } else {
       printf("Rechit with detId %u has invalid subdetector %u!\n", detId, subdet);
+      return false;
     }
     return rh.energy() >= threshold;
   }
@@ -135,7 +136,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         pfRecHits.y(i) = topology.positionY(denseId);
         pfRecHits.z(i) = topology.positionZ(denseId);
 
-        for (uint32_t n = 0; n < 8; n++) {
           pfRecHits.neighbours(i)(n) = -1;
           const uint32_t denseId_neighbour = topology.neighbours(denseId)(n);
           if (denseId_neighbour != 0xffffffff) {
@@ -149,13 +149,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   };
 
   template <typename CAL>
-  PFRecHitProducerKernel<CAL>::PFRecHitProducerKernel(Queue& queue)
+  PFRecHitProducerKernel<CAL>::PFRecHitProducerKernel(Queue& queue, const uint32_t num_recHits)
       : denseId2pfRecHit_(cms::alpakatools::make_device_buffer<uint32_t[]>(queue, CAL::kSize)),
         num_pfRecHits_(cms::alpakatools::make_device_buffer<uint32_t>(queue)),
-        work_div_(cms::alpakatools::make_workdiv<Acc1D>(1, 1)) {}
-
-  template <typename CAL>
-  void PFRecHitProducerKernel<CAL>::prepareEvent(Queue& queue, const uint32_t num_recHits) {
+        work_div_(cms::alpakatools::make_workdiv<Acc1D>(1, 1)) {
     alpaka::memset(queue, denseId2pfRecHit_, 0xff);  // Reset denseId -> pfRecHit index map
     alpaka::memset(queue, num_pfRecHits_, 0x00);     // Reset global pfRecHit counter
 

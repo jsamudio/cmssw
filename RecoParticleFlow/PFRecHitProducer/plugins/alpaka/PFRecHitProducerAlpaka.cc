@@ -4,13 +4,13 @@
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "PFRecHitProducerKernel.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
+#include "CalorimeterDefinitions.h"
 
 #include <utility>
 #include <vector>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducer;
+  using namespace particleFlowRecHitProducer;
 
   template <typename CAL>
   class PFRecHitProducerAlpaka : public global::EDProducer<> {
@@ -30,14 +30,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     void produce(edm::StreamID, device::Event& event, const device::EventSetup& setup) const override {
       const typename CAL::TopologyTypeDevice& topology = setup.getData(topologyToken_);
 
-      int num_recHits = 0;
+      uint32_t num_recHits = 0;
       for (const auto& token : recHitsToken_)
         num_recHits += event.get(token.first)->metadata().size();
 
-      reco::PFRecHitDeviceCollection pfRecHits{num_recHits, event.queue()};
+      reco::PFRecHitDeviceCollection pfRecHits{(int)num_recHits, event.queue()};
 
-      PFRecHitProducerKernel<CAL> kernel{event.queue()};
-      kernel.prepareEvent(event.queue(), num_recHits);
+      PFRecHitProducerKernel<CAL> kernel{event.queue(), num_recHits};
       for (const auto& token : recHitsToken_)
         kernel.processRecHits(event.queue(), event.get(token.first), setup.getData(token.second), pfRecHits);
       kernel.associateTopologyInfo(event.queue(), topology, pfRecHits);

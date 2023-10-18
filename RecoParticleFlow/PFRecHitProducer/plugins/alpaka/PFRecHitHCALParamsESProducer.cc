@@ -3,12 +3,12 @@
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/ESProducer.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsRecord.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsHostCollection.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
+#include "CalorimeterDefinitions.h"
 
 #include <array>
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducer;
+  using namespace particleFlowRecHitProducer;
 
   class PFRecHitHCALParamsESProducer : public ESProducer {
   public:

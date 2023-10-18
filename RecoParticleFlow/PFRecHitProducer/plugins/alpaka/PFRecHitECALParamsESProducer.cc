@@ -7,10 +7,10 @@
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/ESProducer.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsHostCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitParamsRecord.h"
-#include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/CalorimeterDefinitions.h"
+#include "CalorimeterDefinitions.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using namespace ParticleFlowRecHitProducer;
+  using namespace particleFlowRecHitProducer;
 
   class PFRecHitECALParamsESProducer : public ESProducer {
   public:
@@ -24,7 +24,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       descriptions.addWithDefaultLabel(desc);
     }
 
-    std::unique_ptr<reco::PFRecHitECALParamsHostCollection> produce(const PFRecHitECALParamsRecord& iRecord) {
+    std::unique_ptr<reco::PFRecHitECALParamsHostCollection> produce(const EcalPFRecHitThresholdsRcd& iRecord) {
       const auto& thresholds = iRecord.get(thresholdsToken_);
       auto product = std::make_unique<reco::PFRecHitECALParamsHostCollection>(ECAL::kSize, cms::alpakatools::host());
       for (uint32_t denseId = 0; denseId < ECAL::Barrel::kSize; denseId++)
