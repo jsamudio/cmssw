@@ -269,11 +269,12 @@ if hcal:
         energyThresholdsHE = cms.vdouble( 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 )
     )
 else:  # ecal
-    process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitECALParamsESProducer")
+    process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitECALParamsESProducer",
+        cleaningThreshold = cms.double(2))
 
 # Construct PFRecHitSoA
 if hcal:
-    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpakaHCAL",
+    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitSoAProducerHCAL",
         producers = cms.VPSet(
             cms.PSet(
                 src = cms.InputTag("hltParticleFlowRecHitToSoA"),
@@ -284,7 +285,7 @@ if hcal:
         synchronise = cms.untracked.bool(args.synchronise)
     )
 else:  # ecal
-    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpakaECAL",
+    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitSoAProducerECAL",
         producers = cms.VPSet(
             cms.PSet(
                 src = cms.InputTag("hltParticleFlowRecHitEBToSoA"),

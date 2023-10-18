@@ -16,9 +16,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   using namespace particleFlowRecHitProducer;
 
   template <typename CAL>
-  class PFRecHitProducerAlpaka : public global::EDProducer<> {
+  class PFRecHitSoAProducer : public global::EDProducer<> {
   public:
-    PFRecHitProducerAlpaka(edm::ParameterSet const& config)
+    PFRecHitSoAProducer(edm::ParameterSet const& config)
         : topologyToken_(esConsumes(config.getParameter<edm::ESInputTag>("topology"))),
           pfRecHitsToken_(produces()),
           synchronise_(config.getUntrackedParameter<bool>("synchronise")) {
@@ -71,10 +71,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const bool synchronise_;
   };
 
-  using PFRecHitProducerAlpakaHCAL = PFRecHitProducerAlpaka<HCAL>;
-  using PFRecHitProducerAlpakaECAL = PFRecHitProducerAlpaka<ECAL>;
+  using PFRecHitSoAProducerHCAL = PFRecHitSoAProducer<HCAL>;
+  using PFRecHitSoAProducerECAL = PFRecHitSoAProducer<ECAL>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/MakerMacros.h"
-DEFINE_FWK_ALPAKA_MODULE(PFRecHitProducerAlpakaHCAL);
-DEFINE_FWK_ALPAKA_MODULE(PFRecHitProducerAlpakaECAL);
+DEFINE_FWK_ALPAKA_MODULE(PFRecHitSoAProducerHCAL);
+DEFINE_FWK_ALPAKA_MODULE(PFRecHitSoAProducerECAL);

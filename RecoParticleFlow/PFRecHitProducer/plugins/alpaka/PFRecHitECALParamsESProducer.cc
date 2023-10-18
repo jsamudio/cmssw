@@ -13,13 +13,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFRecHitECALParamsESProducer : public ESProducer {
   public:
-    PFRecHitECALParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig) {
+    PFRecHitECALParamsESProducer(edm::ParameterSet const& iConfig)
+        : ESProducer(iConfig), cleaningThreshold_(iConfig.getParameter<double>("cleaningThreshold")) {
       auto cc = setWhatProduced(this);
       thresholdsToken_ = cc.consumes();
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
+      desc.add<double>("cleaningThreshold", 2);
       descriptions.addWithDefaultLabel(desc);
     }
 
@@ -30,10 +32,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         product->view().energyThresholds()[denseId] = thresholds.barrel(denseId);
       for (uint32_t denseId = 0; denseId < ECAL::Endcap::kSize; denseId++)
         product->view().energyThresholds()[denseId + ECAL::Barrel::kSize] = thresholds.endcap(denseId);
+      product->view().cleaningThreshold() = cleaningThreshold_;
       return product;
     }
 
   private:
+    const double cleaningThreshold_;
     edm::ESGetToken<EcalPFRecHitThresholds, EcalPFRecHitThresholdsRcd> thresholdsToken_;
   };
 

@@ -15,10 +15,10 @@
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitParamsDeviceCollection.h"
 #include "RecoParticleFlow/PFRecHitProducer/interface/alpaka/PFRecHitTopologyDeviceCollection.h"
 
-// This file defines to structs:
+// This file defines two structs:
 // 1) ALPAKA_ACCELERATOR_NAMESPACE::particleFlowRecHitProducer::HCAL
 // 2) ALPAKA_ACCELERATOR_NAMESPACE::particleFlowRecHitProducer::ECAL
-// These are used as template arguments of the PFRecHitProducerAlpaka class and
+// These are used as template arguments of the PFRecHitSoAProducer class and
 // related classes. This allows to specialise behaviour for the two calorimeter
 // types.
 namespace ALPAKA_ACCELERATOR_NAMESPACE::particleFlowRecHitProducer {

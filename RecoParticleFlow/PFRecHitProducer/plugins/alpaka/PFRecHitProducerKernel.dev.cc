@@ -75,7 +75,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       return false;
 
     // Reject ECAL recHits of bad quality
-    if ((ECAL::checkFlag(rh.flags(), ECAL::Flags::kOutOfTime) && rh.energy() > 2) ||
+    if ((ECAL::checkFlag(rh.flags(), ECAL::Flags::kOutOfTime) && rh.energy() > params.cleaningThreshold()) ||
         ECAL::checkFlag(rh.flags(), ECAL::Flags::kTowerRecovered) || ECAL::checkFlag(rh.flags(), ECAL::Flags::kWeird) ||
         ECAL::checkFlag(rh.flags(), ECAL::Flags::kDiWeird))
       return false;
