@@ -1,13 +1,16 @@
-#ifndef ParticleFlowReco_PFClusterDeviceCollection_h
-#define ParticleFlowReco_PFClusterDeviceCollection_h
+#ifndef DataFormats_ParticleFlowReco_interface_alpaka_PFClusterDeviceCollection_h
+#define DataFormats_ParticleFlowReco_interface_alpaka_PFClusterDeviceCollection_h
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "DataFormats/ParticleFlowReco/interface/PFClusterSoA.h"
+#include "DataFormats/ParticleFlowReco/interface/PFClusterHostCollection.h"
 
-namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  using PFClusterDeviceCollection = PortableCollection<reco::PFClusterSoA>;
-}  // namespace ALPAKA_ACCELERATOR_NAMESPACE
+namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
 
-#endif
+  using ::reco::PFClusterHostCollection;
+
+  using PFClusterDeviceCollection = PortableCollection<::reco::PFClusterSoA>;
+}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::reco
+
+#endif // DataFormats_ParticleFlowReco_interface_alpaka_PFClusterDeviceCollection_h
 

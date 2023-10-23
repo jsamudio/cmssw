@@ -1,5 +1,5 @@
-#ifndef ParticleFlowReco_PFClusterSoA_h
-#define ParticleFlowReco_PFClusterSoA_h
+#ifndef DataFormats_ParticleFlowReco_interface_PFClusterSoA_h
+#define DataFormats_ParticleFlowReco_interface_PFClusterSoA_h
 
 #include "DataFormats/SoATemplate/interface/SoACommon.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
@@ -26,5 +26,5 @@ namespace reco {
   using PFClusterSoA = PFClusterSoALayout<>;
 }  // namespace reco
 
-#endif
+#endif // DataFormats_ParticleFlowReco_interface_PFClusterSoA_h
 

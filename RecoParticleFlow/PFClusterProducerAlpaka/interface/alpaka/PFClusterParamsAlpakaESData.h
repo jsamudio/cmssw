@@ -8,10 +8,11 @@
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/PFClusterParamsAlpakaESData.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/PFClusterParamsAlpakaESDataSoA.h"
 
-namespace ALPAKA_ACCELERATOR_NAMESPACE {
+namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
 
-  using PFClusterParamsAlpakaESDataHost = reco::PFClusterParamsAlpakaESDataHost;
-  using PFClusterParamsAlpakaESDataDevice = PortableCollection<reco::PFClusterParamsAlpakaESDataSoA>;
+  using ::reco::PFClusterParamsAlpakaESDataHost;
+
+  using PFClusterParamsAlpakaESDataDevice = PortableCollection<::reco::PFClusterParamsAlpakaESDataSoA>;
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 

@@ -1,5 +1,5 @@
-#ifndef ParticleFlowReco_PFRecHitFractionSoA_h
-#define ParticleFlowReco_PFRecHitFractionSoA_h
+#ifndef DataFormats_ParticleFlowReco_interface_PFRecHitFractionSoA_h
+#define DataFormats_ParticleFlowReco_interface_PFRecHitFractionSoA_h
 
 #include "DataFormats/SoATemplate/interface/SoACommon.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
@@ -15,5 +15,5 @@ namespace reco {
   using PFRecHitFractionSoA = PFRecHitFractionSoALayout<>;
 }  // namespace reco
 
-#endif
+#endif // DataFormats_ParticleFlowReco_interface_PFRecHitFractionSoA_h
 

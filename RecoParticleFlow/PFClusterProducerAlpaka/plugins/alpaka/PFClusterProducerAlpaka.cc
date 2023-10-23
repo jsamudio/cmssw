@@ -31,14 +31,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     void produce(device::Event& event, device::EventSetup const& setup) override {
-      const PFClusterParamsAlpakaESDataDevice& params = setup.getData(pfClusParamsToken);
+      const reco::PFClusterParamsAlpakaESDataDevice& params = setup.getData(pfClusParamsToken);
       const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
 
-      tmpDeviceCollection tmp{nRH + 1, event.queue()};
-      tmpEdgeDeviceCollection tmpEdge{(nRH * 8) + 1, event.queue()};
-      PFClusterDeviceCollection pfClusters{nRH, event.queue()};
-      PFRecHitFractionDeviceCollection pfrhFractions{nRH * 120, event.queue()};
+      reco::tmpDeviceCollection tmp{nRH + 1, event.queue()};
+      reco::tmpEdgeDeviceCollection tmpEdge{(nRH * 8) + 1, event.queue()};
+      reco::PFClusterDeviceCollection pfClusters{nRH, event.queue()};
+      reco::PFRecHitFractionDeviceCollection pfrhFractions{nRH * 120, event.queue()};
 
       if(!kernel)
         kernel.emplace(PFClusterProducerKernel::Construct(event.queue(), pfRecHits));
@@ -66,10 +66,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
   private:
-    const device::ESGetToken<PFClusterParamsAlpakaESDataDevice, PFClusterParamsAlpakaESRecord> pfClusParamsToken;
+    const device::ESGetToken<reco:PFClusterParamsAlpakaESDataDevice, PFClusterParamsAlpakaESRecord> pfClusParamsToken;
     const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
-    const device::EDPutToken<PFClusterDeviceCollection> OutputPFClusterSoA_Token_;
-    const device::EDPutToken<PFRecHitFractionDeviceCollection> OutputPFRHFractionSoA_Token_;
+    const device::EDPutToken<reco::PFClusterDeviceCollection> OutputPFClusterSoA_Token_;
+    const device::EDPutToken<reco::PFRecHitFractionDeviceCollection> OutputPFRHFractionSoA_Token_;
     const bool synchronise;
     const bool _produceSoA;
     const bool _produceLegacy;

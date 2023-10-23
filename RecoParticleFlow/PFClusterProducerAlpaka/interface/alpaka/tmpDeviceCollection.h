@@ -7,9 +7,9 @@
 
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/tmpSoA.h"
 
-namespace ALPAKA_ACCELERATOR_NAMESPACE {
+namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
 
-  using tmpDeviceCollection = PortableCollection<reco::tmpSoA>;
+  using tmpDeviceCollection = PortableCollection<::reco::tmpSoA>;
 
 }
 

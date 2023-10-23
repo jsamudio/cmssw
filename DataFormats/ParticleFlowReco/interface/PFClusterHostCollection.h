@@ -1,5 +1,5 @@
-#ifndef ParticleFlowReco_PFClusterHostCollection_h
-#define ParticleFlowReco_PFClusterHostCollection_h
+#ifndef DataFormats_ParticleFlowReco_interface_PFClusterHostCollection_h
+#define DataFormats_ParticleFlowReco_interface_PFClusterHostCollection_h
 
 #include "DataFormats/ParticleFlowReco/interface/PFClusterSoA.h"
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
@@ -10,5 +10,5 @@ namespace reco {
 
 }  // namespace reco
 
-#endif
+#endif // DataFormats_ParticleFlowReco_interface_PFClusterHostCollection_h
 
