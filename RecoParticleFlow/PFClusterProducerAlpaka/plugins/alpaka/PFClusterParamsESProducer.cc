@@ -18,7 +18,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     PFClusterParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig), paramSet(iConfig) {
 
-      product = std::make_shared<PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
+      product = std::make_shared<reco::PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
       constexpr static uint32_t kMaxDepth_barrel = 4;
       constexpr static uint32_t kMaxDepth_endcap = 7;
       auto view = product->view();
@@ -147,7 +147,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       setWhatProduced(this);
     }
 
-    std::shared_ptr<PFClusterParamsAlpakaESDataHost> product;
+    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> product;
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription psetDesc;
@@ -242,7 +242,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       descriptions.addWithDefaultLabel(psetDesc);
     }
 
-    std::shared_ptr<PFClusterParamsAlpakaESDataHost> produce(PFClusterParamsAlpakaESRecord const& iRecord) {
+    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> produce(PFClusterParamsAlpakaESRecord const& iRecord) {
       return product;
     }
 
