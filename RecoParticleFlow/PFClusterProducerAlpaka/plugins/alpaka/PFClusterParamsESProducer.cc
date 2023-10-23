@@ -17,106 +17,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class PFClusterParamsESProducer : public ESProducer {
   public:
     PFClusterParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig), paramSet(iConfig) {
-      setWhatProduced(this);
-    }
 
-    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-      edm::ParameterSetDescription psetDesc;
-      psetDesc.add<std::string>("appendToDataLabel", "");
-      {
-        auto const psetName = "seedFinder";
-        edm::ParameterSetDescription foo;
-        foo.add<int>("nNeighbours", 4);
-        {
-          edm::ParameterSetDescription validator;
-          validator.add<std::string>("detector", "");
-          validator.add<std::vector<double>>("seedingThreshold", {});
-          validator.add<double>("seedingThresholdPt", 0.);
-          std::vector<edm::ParameterSet> vDefaults(2);
-          vDefaults[0].addParameter<std::string>("detector", "HCAL_BARREL1");
-          vDefaults[0].addParameter<std::vector<double>>("seedingThreshold", {0.125, 0.25, 0.35, 0.35});
-          vDefaults[0].addParameter<double>("seedingThresholdPt", 0.);
-          vDefaults[1].addParameter<std::string>("detector", "HCAL_ENDCAP");
-          vDefaults[1].addParameter<std::vector<double>>("seedingThreshold",
-                                                         {0.1375, 0.275, 0.275, 0.275, 0.275, 0.275, 0.275});
-          vDefaults[1].addParameter<double>("seedingThresholdPt", 0.);
-          foo.addVPSet("thresholdsByDetector", validator, vDefaults);
-        }
-        psetDesc.add(psetName, foo);
-      }
-      {
-        auto const psetName = "initialClusteringStep";
-        edm::ParameterSetDescription foo;
-        {
-          edm::ParameterSetDescription validator;
-          validator.add<std::string>("detector", "");
-          validator.add<std::vector<double>>("gatheringThreshold", {});
-          std::vector<edm::ParameterSet> vDefaults(2);
-          vDefaults[0].addParameter<std::string>("detector", "HCAL_BARREL1");
-          vDefaults[0].addParameter<std::vector<double>>("gatheringThreshold", {0.1, 0.2, 0.3, 0.3});
-          vDefaults[1].addParameter<std::string>("detector", "HCAL_ENDCAP");
-          vDefaults[1].addParameter<std::vector<double>>("gatheringThreshold", {0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
-          foo.addVPSet("thresholdsByDetector", validator, vDefaults);
-        }
-        psetDesc.add(psetName, foo);
-      }
-      {
-        auto const psetName = "pfClusterBuilder";
-        edm::ParameterSetDescription foo;
-        foo.add<unsigned int>("maxIterations", 50);
-        foo.add<double>("minFracTot", 1e-20);
-        foo.add<double>("minFractionToKeep", 1e-7);
-        foo.add<bool>("excludeOtherSeeds", true);
-        foo.add<double>("showerSigma", 10.);
-        foo.add<double>("stoppingTolerance", 1e-8);
-        {
-          edm::ParameterSetDescription validator;
-          validator.add<std::string>("detector", "");
-          validator.add<std::vector<double>>("recHitEnergyNorm", {});
-          std::vector<edm::ParameterSet> vDefaults(2);
-          vDefaults[0].addParameter<std::string>("detector", "HCAL_BARREL1");
-          vDefaults[0].addParameter<std::vector<double>>("recHitEnergyNorm", {0.1, 0.2, 0.3, 0.3});
-          vDefaults[1].addParameter<std::string>("detector", "HCAL_ENDCAP");
-          vDefaults[1].addParameter<std::vector<double>>("recHitEnergyNorm", {0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
-          foo.addVPSet("recHitEnergyNorms", validator, vDefaults);
-        }
-        {
-          edm::ParameterSetDescription bar;
-          bar.add<double>("minFractionInCalc", 1e-9);
-          bar.add<double>("minAllowedNormalization", 1e-9);
-          foo.add("positionCalc", bar);
-        }
-        {
-          edm::ParameterSetDescription bar;
-          bar.add<double>("corrTermLowE", 0.);
-          bar.add<double>("threshLowE", 6.);
-          bar.add<double>("noiseTerm", 21.86);
-          bar.add<double>("constantTermLowE", 4.24);
-          bar.add<double>("noiseTermLowE", 8.);
-          bar.add<double>("threshHighE", 15.);
-          bar.add<double>("constantTerm", 2.82);
-          foo.add("timeResolutionCalcBarrel", bar);
-        }
-        {
-          edm::ParameterSetDescription bar;
-          bar.add<double>("corrTermLowE", 0.);
-          bar.add<double>("threshLowE", 6.);
-          bar.add<double>("noiseTerm", 21.86);
-          bar.add<double>("constantTermLowE", 4.24);
-          bar.add<double>("noiseTermLowE", 8.);
-          bar.add<double>("threshHighE", 15.);
-          bar.add<double>("constantTerm", 2.82);
-          foo.add("timeResolutionCalcEndcap", bar);
-        }
-        psetDesc.add(psetName, foo);
-      }
-
-      psetDesc.setAllowAnything();
-      descriptions.addWithDefaultLabel(psetDesc);
-    }
-
-    std::unique_ptr<PFClusterParamsAlpakaESDataHost> produce(PFClusterParamsAlpakaESRecord const& iRecord) {
-      auto product = std::make_unique<PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
+      product = std::make_shared<PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
       constexpr static uint32_t kMaxDepth_barrel = 4;
       constexpr static uint32_t kMaxDepth_endcap = 7;
       auto view = product->view();
@@ -240,8 +142,107 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       view.endcapTimeResConsts_constantTerm2() = std::pow(endcapTimeResConf.getParameter<double>("constantTerm"), 2.);
       view.endcapTimeResConsts_resHighE2() =
           std::pow(view.endcapTimeResConsts_noiseTerm() / view.endcapTimeResConsts_threshHighE(), 2.) +
-          view.endcapTimeResConsts_constantTerm2();
+      view.endcapTimeResConsts_constantTerm2();
 
+      setWhatProduced(this);
+    }
+
+    std::shared_ptr<PFClusterParamsAlpakaESDataHost> product;
+
+    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+      edm::ParameterSetDescription psetDesc;
+      {
+        auto const psetName = "seedFinder";
+        edm::ParameterSetDescription foo;
+        foo.add<int>("nNeighbours", 4);
+        {
+          edm::ParameterSetDescription validator;
+          validator.add<std::string>("detector", "");
+          validator.add<std::vector<double>>("seedingThreshold", {});
+          validator.add<double>("seedingThresholdPt", 0.);
+          std::vector<edm::ParameterSet> vDefaults(2);
+          vDefaults[0].addParameter<std::string>("detector", "HCAL_BARREL1");
+          vDefaults[0].addParameter<std::vector<double>>("seedingThreshold", {0.125, 0.25, 0.35, 0.35});
+          vDefaults[0].addParameter<double>("seedingThresholdPt", 0.);
+          vDefaults[1].addParameter<std::string>("detector", "HCAL_ENDCAP");
+          vDefaults[1].addParameter<std::vector<double>>("seedingThreshold",
+                                                         {0.1375, 0.275, 0.275, 0.275, 0.275, 0.275, 0.275});
+          vDefaults[1].addParameter<double>("seedingThresholdPt", 0.);
+          foo.addVPSet("thresholdsByDetector", validator, vDefaults);
+        }
+        psetDesc.add(psetName, foo);
+      }
+      {
+        auto const psetName = "initialClusteringStep";
+        edm::ParameterSetDescription foo;
+        {
+          edm::ParameterSetDescription validator;
+          validator.add<std::string>("detector", "");
+          validator.add<std::vector<double>>("gatheringThreshold", {});
+          std::vector<edm::ParameterSet> vDefaults(2);
+          vDefaults[0].addParameter<std::string>("detector", "HCAL_BARREL1");
+          vDefaults[0].addParameter<std::vector<double>>("gatheringThreshold", {0.1, 0.2, 0.3, 0.3});
+          vDefaults[1].addParameter<std::string>("detector", "HCAL_ENDCAP");
+          vDefaults[1].addParameter<std::vector<double>>("gatheringThreshold", {0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
+          foo.addVPSet("thresholdsByDetector", validator, vDefaults);
+        }
+        psetDesc.add(psetName, foo);
+      }
+      {
+        auto const psetName = "pfClusterBuilder";
+        edm::ParameterSetDescription foo;
+        foo.add<unsigned int>("maxIterations", 50);
+        foo.add<double>("minFracTot", 1e-20);
+        foo.add<double>("minFractionToKeep", 1e-7);
+        foo.add<bool>("excludeOtherSeeds", true);
+        foo.add<double>("showerSigma", 10.);
+        foo.add<double>("stoppingTolerance", 1e-8);
+        {
+          edm::ParameterSetDescription validator;
+          validator.add<std::string>("detector", "");
+          validator.add<std::vector<double>>("recHitEnergyNorm", {});
+          std::vector<edm::ParameterSet> vDefaults(2);
+          vDefaults[0].addParameter<std::string>("detector", "HCAL_BARREL1");
+          vDefaults[0].addParameter<std::vector<double>>("recHitEnergyNorm", {0.1, 0.2, 0.3, 0.3});
+          vDefaults[1].addParameter<std::string>("detector", "HCAL_ENDCAP");
+          vDefaults[1].addParameter<std::vector<double>>("recHitEnergyNorm", {0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
+          foo.addVPSet("recHitEnergyNorms", validator, vDefaults);
+        }
+        {
+          edm::ParameterSetDescription bar;
+          bar.add<double>("minFractionInCalc", 1e-9);
+          bar.add<double>("minAllowedNormalization", 1e-9);
+          foo.add("positionCalc", bar);
+        }
+        {
+          edm::ParameterSetDescription bar;
+          bar.add<double>("corrTermLowE", 0.);
+          bar.add<double>("threshLowE", 6.);
+          bar.add<double>("noiseTerm", 21.86);
+          bar.add<double>("constantTermLowE", 4.24);
+          bar.add<double>("noiseTermLowE", 8.);
+          bar.add<double>("threshHighE", 15.);
+          bar.add<double>("constantTerm", 2.82);
+          foo.add("timeResolutionCalcBarrel", bar);
+        }
+        {
+          edm::ParameterSetDescription bar;
+          bar.add<double>("corrTermLowE", 0.);
+          bar.add<double>("threshLowE", 6.);
+          bar.add<double>("noiseTerm", 21.86);
+          bar.add<double>("constantTermLowE", 4.24);
+          bar.add<double>("noiseTermLowE", 8.);
+          bar.add<double>("threshHighE", 15.);
+          bar.add<double>("constantTerm", 2.82);
+          foo.add("timeResolutionCalcEndcap", bar);
+        }
+        psetDesc.add(psetName, foo);
+      }
+
+      descriptions.addWithDefaultLabel(psetDesc);
+    }
+
+    std::shared_ptr<PFClusterParamsAlpakaESDataHost> produce(PFClusterParamsAlpakaESRecord const& iRecord) {
       return product;
     }
 

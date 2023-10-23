@@ -38,9 +38,9 @@ process.load('Configuration.StandardSequences.Accelerators_cff')
 process.load('HeterogeneousCore.AlpakaCore.ProcessAcceleratorAlpaka_cfi')
 
 process.maxEvents = cms.untracked.PSet(
-    #input = cms.untracked.int32(5),
-    input = cms.untracked.int32(100),
-    #input = cms.untracked.int32(1000),
+    #input = cms.untracked.int32(1),
+    #input = cms.untracked.int32(100),
+    input = cms.untracked.int32(1000),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
 
@@ -48,15 +48,15 @@ process.maxEvents = cms.untracked.PSet(
 # Need to use a file that contains HCAL/ECAL hits. Verify using:
 # root root://eoscms.cern.ch//eos/cms/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/0088b51b-0cda-40f2-95fc-590f446624ee.root -e 'Events->Print()' -q | grep -E "hltHbhereco|hltEcalRecHit"
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/0088b51b-0cda-40f2-95fc-590f446624ee.root'),
-    secondaryFileNames = cms.untracked.vstring()
+    #fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/0088b51b-0cda-40f2-95fc-590f446624ee.root'),
+    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_8/RelValQCD_FlatPt_15_3000HS_14/GEN-SIM-DIGI-RAW/130X_mcRun3_2022_realistic_v3_2022-v1/2580000/0e63ba30-251b-4034-93ca-4d400aaa399e.root'),
+    secondaryFileNames = cms.untracked.vstring(),
+    #skipEvents = cms.untracked.uint32(999)
 )
 
 process.options = cms.untracked.PSet(
-    #FailPath = cms.untracked.vstring(),
     IgnoreCompletely = cms.untracked.vstring(),
     Rethrow = cms.untracked.vstring(),
-    #SkipEvent = cms.untracked.vstring(),
     allowUnscheduled = cms.obsolete.untracked.bool,
     canDeleteEarly = cms.untracked.vstring(),
     deleteNonConsumedUnscheduledModules = cms.untracked.bool(True),
@@ -171,6 +171,45 @@ assert args.backend.lower() in alpaka_backends, "Invalid backend"
 alpaka_backend_str = alpaka_backends[args.backend.lower()]
 
 
+
+########################################
+##    Legacy HBHE PFRecHit producer   ##
+########################################
+process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
+    navigator = cms.PSet(
+        hcalEnums = cms.vint32(1, 2),
+        name = cms.string('PFRecHitHCALDenseIdNavigator')
+    ),
+    producers = cms.VPSet(cms.PSet(
+        name = cms.string('PFHBHERecHitCreator'),
+        qualityTests = cms.VPSet(
+            cms.PSet(
+                cuts = cms.VPSet(
+                    cms.PSet(
+                        depth = cms.vint32(1, 2, 3, 4),
+                        detectorEnum = cms.int32(1),
+                        threshold = cms.vdouble(0.4, 0.3, 0.3, 0.3)
+                    ),
+                    cms.PSet(
+                        depth = cms.vint32(1, 2, 3, 4, 5, 6, 7),
+                        detectorEnum = cms.int32(2),
+                        threshold = cms.vdouble(0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2)
+                    )
+                ),
+                name = cms.string('PFRecHitQTestHCALThresholdVsDepth')
+            ),
+            cms.PSet(
+                cleaningThresholds = cms.vdouble(0.0),
+                flags = cms.vstring('Standard'),
+                maxSeverities = cms.vint32(11),
+                name = cms.string('PFRecHitQTestHCALChannel')
+            )
+        ),
+        src = cms.InputTag("hltHbherecoLegacy")
+    ))
+)
+
+
 #####################################
 ##    Legacy PFRecHit producer     ##
 #####################################
@@ -188,7 +227,7 @@ if hcal:
                         cms.PSet(
                             depth = cms.vint32(1, 2, 3, 4),
                             detectorEnum = cms.int32(1),
-                            threshold = cms.vdouble(0.1, 0.2, 0.3, 0.3)
+                            threshold = cms.vdouble(0.4, 0.3, 0.3, 0.3)
                         ),
                         cms.PSet(
                             depth = cms.vint32(1, 2, 3, 4, 5, 6, 7),
@@ -205,7 +244,7 @@ if hcal:
                     name = cms.string('PFRecHitQTestHCALChannel')
                 )
             ),
-            src = cms.InputTag("hltHbhereco")
+            src = cms.InputTag("hltHbherecoLegacy")
         ))
     )
 else:  # ecal
@@ -251,7 +290,7 @@ else:  # ecal
 # Convert legacy CaloRecHits to CaloRecHitSoA
 if hcal:
     process.hltParticleFlowRecHitToSoA = cms.EDProducer(alpaka_backend_str % "HCALRecHitSoAProducer",
-        src = cms.InputTag("hltHbhereco"),
+        src = cms.InputTag("hltHbherecoLegacy"),
         synchronise = cms.untracked.bool(args.synchronise)
     )
 else:  # ecal
@@ -278,7 +317,7 @@ process.pfRecHitParamsRecordSource = cms.ESSource('EmptyESSource',
 process.hltParticleFlowRecHitTopologyESProducer = cms.ESProducer(alpaka_backend_str % f"PFRecHit{CAL}TopologyESProducer")
 if hcal:
     process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitHCALParamsESProducer",
-        energyThresholdsHB = cms.vdouble( 0.1, 0.2, 0.3, 0.3 ),
+        energyThresholdsHB = cms.vdouble( 0.4, 0.3, 0.3, 0.3 ),
         energyThresholdsHE = cms.vdouble( 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 )
     )
 else:  # ecal
@@ -338,7 +377,7 @@ process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest"
 
 # Validate legacy format from legacy module vs legacy format from Alpaka module
 process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison1 = DQMEDAnalyzer("PFRecHitProducerTest",
-    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHit"),
+    pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHE"),
     pfRecHitsSource2 = cms.untracked.InputTag("hltParticleFlowAlpakaToLegacyPFRecHits"),
     pfRecHitsType1 = cms.untracked.string("legacy"),
     pfRecHitsType2 = cms.untracked.string("legacy"),
@@ -373,9 +412,10 @@ from RecoParticleFlow.PFClusterProducerAlpaka.pfClusterParamsESProducer_cfi impo
 
 process.hltParticleFlowClusterParamsESProducer = _pfClusterParamsESProducer.clone(
         alpaka = cms.untracked.PSet(
-            backend = cms.untracked.string('serial_sync')
+            backend = cms.untracked.string("cuda_async")
         ),
     )
+process.hltParticleFlowClusterParamsESProducer.pfClusterBuilder.maxIterations = 5
 
 for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.initialClusteringStep.thresholdsByDetector):
     for idy, y in enumerate(process.hltParticleFlowClusterHBHE.initialClusteringStep.thresholdsByDetector):
@@ -401,9 +441,10 @@ process.hltParticleFlowPFClusterAlpaka = cms.EDProducer(alpaka_backend_str % "PF
                                                         initialClusteringStep = process.hltParticleFlowClusterHBHE.initialClusteringStep,
                                                         synchronise = cms.bool(args.synchronise))
 process.hltParticleFlowPFClusterAlpaka.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
-process.hltParticleFlowPFClusterAlpaka.pfClusterBuilder.maxIterations = 5
 
 # Create legacy PFClusters
+
+process.hltParticleFlowClusterHBHE.pfClusterBuilder.maxIterations = 5
 
 process.hltParticleFlowAlpakaToLegacyPFClusters = cms.EDProducer("LegacyPFClusterProducer",
                                                                  src = cms.InputTag("hltParticleFlowPFClusterAlpaka"),
@@ -413,26 +454,33 @@ process.hltParticleFlowAlpakaToLegacyPFClusters = cms.EDProducer("LegacyPFCluste
                                                                  recHitsSource = cms.InputTag("hltParticleFlowAlpakaToLegacyPFRecHits"))
 process.hltParticleFlowAlpakaToLegacyPFClusters.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 
+#process.hltParticleFlowClusterHBHE.src = cms.InputTag("hltParticleFlowRecHit")
+
+
 # Additional customization
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowRecHitToSoA_*_*')
 process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowPFRecHitAlpaka_*_*')
+process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowAlpakaToLegacyPFClusters_*_*')
+process.FEVTDEBUGHLToutput.outputCommands.append('keep *_hltParticleFlowClusterHBHE_*_*')
 
 # Path/sequence definitions
-path = process.hltParticleFlowRecHit               # Construct PFRecHits on CPU
+path = process.hltHcalDigis
+path += process.hltHbherecoLegacy
+path += process.hltParticleFlowRecHit               # Construct PFRecHits on CPU
 if hcal:
     path += process.hltParticleFlowRecHitToSoA     # Convert legacy calorimeter hits to SoA (HCAL barrel+endcap)
 else:  # ecal
     path += process.hltParticleFlowRecHitEBToSoA   # Convert legacy calorimeter hits to SoA (ECAL barrel)
     path += process.hltParticleFlowRecHitEEToSoA   # Convert legacy calorimeter hits to SoA (ECAL endcap)
 path += process.hltParticleFlowPFRecHitAlpaka      # Construct PFRecHits SoA
+path += process.hltParticleFlowRecHitHBHE               # Construct Legacy PFRecHits
+path += process.hltParticleFlowClusterHBHE
 path += process.hltParticleFlowPFRecHitComparison  # Validate Alpaka vs CPU
 path += process.hltParticleFlowAlpakaToLegacyPFRecHits             # Convert Alpaka PFRecHits SoA to legacy format
 path += process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison1  # Validate legacy-format-from-alpaka vs regular legacy format
 path += process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison2  # Validate Alpaka format vs legacy-format-from-alpaka
 
-path += process.hltParticleFlowRecHitHBHE               # Construct Legacy PFRecHits
-path += process.hltParticleFlowClusterHBHE
 path += process.hltParticleFlowPFClusterAlpaka
 path += process.hltParticleFlowAlpakaToLegacyPFClusters
 
