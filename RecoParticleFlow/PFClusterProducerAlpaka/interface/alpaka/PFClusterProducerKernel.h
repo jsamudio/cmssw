@@ -67,7 +67,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     void execute(const Device&,
                  Queue& queue,
-                 const PFClusterParamsAlpakaESDataDevice& params,
+                 const reco::PFClusterParamsAlpakaESDataDevice& params,
                  reco::tmpDeviceCollection& tmp0,
                  reco::tmpEdgeDeviceCollection& tmp1,
                  const reco::PFRecHitHostCollection& pfRecHits,

@@ -66,7 +66,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
   private:
-    const device::ESGetToken<reco:PFClusterParamsAlpakaESDataDevice, PFClusterParamsAlpakaESRecord> pfClusParamsToken;
+    const device::ESGetToken<reco::PFClusterParamsAlpakaESDataDevice, PFClusterParamsAlpakaESRecord> pfClusParamsToken;
     const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
     const device::EDPutToken<reco::PFClusterDeviceCollection> OutputPFClusterSoA_Token_;
     const device::EDPutToken<reco::PFRecHitFractionDeviceCollection> OutputPFRHFractionSoA_Token_;

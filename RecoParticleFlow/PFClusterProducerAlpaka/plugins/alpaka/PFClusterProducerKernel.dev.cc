@@ -629,7 +629,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                            float frac,
                                            int rhInd,
                                            bool isDebug,
-                                           PFRecHitDeviceCollection::ConstView pfRecHits,
+                                           reco::PFRecHitDeviceCollection::ConstView pfRecHits,
                                            float rhENormInv) {
     float4 rechitPos = make_float4(pfRecHits[rhInd].x(), pfRecHits[rhInd].y(), pfRecHits[rhInd].z(), 1.0);
     const auto rh_energy = pfRecHits[rhInd].energy() * frac;
@@ -725,7 +725,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                          reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
                                                          int topoId,   // from selection
                                                          int nRHTopo,  // from selection
-                                                         PFRecHitDeviceCollection::ConstView pfRecHits,
+                                                         reco::PFRecHitDeviceCollection::ConstView pfRecHits,
                                                          reco::tmpDeviceCollection::View tmpPF0,
                                                          reco::PFClusterDeviceCollection::View clusterView,
                                                          reco::PFRecHitFractionDeviceCollection::View fracView) {
@@ -885,7 +885,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                           int topoId,   // from selection
                                                           int nSeeds,   // from selection
                                                           int nRHTopo,  // from selection
-                                                          PFRecHitDeviceCollection::ConstView pfRecHits,
+                                                          reco::PFRecHitDeviceCollection::ConstView pfRecHits,
                                                           reco::tmpDeviceCollection::View tmpPF0,
                                                           reco::PFClusterDeviceCollection::View clusterView,
                                                           reco::PFRecHitFractionDeviceCollection::View fracView) {
@@ -1156,7 +1156,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                   int topoId,
                                                   int nSeeds,
                                                   int nRHTopo,
-                                                  PFRecHitDeviceCollection::ConstView pfRecHits,
+                                                  reco::PFRecHitDeviceCollection::ConstView pfRecHits,
                                                   reco::tmpDeviceCollection::View tmpPF0,
                                                   reco::PFClusterDeviceCollection::View clusterView,
                                                   reco::PFRecHitFractionDeviceCollection::View fracView,
@@ -1432,7 +1432,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                   int topoId,
                                                   int nSeeds,
                                                   int nRHTopo,
-                                                  PFRecHitDeviceCollection::ConstView pfRecHits,
+                                                  reco::PFRecHitDeviceCollection::ConstView pfRecHits,
                                                   reco::tmpDeviceCollection::View tmpPF0,
                                                   reco::PFClusterDeviceCollection::View clusterView,
                                                   reco::PFRecHitFractionDeviceCollection::View fracView) {
@@ -1731,7 +1731,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   ALPAKA_FN_ACC void hcalFastCluster_selection(const TAcc& acc,
                                                reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
                                                size_t nRH,
-                                               PFRecHitDeviceCollection::ConstView pfRecHits,
+                                               reco::PFRecHitDeviceCollection::ConstView pfRecHits,
                                                reco::tmpDeviceCollection::View tmpPF0,
                                                reco::PFClusterDeviceCollection::View clusterView,
                                                reco::PFRecHitFractionDeviceCollection::View fracView,
@@ -1794,7 +1794,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   ALPAKA_FN_ACC void hcalFastCluster_serial(const TAcc& acc,
                                             reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
                                             size_t nRH,
-                                            PFRecHitDeviceCollection::ConstView pfRecHits,
+                                            reco::PFRecHitDeviceCollection::ConstView pfRecHits,
                                             reco::tmpDeviceCollection::View tmpPF0,
                                             reco::PFClusterDeviceCollection::View clusterView,
                                             reco::PFRecHitFractionDeviceCollection::View fracView,
