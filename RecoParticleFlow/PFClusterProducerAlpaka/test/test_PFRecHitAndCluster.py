@@ -325,7 +325,7 @@ else:  # ecal
 
 # Construct PFRecHitSoA
 if hcal:
-    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpakaHCAL",
+    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitSoAProducerHCAL",
         producers = cms.VPSet(
             cms.PSet(
                 src = cms.InputTag("hltParticleFlowRecHitToSoA"),
@@ -336,7 +336,7 @@ if hcal:
         synchronise = cms.untracked.bool(args.synchronise)
     )
 else:  # ecal
-    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitProducerAlpakaECAL",
+    process.hltParticleFlowPFRecHitAlpaka = cms.EDProducer(alpaka_backend_str % "PFRecHitSoAProducerECAL",
         producers = cms.VPSet(
             cms.PSet(
                 src = cms.InputTag("hltParticleFlowRecHitEBToSoA"),
@@ -410,11 +410,7 @@ process.pfClusterParamsAlpakaESRcdSource = cms.ESSource('EmptyESSource',
 
 from RecoParticleFlow.PFClusterProducerAlpaka.pfClusterParamsESProducer_cfi import pfClusterParamsESProducer as _pfClusterParamsESProducer
 
-process.hltParticleFlowClusterParamsESProducer = _pfClusterParamsESProducer.clone(
-        alpaka = cms.untracked.PSet(
-            backend = cms.untracked.string("cuda_async")
-        ),
-    )
+process.hltParticleFlowClusterParamsESProducer = _pfClusterParamsESProducer.clone()
 process.hltParticleFlowClusterParamsESProducer.pfClusterBuilder.maxIterations = 5
 
 for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.initialClusteringStep.thresholdsByDetector):
@@ -432,19 +428,10 @@ for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.seedFinde
 
 process.hltParticleFlowPFClusterAlpaka = cms.EDProducer(alpaka_backend_str % "PFClusterProducerAlpaka",
                                                         pfClusterParams = cms.ESInputTag("hltParticleFlowClusterParamsESProducer:"),
-                                                        pfClusterBuilder = process.hltParticleFlowClusterHBHE.pfClusterBuilder,
-                                                        positionReCalc = process.hltParticleFlowClusterHBHE.positionReCalc,
-                                                        recHitCleaners = process.hltParticleFlowClusterHBHE.recHitCleaners,
-                                                        seedCleaners = process.hltParticleFlowClusterHBHE.seedCleaners,
-                                                        seedFinder = process.hltParticleFlowClusterHBHE.seedFinder,
-                                                        energyCorrector = process.hltParticleFlowClusterHBHE.energyCorrector,
-                                                        initialClusteringStep = process.hltParticleFlowClusterHBHE.initialClusteringStep,
                                                         synchronise = cms.bool(args.synchronise))
 process.hltParticleFlowPFClusterAlpaka.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 
 # Create legacy PFClusters
-
-process.hltParticleFlowClusterHBHE.pfClusterBuilder.maxIterations = 5
 
 process.hltParticleFlowAlpakaToLegacyPFClusters = cms.EDProducer("LegacyPFClusterProducer",
                                                                  src = cms.InputTag("hltParticleFlowPFClusterAlpaka"),
@@ -454,8 +441,7 @@ process.hltParticleFlowAlpakaToLegacyPFClusters = cms.EDProducer("LegacyPFCluste
                                                                  recHitsSource = cms.InputTag("hltParticleFlowAlpakaToLegacyPFRecHits"))
 process.hltParticleFlowAlpakaToLegacyPFClusters.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 
-#process.hltParticleFlowClusterHBHE.src = cms.InputTag("hltParticleFlowRecHit")
-
+process.hltParticleFlowClusterHBHE.pfClusterBuilder.maxIterations = 5
 
 # Additional customization
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
@@ -484,8 +470,8 @@ path += process.hltParticleFlowAlpakaToLegacyPFRecHitsComparison2  # Validate Al
 path += process.hltParticleFlowPFClusterAlpaka
 path += process.hltParticleFlowAlpakaToLegacyPFClusters
 
-process.PFRecHitAlpakaValidationTask = cms.EndPath(path)
-process.schedule = cms.Schedule(process.PFRecHitAlpakaValidationTask)
+process.PFClusterAlpakaValidationTask = cms.EndPath(path)
+process.schedule = cms.Schedule(process.PFClusterAlpakaValidationTask)
 process.schedule.extend([process.endjob_step,process.FEVTDEBUGHLToutput_step])
 process.options.numberOfThreads = cms.untracked.uint32(args.threads)
 
