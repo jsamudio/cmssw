@@ -11,6 +11,8 @@ from RecoParticleFlow.PFClusterProducerAlpaka.pfClusterParamsESProducer_cfi impo
 from RecoParticleFlow.PFClusterProducerAlpaka.pfClusterProducerAlpaka_cfi import pfClusterProducerAlpaka as _pfClusterProducerAlpaka
 from RecoParticleFlow.PFClusterProducerAlpaka.legacyPFClusterProducer_cfi import legacyPFClusterProducer as _legacyPFClusterProducer
 
+from RecoParticleFlow.PFClusterProducer.particleFlowCluster_cff import pfClusteringHBHEHFTask, particleFlowClusterHBHE, particleFlowRecHitHBHE, particleFlowClusterHCAL
+
 _alpaka_pfClusteringHBHEHFTask = pfClusteringHBHEHFTask.copy()
 
 pfRecHitHCALParamsRecordSource = cms.ESSource('EmptyESSource',
@@ -40,33 +42,36 @@ pfRecHitHCALParamsESProducer = _pfRecHitHCALParamsESProducer.clone(
         energyThresholdsHE = cms.vdouble( 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 )
     )
 
-pfRecHitHBHETopologyESProducerAlpaka = _pfRecHitHBHETopologyESProducer.clone()
+pfRecHitHCALTopologyESProducer = _pfRecHitHCALTopologyESProducer.clone()
 pfRecHitSoAProducerHCAL = _pfRecHitSoAProducerHCAL.clone(
-        src = "hbheRecHitToSoA",
-        params = "pfRecHitHCALParamsESProducer:",
+        producers = cms.VPSet(
+            cms.PSet(
+                src = cms.InputTag("hbheRecHitToSoA"),
+                params = cms.ESInputTag("pfRecHitHCALParamsESProducer:"),
+            )
+        ),
         topology = "pfRecHitHCALTopologyESProducer:",
-        synchronise = cms.bool(False)
+        synchronise = cms.untracked.bool(False)
     )
 
 legacyPFRecHitFromAlpaka = _legacyPFRecHitProducer.clone(
         src = "pfRecHitSoAProducerHCAL"
     )
 
-pfClusterParamsESProducerAlpaka = _pfClusterParamsESProducer.clone()
+pfClusterParamsESProducer = _pfClusterParamsESProducer.clone()
 pfClusterProducerAlpaka = _pfClusterProducerAlpaka.clone(
         PFRecHitsLabelIn = 'pfRecHitSoAProducerHCAL',
-        pfClusterParams = 'pfClusterParamsESProducerAlpaka:',
+        pfClusterParams = 'pfClusterParamsESProducer:',
         synchronise = cms.bool(False)
     )
 
-from RecoParticleFlow.PFClusterProducer.particleFlowRecHitHBHE_cfi import *
 
 legacyPFClusterFromAlpaka = _legacyPFClusterProducer.clone(
         src = 'pfClusterProducerAlpaka',
-        pfClusterParams = 'pfClusterParamsESProducerAlpaka:',
+        pfClusterParams = 'pfClusterParamsESProducer:',
         pfClusterBuilder = particleFlowClusterHBHE.pfClusterBuilder,
         recHitsSource = 'legacyPFRecHitFromAlpaka',
-        PFRecHitsLabelIn = 'pfRecHitProducerAlpaka'
+        PFRecHitsLabelIn = 'pfRecHitSoAProducerHCAL'
     )
 
 
@@ -77,9 +82,8 @@ _alpaka_pfClusteringHBHEHFTask.add(hbheRecHitToSoA)
 _alpaka_pfClusteringHBHEHFTask.add(pfRecHitHCALParamsESProducer)
 _alpaka_pfClusteringHBHEHFTask.add(pfRecHitSoAProducerHCAL)
 _alpaka_pfClusteringHBHEHFTask.add(legacyPFRecHitFromAlpaka)
-_alpaka_pfClusteringHBHEHFTask.add(pfClusterParamsESProducerAlpaka)
+_alpaka_pfClusteringHBHEHFTask.add(pfClusterParamsESProducer)
 _alpaka_pfClusteringHBHEHFTask.add(pfClusterProducerAlpaka)
-_alpaka_pfClusteringHBHEHFTask.add(legacyPFClusterFromAlpaka)
 
 _alpaka_pfClusteringHBHEHFTask.remove(particleFlowRecHitHBHE)
 _alpaka_pfClusteringHBHEHFTask.remove(particleFlowClusterHBHE)
@@ -87,15 +91,6 @@ _alpaka_pfClusteringHBHEHFTask.remove(particleFlowClusterHCAL)
 _alpaka_pfClusteringHBHEHFTask.add(particleFlowClusterHBHE)
 _alpaka_pfClusteringHBHEHFTask.add(particleFlowClusterHCAL)
 
-alpaka.toModify(particleFlowClusterHBHE, cpu = _legacyPFClusterProducer.clone(
-        src = 'pfClusterProducerAlpaka',
-        pfClusterParams = 'pfClusterParamsESProducerAlpaka:',
-        pfClusterBuilder = particleFlowClusterHBHE.cpu.pfClusterBuilder,
-        recHitsSource = 'legacyPFRecHitFromAlpaka',
-        PFRecHitsLabelIn = 'pfRecHitProducerAlpaka'
-    )
-)
-
+alpaka.toReplaceWith(particleFlowClusterHBHE, legacyPFClusterFromAlpaka)
 
 alpaka.toReplaceWith(pfClusteringHBHEHFTask, _alpaka_pfClusteringHBHEHFTask)
-
