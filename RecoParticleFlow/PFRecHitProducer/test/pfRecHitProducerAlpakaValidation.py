@@ -125,7 +125,7 @@ if hasattr(process, 'MessageLogger'):
 #####################################
 import sys
 import argparse
-parser = argparse.ArgumentParser(prog=f"{sys.argv[0]} {sys.argv[1]} --", description='Test and validation of PFRecHitProducer with Alpaka')
+parser = argparse.ArgumentParser(prog="cmsRun "+sys.argv[0], description='Test and validation of PFRecHitProducer with Alpaka')
 parser.add_argument('-c', '--cal', type=str, default='HCAL',
                     help='Calorimeter type. Possible options: HCAL, ECAL. Default: HCAL')
 parser.add_argument('-b', '--backend', type=str, default='auto',
@@ -136,7 +136,7 @@ parser.add_argument('-t', '--threads', type=int, default=8,
                     help='Number of threads. Default: 8')
 parser.add_argument('-d', '--debug', type=int, default=0, const=1, nargs="?",
                     help='Dump PFRecHits for first event (n>0) or first error (n<0). This applies to the n-th validation (1: Legacy vs Alpaka, 2: Legacy vs Legacy-from-Alpaka, 3: Alpaka vs Legacy-from-Alpaka). Default: 0')
-args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
+args = parser.parse_args()
 
 if(args.debug and args.threads != 1):
     args.threads = 1

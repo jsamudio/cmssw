@@ -42,11 +42,11 @@ private:
 };
 
 void LegacyPFRecHitProducer::beginRun(edm::Run const&, const edm::EventSetup& setup) {
-  edm::ESHandle<CaloGeometry> geoHandle = setup.getHandle(geomToken_);
-  caloGeo_[PFLayer::HCAL_BARREL1] = geoHandle->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalBarrel);
-  caloGeo_[PFLayer::HCAL_ENDCAP] = geoHandle->getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalEndcap);
-  caloGeo_[PFLayer::ECAL_BARREL] = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalBarrel);
-  caloGeo_[PFLayer::ECAL_ENDCAP] = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalEndcap);
+  const CaloGeometry& geo = setup.getData(geomToken_);
+  caloGeo_[PFLayer::HCAL_BARREL1] = geo.getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalBarrel);
+  caloGeo_[PFLayer::HCAL_ENDCAP] = geo.getSubdetectorGeometry(DetId::Hcal, HcalSubdetector::HcalEndcap);
+  caloGeo_[PFLayer::ECAL_BARREL] = geo.getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalBarrel);
+  caloGeo_[PFLayer::ECAL_ENDCAP] = geo.getSubdetectorGeometry(DetId::Ecal, EcalSubdetector::EcalEndcap);
 }
 
 void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
