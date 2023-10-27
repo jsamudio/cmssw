@@ -100,6 +100,7 @@ void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& 
 
   std::vector<int> seedlist1;
   std::vector<int> seedlist2;
+  seedlist1.reserve(alpakaPfClusters.nSeeds());
   for (int i = 0; i < alpakaPfClusters.nSeeds(); i++) {
     seedlist1.push_back(alpakaPfClusters[i].pfc_seedRHIdx());
   }

@@ -15,4 +15,3 @@ namespace reco {
 }  // namespace reco
 
 #endif
-

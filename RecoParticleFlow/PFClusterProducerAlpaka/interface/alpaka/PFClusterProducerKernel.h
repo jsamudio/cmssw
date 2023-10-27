@@ -13,12 +13,11 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   typedef struct float4 {
-      float x;
-      float y;
-      float z;
-      float w;
-    } float4;
-
+    float x;
+    float y;
+    float z;
+    float w;
+  } float4;
 
   typedef struct float3 {
     float x;
@@ -61,9 +60,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFClusterProducerKernel {
   public:
-    static PFClusterProducerKernel Construct(Queue& queue,
-                 const reco::PFRecHitHostCollection& pfRecHits
-            );
+    static PFClusterProducerKernel Construct(Queue& queue, const reco::PFRecHitHostCollection& pfRecHits);
 
     void execute(const Device&,
                  Queue& queue,
@@ -73,7 +70,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                  const reco::PFRecHitHostCollection& pfRecHits,
                  reco::PFClusterDeviceCollection& pfClusters,
                  reco::PFRecHitFractionDeviceCollection& pfrhFractions);
-
 
   private:
     PFClusterProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t>&&,

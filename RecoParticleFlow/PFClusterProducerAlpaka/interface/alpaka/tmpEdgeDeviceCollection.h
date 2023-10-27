@@ -14,4 +14,3 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
 }
 
 #endif
-

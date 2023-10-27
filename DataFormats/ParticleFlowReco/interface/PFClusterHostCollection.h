@@ -10,5 +10,4 @@ namespace reco {
 
 }  // namespace reco
 
-#endif // DataFormats_ParticleFlowReco_interface_PFClusterHostCollection_h
-
+#endif  // DataFormats_ParticleFlowReco_interface_PFClusterHostCollection_h

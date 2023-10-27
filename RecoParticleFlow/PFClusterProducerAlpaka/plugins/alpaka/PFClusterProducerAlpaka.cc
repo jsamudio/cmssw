@@ -18,7 +18,6 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class PFClusterProducerAlpaka : public stream::EDProducer<> {
   public:
-
     PFClusterProducerAlpaka(edm::ParameterSet const& config)
         : pfClusParamsToken(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
           InputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
@@ -26,9 +25,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           OutputPFRHFractionSoA_Token_{produces()},
           synchronise(config.getParameter<bool>("synchronise")),
           _produceSoA{config.getParameter<bool>("produceSoA")},
-          _produceLegacy{config.getParameter<bool>("produceLegacy")}
-    {
-    }
+          _produceLegacy{config.getParameter<bool>("produceLegacy")} {}
 
     void produce(device::Event& event, device::EventSetup const& setup) override {
       const reco::PFClusterParamsAlpakaESDataDevice& params = setup.getData(pfClusParamsToken);
@@ -40,7 +37,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       reco::PFClusterDeviceCollection pfClusters{nRH, event.queue()};
       reco::PFRecHitFractionDeviceCollection pfrhFractions{nRH * 120, event.queue()};
 
-      if(!kernel)
+      if (!kernel)
         kernel.emplace(PFClusterProducerKernel::Construct(event.queue(), pfRecHits));
       kernel->execute(event.device(), event.queue(), params, tmp, tmpEdge, pfRecHits, pfClusters, pfrhFractions);
 

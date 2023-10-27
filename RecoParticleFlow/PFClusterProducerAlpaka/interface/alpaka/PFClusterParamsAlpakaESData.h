@@ -14,6 +14,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
 
   using PFClusterParamsAlpakaESDataDevice = PortableCollection<::reco::PFClusterParamsAlpakaESDataSoA>;
 
-}  // namespace ALPAKA_ACCELERATOR_NAMESPACE
+}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::reco
 
 #endif

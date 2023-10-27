@@ -15,5 +15,4 @@ namespace reco {
   using PFRecHitFractionSoA = PFRecHitFractionSoALayout<>;
 }  // namespace reco
 
-#endif // DataFormats_ParticleFlowReco_interface_PFRecHitFractionSoA_h
-
+#endif  // DataFormats_ParticleFlowReco_interface_PFRecHitFractionSoA_h

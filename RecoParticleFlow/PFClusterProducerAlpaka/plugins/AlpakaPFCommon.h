@@ -88,5 +88,4 @@ namespace PFClustering {
   }  // namespace common
 }  // namespace PFClustering
 
-#endif  
-
+#endif

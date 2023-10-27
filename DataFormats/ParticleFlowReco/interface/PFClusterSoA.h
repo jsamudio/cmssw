@@ -26,5 +26,4 @@ namespace reco {
   using PFClusterSoA = PFClusterSoALayout<>;
 }  // namespace reco
 
-#endif // DataFormats_ParticleFlowReco_interface_PFClusterSoA_h
-
+#endif  // DataFormats_ParticleFlowReco_interface_PFClusterSoA_h

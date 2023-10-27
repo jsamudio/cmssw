@@ -7,4 +7,3 @@ class PFClusterParamsAlpakaESRecord
     : public edm::eventsetup::EventSetupRecordImplementation<PFClusterParamsAlpakaESRecord> {};
 
 #endif  // RecoParticleFlow_PFRecHitProducer_interface_PFClusterParamsAlpakaRecord_h
-

@@ -17,7 +17,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class PFClusterParamsESProducer : public ESProducer {
   public:
     PFClusterParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig), paramSet(iConfig) {
-
       product = std::make_shared<reco::PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
       constexpr static uint32_t kMaxDepth_barrel = 4;
       constexpr static uint32_t kMaxDepth_endcap = 7;
@@ -142,7 +141,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       view.endcapTimeResConsts_constantTerm2() = std::pow(endcapTimeResConf.getParameter<double>("constantTerm"), 2.);
       view.endcapTimeResConsts_resHighE2() =
           std::pow(view.endcapTimeResConsts_noiseTerm() / view.endcapTimeResConsts_threshHighE(), 2.) +
-      view.endcapTimeResConsts_constantTerm2();
+          view.endcapTimeResConsts_constantTerm2();
 
       setWhatProduced(this);
     }

@@ -102,7 +102,7 @@ void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
 
   strncpy(histo, "pfCluster_Depth_GPUvsCPU_", size);
   pfCluster_Depth_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
-  
+
   strncpy(histo, "pfCluster_Eta_GPUvsCPU_", size);
   pfCluster_Eta_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
 

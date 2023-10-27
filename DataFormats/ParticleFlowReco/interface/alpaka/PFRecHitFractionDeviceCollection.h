@@ -12,4 +12,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
   using PFRecHitFractionDeviceCollection = PortableCollection<::reco::PFRecHitFractionSoA>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::reco
 
-#endif // DataFormats_ParticleFlowReco_interface_alpaka_PFRecHitFractionDeviceCollection_h
+#endif  // DataFormats_ParticleFlowReco_interface_alpaka_PFRecHitFractionDeviceCollection_h

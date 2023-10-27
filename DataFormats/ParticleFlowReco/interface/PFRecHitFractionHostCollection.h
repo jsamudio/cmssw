@@ -8,5 +8,4 @@ namespace reco {
   using PFRecHitFractionHostCollection = PortableHostCollection<PFRecHitFractionSoA>;
 }
 
-#endif // DataFormats_ParticleFlowReco_interface_PFRecHitFractionHostCollection_h
-
+#endif  // DataFormats_ParticleFlowReco_interface_PFRecHitFractionHostCollection_h

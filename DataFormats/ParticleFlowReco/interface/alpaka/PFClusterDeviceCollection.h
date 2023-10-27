@@ -12,5 +12,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
   using PFClusterDeviceCollection = PortableCollection<::reco::PFClusterSoA>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::reco
 
-#endif // DataFormats_ParticleFlowReco_interface_alpaka_PFClusterDeviceCollection_h
-
+#endif  // DataFormats_ParticleFlowReco_interface_alpaka_PFClusterDeviceCollection_h
