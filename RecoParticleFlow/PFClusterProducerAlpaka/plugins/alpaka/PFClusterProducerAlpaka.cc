@@ -10,7 +10,7 @@
 #include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/PFClusterParamsAlpakaESRecord.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterProducerKernel.h"
+#include "RecoParticleFlow/PFClusterProducerAlpaka/plugins/alpaka/PFClusterProducerKernel.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFCPositionCalculatorBase.h"
 
 #define DEBUG false
