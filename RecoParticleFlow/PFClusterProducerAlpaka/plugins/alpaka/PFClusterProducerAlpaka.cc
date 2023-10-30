@@ -32,14 +32,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
 
-      reco::tmpDeviceCollection tmp{nRH + 1, event.queue()};
-      reco::tmpEdgeDeviceCollection tmpEdge{(nRH * 8) + 1, event.queue()};
+      reco::ClusteringVarsDeviceCollection clusteringVars{nRH + 1, event.queue()};
+      reco::ClusteringEdgeVarsDeviceCollection clusteringEdgeVars{(nRH * 8) + 1, event.queue()};
       reco::PFClusterDeviceCollection pfClusters{nRH, event.queue()};
       reco::PFRecHitFractionDeviceCollection pfrhFractions{nRH * 120, event.queue()};
 
       if (!kernel)
         kernel.emplace(PFClusterProducerKernel::Construct(event.queue(), pfRecHits));
-      kernel->execute(event.device(), event.queue(), params, tmp, tmpEdge, pfRecHits, pfClusters, pfrhFractions);
+      kernel->execute(event.device(), event.queue(), params, clusteringVars, clusteringEdgeVars, pfRecHits, pfClusters, pfrhFractions);
 
       if (synchronise)
         alpaka::wait(event.queue());

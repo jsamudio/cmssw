@@ -6,8 +6,8 @@
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFClusterDeviceCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitFractionDeviceCollection.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/tmpDeviceCollection.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/tmpEdgeDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/ClusteringVarsDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/ClusteringEdgeVarsDeviceCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -39,8 +39,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     void execute(const Device&,
                  Queue& queue,
                  const reco::PFClusterParamsAlpakaESDataDevice& params,
-                 reco::tmpDeviceCollection& tmp0,
-                 reco::tmpEdgeDeviceCollection& tmp1,
+                 reco::ClusteringVarsDeviceCollection& clusteringVars,
+                 reco::ClusteringEdgeVarsDeviceCollection& clusteringEdgeVars,
                  const reco::PFRecHitHostCollection& pfRecHits,
                  reco::PFClusterDeviceCollection& pfClusters,
                  reco::PFRecHitFractionDeviceCollection& pfrhFractions);
