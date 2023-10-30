@@ -212,7 +212,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     while (idx < clusteringVars.topL()) {
       const int v = clusteringVars[idx].wl_d();
       int vstat = representative(v, clusteringVars);
-      for (int i = clusteringEdgeVars[v].pfrh_edgeIdx() + lane; i < clusteringEdgeVars[v + 1].pfrh_edgeIdx(); i += warpsize) {
+      for (int i = clusteringEdgeVars[v].pfrh_edgeIdx() + lane; i < clusteringEdgeVars[v + 1].pfrh_edgeIdx();
+           i += warpsize) {
         const int nli = clusteringEdgeVars[i].pfrh_edgeList();
         if (v > nli) {
           int ostat = representative(nli, clusteringVars);
@@ -354,7 +355,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         // Valid topoId not counted yet
         if (topoId == rhIdx) {  // For every topo cluster, there is one rechit that meets this condition.
           int topoIdx = alpaka::atomicAdd(acc, &clusteringVars.nTopos(), 1);
-          clusteringVars[topoIdx].topoIds() = topoId;  // topoId: the smallest index of rechits that belong to a topo cluster.
+          clusteringVars[topoIdx].topoIds() =
+              topoId;  // topoId: the smallest index of rechits that belong to a topo cluster.
         }
         // This is a cluster seed
         if (clusteringVars[rhIdx].pfrh_isSeed()) {  // # of seeds in this topo cluster
@@ -415,7 +417,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         clusteringVars[rhIdx].seedFracOffsets() = offset;
 
         // Store recHitFraction offset & size information for each seed
-        clusterView[clusteringVars[rhIdx].rhIdxToSeedIdx()].pfc_rhfracOffset() = clusteringVars[rhIdx].seedFracOffsets();
+        clusterView[clusteringVars[rhIdx].rhIdxToSeedIdx()].pfc_rhfracOffset() =
+            clusteringVars[rhIdx].seedFracOffsets();
         clusterView[clusteringVars[rhIdx].rhIdxToSeedIdx()].pfc_rhfracSize() =
             clusteringVars[topoId].topoRHCount() - clusteringVars[topoId].topoSeedCount() + 1;
       }
@@ -744,7 +747,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     bool& debug = alpaka::declareSharedVar<bool, __COUNTER__>(acc);
     if (tid == 0) {
       i = clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
-      nRHOther = nRHTopo - 1;                                       // number of non-seed rechits
+      nRHOther = nRHTopo - 1;                                                       // number of non-seed rechits
       seedPos = Position4{pfRecHits[i].x(), pfRecHits[i].y(), pfRecHits[i].z(), 1.};
       clusterPos = seedPos;  // Initial cluster position is just the seed
       prevClusterPos = seedPos;
@@ -773,8 +776,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     float rhEnergy = -1., rhPosNorm = -1.;
 
     if (tid < nRHOther) {
-      rhFracOffset = clusteringVars[i].seedFracOffsets() + tid + 1;  // Offset for this rechit in pcrhfrac, pcrhfracidx arrays
-      j = fracView[rhFracOffset].pcrh_pfrhIdx();             // rechit index for this thread
+      rhFracOffset =
+          clusteringVars[i].seedFracOffsets() + tid + 1;  // Offset for this rechit in pcrhfrac, pcrhfracidx arrays
+      j = fracView[rhFracOffset].pcrh_pfrhIdx();          // rechit index for this thread
       rhPos = Position4{pfRecHits[j].x(), pfRecHits[j].y(), pfRecHits[j].z(), 1.};
       rhEnergy = pfRecHits[j].energy();
       rhPosNorm = fmaxf(0., logf(rhEnergy * rhENormInv));
@@ -867,7 +871,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);
     } while (notDone);
     if (tid == 0) {  // Cluster is finalized, assign cluster information to te SoA
-      int rhIdx = clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
+      int rhIdx =
+          clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
       int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
       clusteringVars[topoId].pfc_iter() = iter;
       clusterView[seedIdx].pfc_energy() = clusterEnergy;
@@ -931,7 +936,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (tid < nSeeds)
       seeds[tid] = clusteringVars[topoSeedBegin + tid].topoSeedList();
     if (tid < nRHNotSeed - 1)
-      rechits[tid] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + tid + 1].pcrh_pfrhIdx();
+      rechits[tid] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + tid + 1]
+                         .pcrh_pfrhIdx();
 
     if (debug) {
       if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
@@ -988,9 +994,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         printf("tid: %d\n", tid);
       seedThreadIdx = dev_getSeedRhIdx(seeds, tid);
       seedNeighbors = Neighbours4{pfRecHits[seedThreadIdx].neighbours()(0),
-                                pfRecHits[seedThreadIdx].neighbours()(1),
-                                pfRecHits[seedThreadIdx].neighbours()(2),
-                                pfRecHits[seedThreadIdx].neighbours()(3)};
+                                  pfRecHits[seedThreadIdx].neighbours()(1),
+                                  pfRecHits[seedThreadIdx].neighbours()(2),
+                                  pfRecHits[seedThreadIdx].neighbours()(3)};
       seedEnergy = pfRecHits[seedThreadIdx].energy();
 
       // Compute initial cluster position shift for seed
@@ -1228,7 +1234,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (n < nSeeds)
         seeds[n] = clusteringVars[topoSeedBegin + n].topoSeedList();
       if (n < nRHNotSeed - 1)
-        rechits[n] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1].pcrh_pfrhIdx();
+        rechits[n] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1]
+                         .pcrh_pfrhIdx();
     }
     alpaka::syncBlockThreads(acc);
 
@@ -1497,7 +1504,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (n < nSeeds)
         seeds[n] = clusteringVars[topoSeedBegin + n].topoSeedList();
       if (n < nRHNotSeed - 1)
-        rechits[n] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1].pcrh_pfrhIdx();
+        rechits[n] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1]
+                         .pcrh_pfrhIdx();
     }
     alpaka::syncBlockThreads(acc);
 
@@ -1763,7 +1771,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
           clusteringVars[topoId].pfc_iter() = 0;
           // KenH: Fill PFCluster-level information
-          int rhIdx = clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
+          int rhIdx =
+              clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
           int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
           clusterView[seedIdx].pfc_energy() = pfRecHits[rhIdx].energy();
           clusterView[seedIdx].pfc_x() = pfRecHits[rhIdx].x();
@@ -1836,7 +1845,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
           clusteringVars[topoId].pfc_iter() = 0;
           // KenH: Fill PFCluster-level information
-          int rhIdx = clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
+          int rhIdx =
+              clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
           int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
           clusterView[seedIdx].pfc_energy() = pfRecHits[rhIdx].energy();
           clusterView[seedIdx].pfc_x() = pfRecHits[rhIdx].x();

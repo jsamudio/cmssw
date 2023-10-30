@@ -39,7 +39,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       if (!kernel)
         kernel.emplace(PFClusterProducerKernel::Construct(event.queue(), pfRecHits));
-      kernel->execute(event.device(), event.queue(), params, clusteringVars, clusteringEdgeVars, pfRecHits, pfClusters, pfrhFractions);
+      kernel->execute(event.device(),
+                      event.queue(),
+                      params,
+                      clusteringVars,
+                      clusteringEdgeVars,
+                      pfRecHits,
+                      pfClusters,
+                      pfrhFractions);
 
       if (synchronise)
         alpaka::wait(event.queue());
