@@ -12,25 +12,27 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
-  struct Position4 {
-    float x;
-    float y;
-    float z;
-    float w;
-  };
+  namespace reco::pfClustering {
+    struct Position4 {
+      float x;
+      float y;
+      float z;
+      float w;
+    };
 
-  struct Position3 {
-    float x;
-    float y;
-    float z;
-  };
+    struct Position3 {
+      float x;
+      float y;
+      float z;
+    };
 
-  struct Neighbours4 {
-    int x;
-    int y;
-    int z;
-    int w;
-  };
+    struct Neighbours4 {
+      int x;
+      int y;
+      int z;
+      int w;
+    };
+  }  // namespace reco::pfClustering
 
   class PFClusterProducerKernel {
   public:
@@ -47,15 +49,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   private:
     PFClusterProducerKernel(cms::alpakatools::device_buffer<Device, uint32_t>&&,
-                            cms::alpakatools::device_buffer<Device, Position4[]>&&,
-                            cms::alpakatools::device_buffer<Device, Position4[]>&&,
+                            cms::alpakatools::device_buffer<Device, reco::pfClustering::Position4[]>&&,
+                            cms::alpakatools::device_buffer<Device, reco::pfClustering::Position4[]>&&,
                             cms::alpakatools::device_buffer<Device, float[]>&&,
                             cms::alpakatools::device_buffer<Device, float[]>&&,
                             cms::alpakatools::device_buffer<Device, int[]>&&,
                             cms::alpakatools::device_buffer<Device, int[]>&&);
     cms::alpakatools::device_buffer<Device, uint32_t> nSeeds;
-    cms::alpakatools::device_buffer<Device, Position4[]> globalClusterPos;
-    cms::alpakatools::device_buffer<Device, Position4[]> globalPrevClusterPos;
+    cms::alpakatools::device_buffer<Device, reco::pfClustering::Position4[]> globalClusterPos;
+    cms::alpakatools::device_buffer<Device, reco::pfClustering::Position4[]> globalPrevClusterPos;
     cms::alpakatools::device_buffer<Device, float[]> globalClusterEnergy;
     cms::alpakatools::device_buffer<Device, float[]> globalRhFracSum;
     cms::alpakatools::device_buffer<Device, int[]> globalSeeds;

@@ -8,9 +8,9 @@
 namespace reco {
 
   GENERATE_SOA_LAYOUT(PFRecHitFractionSoALayout,
-                      SOA_COLUMN(float, pcrh_frac),
-                      SOA_COLUMN(int, pcrh_pfrhIdx),
-                      SOA_COLUMN(int, pcrh_pfcIdx))
+                      SOA_COLUMN(float, frac),
+                      SOA_COLUMN(int, pfrhIdx),
+                      SOA_COLUMN(int, pfcIdx))
 
   using PFRecHitFractionSoA = PFRecHitFractionSoALayout<>;
 }  // namespace reco

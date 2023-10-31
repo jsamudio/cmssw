@@ -20,16 +20,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     PFClusterProducerAlpaka(edm::ParameterSet const& config)
         : pfClusParamsToken(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
-          InputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
-          OutputPFClusterSoA_Token_{produces()},
-          OutputPFRHFractionSoA_Token_{produces()},
-          synchronise(config.getParameter<bool>("synchronise")),
-          _produceSoA{config.getParameter<bool>("produceSoA")},
-          _produceLegacy{config.getParameter<bool>("produceLegacy")} {}
+          inputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
+          outputPFClusterSoA_Token_{produces()},
+          outputPFRHFractionSoA_Token_{produces()},
+          synchronise_(config.getParameter<bool>("synchronise")),
+          produceSoA_{config.getParameter<bool>("produceSoA")} {}
 
     void produce(device::Event& event, device::EventSetup const& setup) override {
       const reco::PFClusterParamsAlpakaESDataDevice& params = setup.getData(pfClusParamsToken);
-      const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
+      const reco::PFRecHitHostCollection& pfRecHits = event.get(inputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
 
       reco::ClusteringVarsDeviceCollection clusteringVars{nRH + 1, event.queue()};
@@ -48,12 +47,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                       pfClusters,
                       pfrhFractions);
 
-      if (synchronise)
+      if (synchronise_)
         alpaka::wait(event.queue());
 
-      if (_produceSoA) {
-        event.emplace(OutputPFClusterSoA_Token_, std::move(pfClusters));
-        event.emplace(OutputPFRHFractionSoA_Token_, std::move(pfrhFractions));
+      if (produceSoA_) {
+        event.emplace(outputPFClusterSoA_Token_, std::move(pfClusters));
+        event.emplace(outputPFRHFractionSoA_Token_, std::move(pfrhFractions));
       }
     }
 
@@ -65,18 +64,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       desc.add<bool>("produceLegacy", true);
       desc.add<edm::ESInputTag>("pfClusterParams");
       desc.add<bool>("synchronise");
-      desc.setAllowAnything();
       descriptions.addWithDefaultLabel(desc);
     }
 
   private:
     const device::ESGetToken<reco::PFClusterParamsAlpakaESDataDevice, PFClusterParamsAlpakaESRecord> pfClusParamsToken;
-    const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
-    const device::EDPutToken<reco::PFClusterDeviceCollection> OutputPFClusterSoA_Token_;
-    const device::EDPutToken<reco::PFRecHitFractionDeviceCollection> OutputPFRHFractionSoA_Token_;
-    const bool synchronise;
-    const bool _produceSoA;
-    const bool _produceLegacy;
+    const edm::EDGetTokenT<reco::PFRecHitHostCollection> inputPFRecHitSoA_Token_;
+    const device::EDPutToken<reco::PFClusterDeviceCollection> outputPFClusterSoA_Token_;
+    const device::EDPutToken<reco::PFRecHitFractionDeviceCollection> outputPFRHFractionSoA_Token_;
+    const bool synchronise_;
+    const bool produceSoA_;
     int nRH = 0;
     std::optional<PFClusterProducerKernel> kernel = {};
   };

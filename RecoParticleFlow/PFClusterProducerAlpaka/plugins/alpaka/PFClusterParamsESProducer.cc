@@ -146,8 +146,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       setWhatProduced(this);
     }
 
-    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> product;
-
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription psetDesc;
       {
@@ -247,6 +245,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   private:
     edm::ParameterSet const& paramSet;
+    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> product;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

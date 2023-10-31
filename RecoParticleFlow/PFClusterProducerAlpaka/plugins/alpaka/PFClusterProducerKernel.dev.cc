@@ -4,7 +4,8 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 
 #include "RecoParticleFlow/PFClusterProducerAlpaka/plugins/alpaka/PFClusterProducerKernel.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/AlpakaPFCommon.h"
+//#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/AlpakaPFCommon.h"
+#include "DataFormats/ParticleFlowReco/interface/PFLayer.h"
 
 // The following comment block is required in using the ECL-CC algorithm for topological clustering
 
@@ -54,7 +55,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   using namespace cms::alpakatools;
 
-  using PFClustering::common::PFLayer;
+  using namespace reco::pfClustering;
 
   constexpr const float PI_F = 3.141592654f;
   static const int threadsPerBlockForClustering = std::is_same_v<Device, alpaka::DevCpu> ? 32 : 512;
@@ -379,7 +380,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::syncBlockThreads(acc);
 
     // Fill arrays of rechit indicies for each seed [topoSeedList] and rhIdx->seedIdx conversion for each seed [rhIdxToSeedIdx]
-    // Also fill pfc_seedRHIdx, pfc_topoId, pfc_depth
+    // Also fill seedRHIdx, topoId, depth
     for (int rhIdx = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; rhIdx < size;
          rhIdx += alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]) {
       int topoId = clusteringVars[rhIdx].pfrh_topoId();
@@ -395,9 +396,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                  k);
         clusteringVars[seedIdx].topoSeedList() = rhIdx;
         clusteringVars[rhIdx].rhIdxToSeedIdx() = seedIdx;
-        clusterView[seedIdx].pfc_topoId() = topoId;
-        clusterView[seedIdx].pfc_seedRHIdx() = rhIdx;
-        clusterView[seedIdx].pfc_depth() = pfRecHits[rhIdx].depth();
+        clusterView[seedIdx].topoId() = topoId;
+        clusterView[seedIdx].seedRHIdx() = rhIdx;
+        clusterView[seedIdx].depth() = pfRecHits[rhIdx].depth();
       }
     }
 
@@ -417,9 +418,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         clusteringVars[rhIdx].seedFracOffsets() = offset;
 
         // Store recHitFraction offset & size information for each seed
-        clusterView[clusteringVars[rhIdx].rhIdxToSeedIdx()].pfc_rhfracOffset() =
-            clusteringVars[rhIdx].seedFracOffsets();
-        clusterView[clusteringVars[rhIdx].rhIdxToSeedIdx()].pfc_rhfracSize() =
+        clusterView[clusteringVars[rhIdx].rhIdxToSeedIdx()].rhfracOffset() = clusteringVars[rhIdx].seedFracOffsets();
+        clusterView[clusteringVars[rhIdx].rhIdxToSeedIdx()].rhfracSize() =
             clusteringVars[topoId].topoRHCount() - clusteringVars[topoId].topoSeedCount() + 1;
       }
     }
@@ -462,12 +462,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         if (!clusteringVars[j].pfrh_isSeed()) {  // NOT a seed
           int k = alpaka::atomicAdd(
               acc, &clusteringVars[i].rhCount(), 1);  // Increment the number of rechit fractions for this seed
-          fracView[clusteringVars[i].seedFracOffsets() + k].pcrh_pfrhIdx() = j;
-          fracView[clusteringVars[i].seedFracOffsets() + k].pcrh_pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
+          fracView[clusteringVars[i].seedFracOffsets() + k].pfrhIdx() = j;
+          fracView[clusteringVars[i].seedFracOffsets() + k].pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
         } else if (i == j) {  // i==j is a seed rechit index
-          fracView[clusteringVars[i].seedFracOffsets()].pcrh_pfrhIdx() = j;
-          fracView[clusteringVars[i].seedFracOffsets()].pcrh_frac() = 1;
-          fracView[clusteringVars[i].seedFracOffsets()].pcrh_pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
+          fracView[clusteringVars[i].seedFracOffsets()].pfrhIdx() = j;
+          fracView[clusteringVars[i].seedFracOffsets()].frac() = 1;
+          fracView[clusteringVars[i].seedFracOffsets()].pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
         }
       }
     }
@@ -487,12 +487,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             if (!clusteringVars[j].pfrh_isSeed()) {  // NOT a seed
               int k = alpaka::atomicAdd(
                   acc, &clusteringVars[i].rhCount(), 1);  // Increment the number of rechit fractions for this seed
-              fracView[clusteringVars[i].seedFracOffsets() + k].pcrh_pfrhIdx() = j;
-              fracView[clusteringVars[i].seedFracOffsets() + k].pcrh_pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
+              fracView[clusteringVars[i].seedFracOffsets() + k].pfrhIdx() = j;
+              fracView[clusteringVars[i].seedFracOffsets() + k].pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
             } else if (i == j) {  // i==j is a seed rechit index
-              fracView[clusteringVars[i].seedFracOffsets()].pcrh_pfrhIdx() = j;
-              fracView[clusteringVars[i].seedFracOffsets()].pcrh_frac() = 1;
-              fracView[clusteringVars[i].seedFracOffsets()].pcrh_pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
+              fracView[clusteringVars[i].seedFracOffsets()].pfrhIdx() = j;
+              fracView[clusteringVars[i].seedFracOffsets()].frac() = 1;
+              fracView[clusteringVars[i].seedFracOffsets()].pfcIdx() = clusteringVars[i].rhIdxToSeedIdx();
             }
           }
         }
@@ -623,7 +623,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                    int seedNum,
                                    int rhNum) {
     int seedIdx = clusteringVars[topoSeedBegin + seedNum].topoSeedList();
-    return fracView[clusteringVars[seedIdx].seedFracOffsets() + rhNum].pcrh_frac();
+    return fracView[clusteringVars[seedIdx].seedFracOffsets() + rhNum].frac();
   }
 
   // Cluster position calculation
@@ -680,7 +680,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       clusteringVars[i].topoSeedOffsets() = -1;
       clusteringVars[i].topoSeedList() = -1;
       clusteringVars[i].pfc_iter() = -1;
-      clusterView[i].pfc_seedRHIdx() = -1;
+      clusterView[i].seedRHIdx() = -1;
 
       int layer = pfRecHits[i].layer();
       int depthOffset = pfRecHits[i].depth() - 1;
@@ -778,7 +778,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (tid < nRHOther) {
       rhFracOffset =
           clusteringVars[i].seedFracOffsets() + tid + 1;  // Offset for this rechit in pcrhfrac, pcrhfracidx arrays
-      j = fracView[rhFracOffset].pcrh_pfrhIdx();          // rechit index for this thread
+      j = fracView[rhFracOffset].pfrhIdx();               // rechit index for this thread
       rhPos = Position4{pfRecHits[j].x(), pfRecHits[j].y(), pfRecHits[j].z(), 1.};
       rhEnergy = pfRecHits[j].energy();
       rhPosNorm = fmaxf(0., logf(rhEnergy * rhENormInv));
@@ -804,7 +804,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           fraction = 1.;
         else
           fraction = -1.;
-        fracView[rhFracOffset].pcrh_frac() = fraction;
+        fracView[rhFracOffset].frac() = fraction;
       }
       alpaka::syncBlockThreads(acc);
 
@@ -875,10 +875,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
       int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
       clusteringVars[topoId].pfc_iter() = iter;
-      clusterView[seedIdx].pfc_energy() = clusterEnergy;
-      clusterView[seedIdx].pfc_x() = clusterPos.x;
-      clusterView[seedIdx].pfc_y() = clusterPos.y;
-      clusterView[seedIdx].pfc_z() = clusterPos.z;
+      clusterView[seedIdx].energy() = clusterEnergy;
+      clusterView[seedIdx].x() = clusterPos.x;
+      clusterView[seedIdx].y() = clusterPos.y;
+      clusterView[seedIdx].z() = clusterPos.z;
     }
   }
 
@@ -936,8 +936,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (tid < nSeeds)
       seeds[tid] = clusteringVars[topoSeedBegin + tid].topoSeedList();
     if (tid < nRHNotSeed - 1)
-      rechits[tid] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + tid + 1]
-                         .pcrh_pfrhIdx();
+      rechits[tid] =
+          fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + tid + 1].pfrhIdx();
 
     if (debug) {
       if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
@@ -971,8 +971,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       prevClusterPos[tid] = clusterPos[tid];
       clusterEnergy[tid] = pfRecHits[i].energy();
       for (int r = 0; r < (nRHNotSeed - 1); r++) {
-        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pcrh_pfrhIdx() = rechits[r];
-        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pcrh_frac() = -1.;
+        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pfrhIdx() = rechits[r];
+        fracView[clusteringVars[i].seedFracOffsets() + r + 1].frac() = -1.;
       }
     }
     alpaka::syncBlockThreads(acc);
@@ -1041,14 +1041,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             float fracpct = fraction / rhFracSum[tid];
             if (fracpct > 0.9999 || (d2 < 85. && fracpct > pfClusParams.minFracToKeep())) {
               //if (iter == 0 && d2 > 80.)
-              //fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = -2;
+              //fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = -2;
               //else
-              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = fracpct;
+              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = fracpct;
             } else {
-              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = -1;
             }
           } else {
-            fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+            fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = -1;
           }
         }
       }
@@ -1150,10 +1150,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (tid < nSeeds) {
       int rhIdx = clusteringVars[tid + clusteringVars[topoId].topoSeedOffsets()].topoSeedList();
       int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
-      clusterView[seedIdx].pfc_energy() = clusterEnergy[tid];
-      clusterView[seedIdx].pfc_x() = clusterPos[tid].x;
-      clusterView[seedIdx].pfc_y() = clusterPos[tid].y;
-      clusterView[seedIdx].pfc_z() = clusterPos[tid].z;
+      clusterView[seedIdx].energy() = clusterEnergy[tid];
+      clusterView[seedIdx].x() = clusterPos[tid].x;
+      clusterView[seedIdx].y() = clusterPos[tid].y;
+      clusterView[seedIdx].z() = clusterPos[tid].z;
     }
   }
 
@@ -1234,8 +1234,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (n < nSeeds)
         seeds[n] = clusteringVars[topoSeedBegin + n].topoSeedList();
       if (n < nRHNotSeed - 1)
-        rechits[n] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1]
-                         .pcrh_pfrhIdx();
+        rechits[n] =
+            fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1].pfrhIdx();
     }
     alpaka::syncBlockThreads(acc);
 
@@ -1270,8 +1270,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       prevClusterPos[s] = clusterPos[s];
       clusterEnergy[s] = pfRecHits[i].energy();
       for (int r = 0; r < (nRHNotSeed - 1); r++) {
-        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pcrh_pfrhIdx() = rechits[r];
-        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pcrh_frac() = -1.;
+        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pfrhIdx() = rechits[r];
+        fracView[clusteringVars[i].seedFracOffsets() + r + 1].frac() = -1.;
       }
     }
     alpaka::syncBlockThreads(acc);
@@ -1318,12 +1318,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           if (rhFracSum[tid] > pfClusParams.minFracTot()) {
             float fracpct = fraction / rhFracSum[tid];
             if (fracpct > 0.9999 || (d2 < 100. && fracpct > pfClusParams.minFracToKeep())) {
-              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = fracpct;
+              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = fracpct;
             } else {
-              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = -1;
             }
           } else {
-            fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+            fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = -1;
           }
         }
       }
@@ -1427,10 +1427,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
       int rhIdx = clusteringVars[s + clusteringVars[topoId].topoSeedOffsets()].topoSeedList();
       int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
-      clusterView[seedIdx].pfc_energy() = pfRecHits[s].energy();
-      clusterView[seedIdx].pfc_x() = pfRecHits[s].x();
-      clusterView[seedIdx].pfc_y() = pfRecHits[s].y();
-      clusterView[seedIdx].pfc_z() = pfRecHits[s].z();
+      clusterView[seedIdx].energy() = pfRecHits[s].energy();
+      clusterView[seedIdx].x() = pfRecHits[s].x();
+      clusterView[seedIdx].y() = pfRecHits[s].y();
+      clusterView[seedIdx].z() = pfRecHits[s].z();
     }
   }
 
@@ -1504,8 +1504,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (n < nSeeds)
         seeds[n] = clusteringVars[topoSeedBegin + n].topoSeedList();
       if (n < nRHNotSeed - 1)
-        rechits[n] = fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1]
-                         .pcrh_pfrhIdx();
+        rechits[n] =
+            fracView[clusteringVars[clusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + n + 1].pfrhIdx();
     }
     alpaka::syncBlockThreads(acc);
 
@@ -1540,8 +1540,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       prevClusterPos[s] = clusterPos[s];
       clusterEnergy[s] = pfRecHits[i].energy();
       for (int r = 0; r < (nRHNotSeed - 1); r++) {
-        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pcrh_pfrhIdx() = rechits[r];
-        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pcrh_frac() = -1.;
+        fracView[clusteringVars[i].seedFracOffsets() + r + 1].pfrhIdx() = rechits[r];
+        fracView[clusteringVars[i].seedFracOffsets() + r + 1].frac() = -1.;
       }
     }
     alpaka::syncBlockThreads(acc);
@@ -1588,12 +1588,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           if (rhFracSum[tid] > pfClusParams.minFracTot()) {
             float fracpct = fraction / rhFracSum[tid];
             if (fracpct > 0.9999 || (d2 < 100. && fracpct > pfClusParams.minFracToKeep())) {
-              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = fracpct;
+              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = fracpct;
             } else {
-              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+              fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = -1;
             }
           } else {
-            fracView[clusteringVars[i].seedFracOffsets() + tid + 1].pcrh_frac() = -1;
+            fracView[clusteringVars[i].seedFracOffsets() + tid + 1].frac() = -1;
           }
         }
       }
@@ -1729,10 +1729,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
       int rhIdx = clusteringVars[s + clusteringVars[topoId].topoSeedOffsets()].topoSeedList();
       int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
-      clusterView[seedIdx].pfc_energy() = pfRecHits[s].energy();
-      clusterView[seedIdx].pfc_x() = pfRecHits[s].x();
-      clusterView[seedIdx].pfc_y() = pfRecHits[s].y();
-      clusterView[seedIdx].pfc_z() = pfRecHits[s].z();
+      clusterView[seedIdx].energy() = pfRecHits[s].energy();
+      clusterView[seedIdx].x() = pfRecHits[s].x();
+      clusterView[seedIdx].y() = pfRecHits[s].y();
+      clusterView[seedIdx].z() = pfRecHits[s].z();
     }
   }
 
@@ -1774,10 +1774,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           int rhIdx =
               clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
           int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
-          clusterView[seedIdx].pfc_energy() = pfRecHits[rhIdx].energy();
-          clusterView[seedIdx].pfc_x() = pfRecHits[rhIdx].x();
-          clusterView[seedIdx].pfc_y() = pfRecHits[rhIdx].y();
-          clusterView[seedIdx].pfc_z() = pfRecHits[rhIdx].z();
+          clusterView[seedIdx].energy() = pfRecHits[rhIdx].energy();
+          clusterView[seedIdx].x() = pfRecHits[rhIdx].x();
+          clusterView[seedIdx].y() = pfRecHits[rhIdx].y();
+          clusterView[seedIdx].z() = pfRecHits[rhIdx].z();
         }
       } else if (nSeeds == 1) {
         // Single seed cluster
@@ -1848,10 +1848,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           int rhIdx =
               clusteringVars[clusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
           int seedIdx = clusteringVars[rhIdx].rhIdxToSeedIdx();
-          clusterView[seedIdx].pfc_energy() = pfRecHits[rhIdx].energy();
-          clusterView[seedIdx].pfc_x() = pfRecHits[rhIdx].x();
-          clusterView[seedIdx].pfc_y() = pfRecHits[rhIdx].y();
-          clusterView[seedIdx].pfc_z() = pfRecHits[rhIdx].z();
+          clusterView[seedIdx].energy() = pfRecHits[rhIdx].energy();
+          clusterView[seedIdx].x() = pfRecHits[rhIdx].x();
+          clusterView[seedIdx].y() = pfRecHits[rhIdx].y();
+          clusterView[seedIdx].z() = pfRecHits[rhIdx].z();
         }
       } else if (nSeeds <= 400 && nRHTopo - nSeeds <= 1500) {
         dev_hcalFastCluster_originalShared(
