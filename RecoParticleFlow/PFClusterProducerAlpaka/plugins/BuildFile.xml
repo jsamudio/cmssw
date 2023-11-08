@@ -5,6 +5,7 @@
   <use name="DataFormats/Common"/>
   <use name="DataFormats/ParticleFlowReco"/>
   <use name="CommonTools/ParticleFlow"/>
+  <use name="HeterogeneousCore/CUDACore"/>
   <use name="RecoParticleFlow/PFClusterProducer"/>
   <use name="RecoParticleFlow/PFClusterProducerAlpaka"/>
   <use name="vdt_headers"/>
@@ -24,6 +25,7 @@
   <use name="Geometry/Records"/>
   <use name="HeterogeneousCore/AlpakaCore"/>
   <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="HeterogeneousCore/CUDACore"/>
   <use name="RecoParticleFlow/PFClusterProducer"/>
   <use name="RecoParticleFlow/PFRecHitProducer"/>
   <use name="RecoParticleFlow/PFClusterProducerAlpaka"/>

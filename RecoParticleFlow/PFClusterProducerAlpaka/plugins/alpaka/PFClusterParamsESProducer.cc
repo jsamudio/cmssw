@@ -7,7 +7,7 @@
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/ModuleFactory.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/PFClusterParamsAlpakaESRecord.h"
+#include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
 
 #include <array>
@@ -16,14 +16,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   class PFClusterParamsESProducer : public ESProducer {
   public:
-    PFClusterParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig), paramSet(iConfig) {
+    PFClusterParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig) {
       product = std::make_shared<reco::PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
       constexpr static uint32_t kMaxDepth_barrel = 4;
       constexpr static uint32_t kMaxDepth_endcap = 7;
       auto view = product->view();
 
       // seedFinder
-      auto const& sfConf = paramSet.getParameterSet("seedFinder");
+      auto const& sfConf = iConfig.getParameterSet("seedFinder");
       view.nNeigh() = sfConf.getParameter<int>("nNeighbours");
       auto const& seedFinderConfs = sfConf.getParameterSetVector("thresholdsByDetector");
       for (auto const& pset : seedFinderConfs) {
@@ -32,56 +32,52 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         auto const& thresholds = pset.getParameter<std::vector<double>>("seedingThreshold");
         if (det == "HCAL_BARREL1") {
           if (thresholds.size() != kMaxDepth_barrel)
-            throw cms::Exception("InvalidConfiguration")
-                << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel
-                << ") for \"\" vector of det = \"" << det << "\"";
+            throw cms::Exception("Configuration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel
+                                                  << ") for \"\" vector of det = \"" << det << "\"";
           view.seedPt2ThresholdEB() = seedPt2Threshold;
           for (size_t idx = 0; idx < thresholds.size(); ++idx) {
             view.seedEThresholdEB_vec()[idx] = thresholds[idx];
           }
         } else if (det == "HCAL_ENDCAP") {
           if (thresholds.size() != kMaxDepth_endcap)
-            throw cms::Exception("InvalidConfiguration")
-                << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap
-                << ") for \"\" vector of det = \"" << det << "\"";
+            throw cms::Exception("Configuration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap
+                                                  << ") for \"\" vector of det = \"" << det << "\"";
           view.seedPt2ThresholdEE() = seedPt2Threshold;
           for (size_t idx = 0; idx < thresholds.size(); ++idx) {
             view.seedEThresholdEE_vec()[idx] = thresholds[idx];
           }
         } else {
-          throw cms::Exception("InvalidConfiguration") << "Unknown detector when parsing seedFinder: " << det;
+          throw cms::Exception("Configuration") << "Unknown detector when parsing seedFinder: " << det;
         }
       }
 
       // initialClusteringStep
-      auto const& initConf = paramSet.getParameterSet("initialClusteringStep");
+      auto const& initConf = iConfig.getParameterSet("initialClusteringStep");
       auto const& topoThresholdConf = initConf.getParameterSetVector("thresholdsByDetector");
       for (auto const& pset : topoThresholdConf) {
         auto const& det = pset.getParameter<std::string>("detector");
         auto const& thresholds = pset.getParameter<std::vector<double>>("gatheringThreshold");
         if (det == "HCAL_BARREL1") {
           if (thresholds.size() != kMaxDepth_barrel)
-            throw cms::Exception("InvalidConfiguration")
-                << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel
-                << ") for \"\" vector of det = \"" << det << "\"";
+            throw cms::Exception("Configuration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_barrel
+                                                  << ") for \"\" vector of det = \"" << det << "\"";
           for (size_t idx = 0; idx < thresholds.size(); ++idx) {
             view.topoEThresholdEB_vec()[idx] = thresholds[idx];
           }
         } else if (det == "HCAL_ENDCAP") {
           if (thresholds.size() != kMaxDepth_endcap)
-            throw cms::Exception("InvalidConfiguration")
-                << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap
-                << ") for \"\" vector of det = \"" << det << "\"";
+            throw cms::Exception("Configuration") << "Invalid size (" << thresholds.size() << " != " << kMaxDepth_endcap
+                                                  << ") for \"\" vector of det = \"" << det << "\"";
           for (size_t idx = 0; idx < thresholds.size(); ++idx) {
             view.topoEThresholdEE_vec()[idx] = thresholds[idx];
           }
         } else {
-          throw cms::Exception("InvalidConfiguration") << "Unknown detector when parsing initClusteringStep: " << det;
+          throw cms::Exception("Configuration") << "Unknown detector when parsing initClusteringStep: " << det;
         }
       }
 
       // pfClusterBuilder
-      auto const& pfClusterPSet = paramSet.getParameterSet("pfClusterBuilder");
+      auto const& pfClusterPSet = iConfig.getParameterSet("pfClusterBuilder");
       view.showerSigma2() = std::pow(pfClusterPSet.getParameter<double>("showerSigma"), 2.);
       view.minFracToKeep() = pfClusterPSet.getParameter<double>("minFractionToKeep");
       view.minFracTot() = pfClusterPSet.getParameter<double>("minFracTot");
@@ -98,7 +94,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         auto const& det = pset.getParameter<std::string>("detector");
         if (det == "HCAL_BARREL1") {
           if (recHitNorms.size() != kMaxDepth_barrel)
-            throw cms::Exception("InvalidConfiguration")
+            throw cms::Exception("Configuration")
                 << "Invalid size (" << recHitNorms.size() << " != " << kMaxDepth_barrel
                 << ") for \"\" vector of det = \"" << det << "\"";
           for (size_t idx = 0; idx < recHitNorms.size(); ++idx) {
@@ -106,14 +102,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           }
         } else if (det == "HCAL_ENDCAP") {
           if (recHitNorms.size() != kMaxDepth_endcap)
-            throw cms::Exception("InvalidConfiguration")
+            throw cms::Exception("Configuration")
                 << "Invalid size (" << recHitNorms.size() << " != " << kMaxDepth_endcap
                 << ") for \"\" vector of det = \"" << det << "\"";
           for (size_t idx = 0; idx < recHitNorms.size(); ++idx) {
             view.recHitEnergyNormInvEE_vec()[idx] = 1. / recHitNorms[idx];
           }
         } else {
-          throw cms::Exception("InvalidConfiguration") << "Unknown detector when parsing recHitEnergyNorms: " << det;
+          throw cms::Exception("Configuration") << "Unknown detector when parsing recHitEnergyNorms: " << det;
         }
       }
 
@@ -239,12 +235,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       descriptions.addWithDefaultLabel(psetDesc);
     }
 
-    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> produce(PFClusterParamsAlpakaESRecord const& iRecord) {
+    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> produce(JobConfigurationGPURecord const& iRecord) {
       return product;
     }
 
   private:
-    edm::ParameterSet const& paramSet;
     std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> product;
   };
 

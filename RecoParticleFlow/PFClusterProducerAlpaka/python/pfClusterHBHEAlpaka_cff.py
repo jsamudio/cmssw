@@ -28,7 +28,7 @@ pfRecHitHCALTopologyRecordSource = cms.ESSource('EmptyESSource',
     )
 
 pfClusterParamsAlpakaESRcdSource = cms.ESSource('EmptyESSource',
-            recordName = cms.string('PFClusterParamsAlpakaESRecord'),
+            recordName = cms.string('JobConfigurationGPURecord'),
             iovIsRunNotTime = cms.bool(True),
             firstValid = cms.vuint32(1)
     )

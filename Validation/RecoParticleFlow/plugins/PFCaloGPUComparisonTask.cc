@@ -86,6 +86,7 @@ void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
                                              edm::EventSetup const& isetup) {
   constexpr auto size = 100;
   char histo[size];
+
   ibooker.setCurrentFolder("ParticleFlow/" + pfCaloGPUCompDir);
 
   strncpy(histo, "pfCluster_Multiplicity_GPUvsCPU_", size);
@@ -113,8 +114,11 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
   edm::Handle<reco::PFClusterCollection> pfClusters_ref;
   event.getByToken(pfClusterTok_ref_, pfClusters_ref);
 
+  //auto pfClusters_ref = event.getHandle(pfClusterTok_ref_);
+
   edm::Handle<reco::PFClusterCollection> pfClusters_target;
   event.getByToken(pfClusterTok_target_, pfClusters_target);
+  //auto pfClusters_target = event.getHandle(pfClusterTok_target_);
 
   //
   // Compare per-event PF cluster multiplicity

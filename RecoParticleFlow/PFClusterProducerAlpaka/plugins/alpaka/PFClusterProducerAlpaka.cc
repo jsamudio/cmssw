@@ -1,15 +1,15 @@
-#include "HeterogeneousCore/AlpakaCore/interface/alpaka/stream/EDProducer.h"
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
+#include "HeterogeneousCore/AlpakaCore/interface/alpaka/stream/EDProducer.h"
+#include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/PFClusterParamsAlpakaESRecord.h"
 #include "RecoParticleFlow/PFClusterProducerAlpaka/plugins/alpaka/PFClusterProducerKernel.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFCPositionCalculatorBase.h"
 
@@ -31,21 +31,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const reco::PFRecHitHostCollection& pfRecHits = event.get(inputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
 
-      reco::ClusteringVarsDeviceCollection clusteringVars{nRH + 1, event.queue()};
-      reco::ClusteringEdgeVarsDeviceCollection clusteringEdgeVars{(nRH * 8) + 1, event.queue()};
+      reco::PFClusteringVarsDeviceCollection pfClusteringVars{nRH + 1, event.queue()};
+      reco::PFClusteringEdgeVarsDeviceCollection pfClusteringEdgeVars{(nRH * 8) + 1, event.queue()};
       reco::PFClusterDeviceCollection pfClusters{nRH, event.queue()};
       reco::PFRecHitFractionDeviceCollection pfrhFractions{nRH * 120, event.queue()};
 
-      if (!kernel)
-        kernel.emplace(PFClusterProducerKernel::Construct(event.queue(), pfRecHits));
-      kernel->execute(event.device(),
-                      event.queue(),
-                      params,
-                      clusteringVars,
-                      clusteringEdgeVars,
-                      pfRecHits,
-                      pfClusters,
-                      pfrhFractions);
+      PFClusterProducerKernel kernel(event.queue(), pfRecHits);
+      kernel.execute(event.device(),
+                     event.queue(),
+                     params,
+                     pfClusteringVars,
+                     pfClusteringEdgeVars,
+                     pfRecHits,
+                     pfClusters,
+                     pfrhFractions);
 
       if (synchronise_)
         alpaka::wait(event.queue());
@@ -68,7 +67,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
   private:
-    const device::ESGetToken<reco::PFClusterParamsAlpakaESDataDevice, PFClusterParamsAlpakaESRecord> pfClusParamsToken;
+    const device::ESGetToken<reco::PFClusterParamsAlpakaESDataDevice, JobConfigurationGPURecord> pfClusParamsToken;
     const edm::EDGetTokenT<reco::PFRecHitHostCollection> inputPFRecHitSoA_Token_;
     const device::EDPutToken<reco::PFClusterDeviceCollection> outputPFClusterSoA_Token_;
     const device::EDPutToken<reco::PFRecHitFractionDeviceCollection> outputPFRHFractionSoA_Token_;

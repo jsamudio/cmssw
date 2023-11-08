@@ -1,5 +1,5 @@
-#ifndef RecoParticleFlow_PFClusterProducerAlpaka_interface_ClusteringVarsSoA_h
-#define RecoParticleFlow_PFClusterProducerAlpaka_interface_ClusteringVarsSoA_h
+#ifndef RecoParticleFlow_PFClusterProducerAlpaka_interface_PFClusteringVarsSoA_h
+#define RecoParticleFlow_PFClusterProducerAlpaka_interface_PFClusteringVarsSoA_h
 
 #include "DataFormats/SoATemplate/interface/SoACommon.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
@@ -7,7 +7,7 @@
 
 namespace reco {
 
-  GENERATE_SOA_LAYOUT(ClusteringVarsSoALayout,
+  GENERATE_SOA_LAYOUT(PFClusteringVarsSoALayout,
                       SOA_COLUMN(int, pfrh_topoId),
                       SOA_COLUMN(int, pfrh_isSeed),
                       SOA_COLUMN(int, pfrh_passTopoThresh),
@@ -37,7 +37,7 @@ namespace reco {
                       SOA_COLUMN(bool, processedTopo),
                       SOA_COLUMN(float, pcrh_fracSum))
 
-  using ClusteringVarsSoA = ClusteringVarsSoALayout<>;
+  using PFClusteringVarsSoA = PFClusteringVarsSoALayout<>;
 }  // namespace reco
 
 #endif
