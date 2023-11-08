@@ -58,10 +58,10 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
-
   /* intermediate pointer jumping */
 
-  ALPAKA_FN_ACC int representative(const int idx, reco::PFClusteringVarsDeviceCollection::View pfClusteringVars) {
+  ALPAKA_FN_ACC inline int representative(const int idx,
+                                          reco::PFClusteringVarsDeviceCollection::View pfClusteringVars) {
     int curr = pfClusteringVars[idx].pfrh_topoId();
     if (curr != idx) {
       int next, prev = idx;
@@ -85,7 +85,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const int nRH = pfRecHits.size();
       const int from = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] +
                        alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u] *
-                       alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
+                           alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
       for (int v : cms::alpakatools::elements_with_stride(acc, nRH)) {
         const int beg = pfClusteringEdgeVars[v].pfrh_edgeIdx();
         const int end = pfClusteringEdgeVars[v + 1].pfrh_edgeIdx();
@@ -143,12 +143,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                   if (vstat != ostat) {
                     int ret;
                     if (vstat < ostat) {
-                      if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[ostat].pfrh_topoId(), ostat, vstat)) != ostat) {
+                      if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[ostat].pfrh_topoId(), ostat, vstat)) !=
+                          ostat) {
                         ostat = ret;
                         repeat = true;
                       }
                     } else {
-                      if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[vstat].pfrh_topoId(), vstat, ostat)) != vstat) {
+                      if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[vstat].pfrh_topoId(), vstat, ostat)) !=
+                          vstat) {
                         vstat = ret;
                         repeat = true;
                       }
@@ -171,8 +173,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusteringEdgeVarsDeviceCollection::View pfClusteringEdgeVars) const {
-      const int nRH = pfRecHits.size();
-
       const int lane = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] % alpaka::warp::getSize(acc);
 
       int32_t idx = 0;
@@ -222,17 +222,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusteringEdgeVarsDeviceCollection::View pfClusteringEdgeVars) const {
-      const int nRH = pfRecHits.size();
-
       int& vB = alpaka::declareSharedVar<int, __COUNTER__>(acc);
       if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
         const int idx = alpaka::atomicAdd(acc, &pfClusteringVars.posH(), -1);
         vB = (idx > pfClusteringVars.topH()) ? pfClusteringVars[idx].wl_d() : -1;
       }
-      alpaka::syncBlockThreads(acc); // all threads call sync
+      alpaka::syncBlockThreads(acc);  // all threads call sync
       while (vB >= 0) {
         const int v = vB;
-        alpaka::syncBlockThreads(acc); // all threads call sync
+        alpaka::syncBlockThreads(acc);  // all threads call sync
         int vstat = representative(v, pfClusteringVars);
         for (int i = pfClusteringEdgeVars[v].pfrh_edgeIdx() + alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u];
              i < pfClusteringEdgeVars[v + 1].pfrh_edgeIdx();
@@ -259,13 +257,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
               }
             } while (repeat);
           }
-          alpaka::syncBlockThreads(acc); // all threads call sync
+          alpaka::syncBlockThreads(acc);  // all threads call sync
         }
         if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
           const int idx = alpaka::atomicAdd(acc, &pfClusteringVars.posH(), -1);
           vB = (idx > pfClusteringVars.topH()) ? pfClusteringVars[idx].wl_d() : -1;
         }
-        alpaka::syncBlockThreads(acc); // all threads call sync
+        alpaka::syncBlockThreads(acc);  // all threads call sync
       }
     }
   };
@@ -294,6 +292,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   // ECL-CC ends
 
-} // namespace ALPAKA_ACCELERATOR_NAMESPACE
+}  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #endif
