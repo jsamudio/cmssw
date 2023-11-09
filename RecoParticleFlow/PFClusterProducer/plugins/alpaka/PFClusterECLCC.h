@@ -1,10 +1,10 @@
-#ifndef RecoParticleFlow_PFClusterProducerAlpaka_plugins_alpaka_PFClusterECLCC_h
-#define RecoParticleFlow_PFClusterProducerAlpaka_plugins_alpaka_PFClusterECLCC_h
+#ifndef RecoParticleFlow_PFClusterProducer_plugins_alpaka_PFClusterECLCC_h
+#define RecoParticleFlow_PFClusterProducer_plugins_alpaka_PFClusterECLCC_h
 
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusteringVarsDeviceCollection.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusteringEdgeVarsDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusteringVarsDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusteringEdgeVarsDeviceCollection.h"
 
 // The following comment block is required in using the ECL-CC algorithm for topological clustering
 

@@ -1,5 +1,5 @@
-#ifndef RecoParticleFlow_PFClusterProducerAlpaka_interface_PFClusteringVarsSoA_h
-#define RecoParticleFlow_PFClusterProducerAlpaka_interface_PFClusteringVarsSoA_h
+#ifndef RecoParticleFlow_PFClusterProducer_interface_PFClusteringVarsSoA_h
+#define RecoParticleFlow_PFClusterProducer_interface_PFClusteringVarsSoA_h
 
 #include "DataFormats/SoATemplate/interface/SoACommon.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"

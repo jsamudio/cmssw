@@ -1,13 +1,13 @@
-#ifndef RecoParticleFlow_PFClusterProducerAlpaka_PFClusterProducerAlpakaKernel_h
-#define RecoParticleFlow_PFClusterProducerAlpaka_PFClusterProducerAlpakaKernel_h
+#ifndef RecoParticleFlow_PFClusterProducer_PFClusterProducerAlpakaKernel_h
+#define RecoParticleFlow_PFClusterProducer_PFClusterProducerAlpakaKernel_h
 
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitDeviceCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFClusterDeviceCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitFractionDeviceCollection.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusteringVarsDeviceCollection.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusteringEdgeVarsDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusterParamsDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusteringVarsDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusteringEdgeVarsDeviceCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -40,7 +40,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     void execute(const Device&,
                  Queue& queue,
-                 const reco::PFClusterParamsAlpakaESDataDevice& params,
+                 const reco::PFClusterParamsDeviceCollection& params,
                  reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
                  reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,
                  const reco::PFRecHitHostCollection& pfRecHits,

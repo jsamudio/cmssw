@@ -1,5 +1,5 @@
-#ifndef RecoParticleFlow_PFClusterProducerAlpaka_interface_PFRecHitHBHEParamsAlpakaESDataSoA_h
-#define RecoParticleFlow_PFClusterProducerAlpaka_interface_PFRecHitHBHEParamsAlpakaESDataSoA_h
+#ifndef RecoParticleFlow_PFClusterProducer_interface_PFRecHitHBHEParamsSoA_h
+#define RecoParticleFlow_PFClusterProducer_interface_PFRecHitHBHEParamsSoA_h
 
 #include "DataFormats/SoATemplate/interface/SoACommon.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
@@ -7,7 +7,7 @@
 
 namespace reco {
 
-  GENERATE_SOA_LAYOUT(PFClusterParamsAlpakaESDataSoALayout,
+  GENERATE_SOA_LAYOUT(PFClusterParamsSoALayout,
                       SOA_SCALAR(int32_t, nNeigh),
                       SOA_SCALAR(float, seedPt2ThresholdEB),
                       SOA_SCALAR(float, seedPt2ThresholdEE),
@@ -42,7 +42,7 @@ namespace reco {
                       SOA_SCALAR(float, endcapTimeResConsts_constantTerm2),
                       SOA_SCALAR(float, endcapTimeResConsts_resHighE2))
 
-  using PFClusterParamsAlpakaESDataSoA = PFClusterParamsAlpakaESDataSoALayout<>;
+  using PFClusterParamsSoA = PFClusterParamsSoALayout<>;
 
 }  // namespace reco
 

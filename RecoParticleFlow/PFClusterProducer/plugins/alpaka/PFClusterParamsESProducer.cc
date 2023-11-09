@@ -8,7 +8,7 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 #include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusterParamsDeviceCollection.h"
 
 #include <array>
 
@@ -17,7 +17,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class PFClusterParamsESProducer : public ESProducer {
   public:
     PFClusterParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig) {
-      product = std::make_shared<reco::PFClusterParamsAlpakaESDataHost>(7, cms::alpakatools::host());
+      product = std::make_shared<reco::PFClusterParamsHostCollection>(7, cms::alpakatools::host());
       constexpr static uint32_t kMaxDepth_barrel = 4;
       constexpr static uint32_t kMaxDepth_endcap = 7;
       auto view = product->view();
@@ -235,12 +235,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       descriptions.addWithDefaultLabel(psetDesc);
     }
 
-    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> produce(JobConfigurationGPURecord const& iRecord) {
+    std::shared_ptr<reco::PFClusterParamsHostCollection> produce(JobConfigurationGPURecord const& iRecord) {
       return product;
     }
 
   private:
-    std::shared_ptr<reco::PFClusterParamsAlpakaESDataHost> product;
+    std::shared_ptr<reco::PFClusterParamsHostCollection> product;
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

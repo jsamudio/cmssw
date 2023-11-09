@@ -5,8 +5,8 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 
 #include "DataFormats/ParticleFlowReco/interface/PFLayer.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/plugins/alpaka/PFClusterProducerKernel.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/plugins/alpaka/PFClusterECLCC.h"
+#include "RecoParticleFlow/PFClusterProducer/plugins/alpaka/PFClusterSoAProducerKernel.h"
+#include "RecoParticleFlow/PFClusterProducer/plugins/alpaka/PFClusterECLCC.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
@@ -33,43 +33,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     return (deta * deta + dphi * dphi);
   }
 
-  // Helper function used in atomicMaxF
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE static int floatAsInt(float fval) {
-    union {
-      float fval;
-      int ival;
-    } u;
-
-    u.fval = fval;
-
-    return u.ival;
-  }
-
-  // Helper function used in atomicMaxF
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE static float intAsFloat(int ival) {
-    union {
-      int ival;
-      float fval;
-    } u;
-
-    u.ival = ival;
-
-    return u.fval;
-  }
-
-  // Helper function to be specialized
+#if defined (__CUDA_ARCH__) or defined (__HIP_DEVICE_COMPILE__)
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE static float atomicMaxF(const TAcc& acc, float* address, float val) {
-    if constexpr (not requires_single_thread_per_block_v<TAcc>) {
-      // GPU implementation uses hacky intAsFloat and floatAsInt functions
-      int ret = floatAsInt(*address);
-      while (val > intAsFloat(ret)) {
+  static __device__ __forceinline__ float atomicMaxF(const TAcc& acc, float* address, float val) {
+      int ret = __float_as_int(*address);
+      while (val > __int_as_float(ret)) {
         int old = ret;
-        if ((ret = alpaka::atomicCas(acc, (int*)address, old, floatAsInt(val))) == old)
+        if ((ret = atomicCAS((int*)address, old, __float_as_int(val))) == old)
           break;
       }
-      return intAsFloat(ret);
-    } else {
+      return __int_as_float(ret);
+  }
+#else
+  template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+  ALPAKA_FN_ACC ALPAKA_FN_INLINE static float atomicMaxF(const TAcc& acc, float* address, float val) {
       // CPU implementation uses edm::bit_cast
       int ret = edm::bit_cast<int>(*address);
       while (val > edm::bit_cast<float>(ret)) {
@@ -78,22 +55,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           break;
       }
       return edm::bit_cast<float>(ret);
-    }
   }
-
-  /*
-  // Atomic Max for Floats
-  template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-  ALPAKA_FN_ACC ALPAKA_FN_INLINE static float atomicMaxF(const TAcc& acc, float* address, float val) {
-    int ret = floatAsInt(*address);
-    while (val > intAsFloat(ret)) {
-      int old = ret;
-      if ((ret = alpaka::atomicCas(acc, (int*)address, old, floatAsInt(val))) == old)
-        break;
-    }
-    return intAsFloat(ret);
-  }
-  */
+#endif
 
   // Get index of seed
   ALPAKA_FN_ACC static auto dev_getSeedRhIdx(int* seeds, int seedNum) { return seeds[seedNum]; }
@@ -117,7 +80,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }
 
   // Cluster position calculation
-  ALPAKA_FN_ACC static auto dev_computeClusterPos(reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+  ALPAKA_FN_ACC static auto dev_computeClusterPos(reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
                                                   Position4& pos4,
                                                   float frac,
                                                   int rhInd,
@@ -147,7 +110,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
   ALPAKA_FN_ACC static void dev_hcalFastCluster_singleSeed(
       const TAcc& acc,
-      reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+      reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
       int topoId,   // from selection
       int nRHTopo,  // from selection
       reco::PFRecHitDeviceCollection::ConstView pfRecHits,
@@ -309,7 +272,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
   ALPAKA_FN_ACC static void dev_hcalFastCluster_multiSeedParallel(
       const TAcc& acc,
-      reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+      reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
       int topoId,   // from selection
       int nSeeds,   // from selection
       int nRHTopo,  // from selection
@@ -584,7 +547,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
   ALPAKA_FN_ACC static void dev_hcalFastCluster_exotic(const TAcc& acc,
-                                                       reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+                                                       reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
                                                        int topoId,
                                                        int nSeeds,
                                                        int nRHTopo,
@@ -846,7 +809,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
   ALPAKA_FN_ACC static void dev_hcalFastCluster_multiSeedIterative(
       const TAcc& acc,
-      reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+      reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
       int topoId,
       int nSeeds,
       int nRHTopo,
@@ -1102,7 +1065,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
-                                  const reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+                                  const reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusterDeviceCollection::View clusterView,
                                   reco::PFRecHitFractionDeviceCollection::View fracView,
@@ -1394,7 +1357,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
-                                  const reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+                                  const reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusterDeviceCollection::View clusterView,
                                   reco::PFRecHitFractionDeviceCollection::View fracView) const {
@@ -1453,7 +1416,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
-                                  const reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+                                  const reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusterDeviceCollection::View clusterView,
                                   reco::PFRecHitFractionDeviceCollection::View fracView,
@@ -1516,7 +1479,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
-                                  const reco::PFClusterParamsAlpakaESDataDevice::ConstView pfClusParams,
+                                  const reco::PFClusterParamsDeviceCollection::ConstView pfClusParams,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusterDeviceCollection::View clusterView,
                                   reco::PFRecHitFractionDeviceCollection::View fracView) const {
@@ -1575,7 +1538,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   void PFClusterProducerKernel::execute(const Device& device,
                                         Queue& queue,
-                                        const reco::PFClusterParamsAlpakaESDataDevice& params,
+                                        const reco::PFClusterParamsDeviceCollection& params,
                                         reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
                                         reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,
                                         const reco::PFRecHitHostCollection& pfRecHits,

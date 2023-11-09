@@ -29,7 +29,7 @@
 #include "DataFormats/ParticleFlowReco/interface/PFRecHitFractionHostCollection.h"
 #include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFCPositionCalculatorBase.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/PFClusterParamsAlpakaESData.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/PFClusterParamsHostCollection.h"
 
 class LegacyPFClusterProducer : public edm::stream::EDProducer<> {
 public:
@@ -181,7 +181,7 @@ private:
   const edm::EDGetTokenT<reco::PFClusterHostCollection> alpakaPfClustersToken;
   const edm::EDGetTokenT<reco::PFRecHitFractionHostCollection> alpakaPfRHFractionToken;
   const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
-  const edm::ESGetToken<reco::PFClusterParamsAlpakaESDataHost, JobConfigurationGPURecord> pfClusParamsToken;
+  const edm::ESGetToken<reco::PFClusterParamsHostCollection, JobConfigurationGPURecord> pfClusParamsToken;
   const edm::EDPutTokenT<reco::PFClusterCollection> legacyPfClustersToken;
   const edm::EDGetTokenT<reco::PFRecHitCollection> recHitsLabel;
 

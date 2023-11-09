@@ -408,7 +408,7 @@ process.pfClusterParamsAlpakaESRcdSource = cms.ESSource('EmptyESSource',
     firstValid = cms.vuint32(1)
 )
 
-from RecoParticleFlow.PFClusterProducerAlpaka.pfClusterParamsESProducer_cfi import pfClusterParamsESProducer as _pfClusterParamsESProducer
+from RecoParticleFlow.PFClusterProducer.pfClusterParamsESProducer_cfi import pfClusterParamsESProducer as _pfClusterParamsESProducer
 
 process.hltParticleFlowClusterParamsESProducer = _pfClusterParamsESProducer.clone()
 process.hltParticleFlowClusterParamsESProducer.pfClusterBuilder.maxIterations = 5
@@ -426,7 +426,7 @@ for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.seedFinde
         if x.detector == y.detector:
             x.seedingThreshold = y.seedingThreshold
 
-process.hltParticleFlowPFClusterAlpaka = cms.EDProducer(alpaka_backend_str % "PFClusterProducerAlpaka",
+process.hltParticleFlowPFClusterAlpaka = cms.EDProducer(alpaka_backend_str % "PFClusterSoAProducer",
                                                         pfClusterParams = cms.ESInputTag("hltParticleFlowClusterParamsESProducer:"),
                                                         synchronise = cms.bool(args.synchronise))
 process.hltParticleFlowPFClusterAlpaka.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")

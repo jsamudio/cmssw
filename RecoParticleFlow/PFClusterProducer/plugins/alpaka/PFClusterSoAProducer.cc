@@ -9,16 +9,16 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/stream/EDProducer.h"
 #include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/interface/alpaka/PFClusterParamsAlpakaESData.h"
-#include "RecoParticleFlow/PFClusterProducerAlpaka/plugins/alpaka/PFClusterProducerKernel.h"
+#include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusterParamsDeviceCollection.h"
+#include "RecoParticleFlow/PFClusterProducer/plugins/alpaka/PFClusterSoAProducerKernel.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFCPositionCalculatorBase.h"
 
 #define DEBUG false
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  class PFClusterProducerAlpaka : public stream::EDProducer<> {
+  class PFClusterSoAProducer : public stream::EDProducer<> {
   public:
-    PFClusterProducerAlpaka(edm::ParameterSet const& config)
+    PFClusterSoAProducer(edm::ParameterSet const& config)
         : pfClusParamsToken(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
           inputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
           outputPFClusterSoA_Token_{produces()},
@@ -27,7 +27,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           produceSoA_{config.getParameter<bool>("produceSoA")} {}
 
     void produce(device::Event& event, device::EventSetup const& setup) override {
-      const reco::PFClusterParamsAlpakaESDataDevice& params = setup.getData(pfClusParamsToken);
+      const reco::PFClusterParamsDeviceCollection& params = setup.getData(pfClusParamsToken);
       const reco::PFRecHitHostCollection& pfRecHits = event.get(inputPFRecHitSoA_Token_);
       const int nRH = pfRecHits->size();
 
@@ -67,7 +67,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
   private:
-    const device::ESGetToken<reco::PFClusterParamsAlpakaESDataDevice, JobConfigurationGPURecord> pfClusParamsToken;
+    const device::ESGetToken<reco::PFClusterParamsDeviceCollection, JobConfigurationGPURecord> pfClusParamsToken;
     const edm::EDGetTokenT<reco::PFRecHitHostCollection> inputPFRecHitSoA_Token_;
     const device::EDPutToken<reco::PFClusterDeviceCollection> outputPFClusterSoA_Token_;
     const device::EDPutToken<reco::PFRecHitFractionDeviceCollection> outputPFRHFractionSoA_Token_;
@@ -80,4 +80,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/MakerMacros.h"
-DEFINE_FWK_ALPAKA_MODULE(PFClusterProducerAlpaka);
+DEFINE_FWK_ALPAKA_MODULE(PFClusterSoAProducer);
