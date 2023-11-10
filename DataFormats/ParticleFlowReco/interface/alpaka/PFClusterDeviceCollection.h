@@ -12,4 +12,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
   using PFClusterDeviceCollection = PortableCollection<::reco::PFClusterSoA>;
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::reco
 
+// check that the portable device collection for the host device is the same as the portable host collection
+ASSERT_DEVICE_MATCHES_HOST_COLLECTION(reco::PFClusterDeviceCollection, reco::PFClusterHostCollection);
+
 #endif  // DataFormats_ParticleFlowReco_interface_alpaka_PFClusterDeviceCollection_h
