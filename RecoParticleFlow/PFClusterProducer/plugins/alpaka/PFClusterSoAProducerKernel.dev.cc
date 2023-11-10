@@ -531,15 +531,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);  // all threads call sync
     } while (notDone);                // shared variable condition ensures synchronization is well defined
     if (tid == 0)
-    // Fill PFCluster-level info
-    if (tid < nSeeds) {
-      int rhIdx = pfClusteringVars[tid + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
-      int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
-      clusterView[seedIdx].energy() = clusterEnergy[tid];
-      clusterView[seedIdx].x() = clusterPos[tid].x;
-      clusterView[seedIdx].y() = clusterPos[tid].y;
-      clusterView[seedIdx].z() = clusterPos[tid].z;
-    }
+      // Fill PFCluster-level info
+      if (tid < nSeeds) {
+        int rhIdx = pfClusteringVars[tid + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
+        int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
+        clusterView[seedIdx].energy() = clusterEnergy[tid];
+        clusterView[seedIdx].x() = clusterPos[tid].x;
+        clusterView[seedIdx].y() = clusterPos[tid].y;
+        clusterView[seedIdx].z() = clusterPos[tid].z;
+      }
   }
 
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
@@ -792,14 +792,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);  // all threads call sync
     } while (notDone);                // shared variable ensures synchronization is well defined
     if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0)
-    for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
-      int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
-      int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
-      clusterView[seedIdx].energy() = pfRecHits[s].energy();
-      clusterView[seedIdx].x() = pfRecHits[s].x();
-      clusterView[seedIdx].y() = pfRecHits[s].y();
-      clusterView[seedIdx].z() = pfRecHits[s].z();
-    }
+      for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+        int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
+        int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
+        clusterView[seedIdx].energy() = pfRecHits[s].energy();
+        clusterView[seedIdx].x() = pfRecHits[s].x();
+        clusterView[seedIdx].y() = pfRecHits[s].y();
+        clusterView[seedIdx].z() = pfRecHits[s].z();
+      }
   }
 
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
@@ -1044,14 +1044,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);  // all threads call sync
     } while (notDone);                // shared variable ensures synchronization is well defined
     if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0)
-    for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
-      int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
-      int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
-      clusterView[seedIdx].energy() = pfRecHits[s].energy();
-      clusterView[seedIdx].x() = pfRecHits[s].x();
-      clusterView[seedIdx].y() = pfRecHits[s].y();
-      clusterView[seedIdx].z() = pfRecHits[s].z();
-    }
+      for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
+        int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
+        int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
+        clusterView[seedIdx].energy() = pfRecHits[s].energy();
+        clusterView[seedIdx].x() = pfRecHits[s].x();
+        clusterView[seedIdx].y() = pfRecHits[s].y();
+        clusterView[seedIdx].z() = pfRecHits[s].z();
+      }
   }
 
   // Seeding using local energy maxima
