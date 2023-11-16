@@ -17,9 +17,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   class PFClusterParamsESProducer : public ESProducer {
   public:
     PFClusterParamsESProducer(edm::ParameterSet const& iConfig) : ESProducer(iConfig) {
-      product = std::make_shared<reco::PFClusterParamsHostCollection>(7, cms::alpakatools::host());
       constexpr static uint32_t kMaxDepth_barrel = 4;
       constexpr static uint32_t kMaxDepth_endcap = 7;
+      product = std::make_shared<reco::PFClusterParamsHostCollection>(std::max(kMaxDepth_barrel, kMaxDepth_endcap),
+                                                                      cms::alpakatools::host());
       auto view = product->view();
 
       // seedFinder

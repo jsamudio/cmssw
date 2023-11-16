@@ -429,7 +429,7 @@ for idx, x in enumerate(process.hltParticleFlowClusterParamsESProducer.seedFinde
 process.hltParticleFlowPFClusterAlpaka = cms.EDProducer(alpaka_backend_str % "PFClusterSoAProducer",
                                                         pfClusterParams = cms.ESInputTag("hltParticleFlowClusterParamsESProducer:"),
                                                         synchronise = cms.bool(args.synchronise))
-process.hltParticleFlowPFClusterAlpaka.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
+process.hltParticleFlowPFClusterAlpaka.pfRecHits = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 
 # Create legacy PFClusters
 

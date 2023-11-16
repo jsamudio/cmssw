@@ -38,20 +38,16 @@
 
 #ifdef PFLOW_DEBUG
 #define LOGVERB(x) edm::LogVerbatim(x)
-#define LOGWARN(x) edm::LogWarning(x)
-#define LOGERR(x) edm::LogError(x)
-#define LOGDRESSED(x) edm::LogInfo(x)
+//#define edm::LogWarning(x) edm::LogWarning(x)
 #else
 #define LOGVERB(x) LogTrace(x)
-#define LOGWARN(x) edm::LogWarning(x)
-#define LOGERR(x) edm::LogError(x)
-#define LOGDRESSED(x) LogDebug(x)
+//#define edm::LogWarning(x) edm::LogWarning(x)
 #endif
 
 class PFCaloGPUComparisonTask : public DQMEDAnalyzer {
 public:
   PFCaloGPUComparisonTask(edm::ParameterSet const& conf);
-  ~PFCaloGPUComparisonTask() override;
+  ~PFCaloGPUComparisonTask() override = default;
   void analyze(edm::Event const& e, edm::EventSetup const& c) override;
   void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override;
   //static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
@@ -71,15 +67,12 @@ private:
   std::string pfCaloGPUCompDir;
 };
 
-PFCaloGPUComparisonTask::PFCaloGPUComparisonTask(const edm::ParameterSet& conf) {
-  pfClusterTok_ref_ =
-      consumes<reco::PFClusterCollection>(conf.getUntrackedParameter<edm::InputTag>("pfClusterToken_ref"));
-  pfClusterTok_target_ =
-      consumes<reco::PFClusterCollection>(conf.getUntrackedParameter<edm::InputTag>("pfClusterToken_target"));
-  pfCaloGPUCompDir = conf.getUntrackedParameter<std::string>("pfCaloGPUCompDir");
-}
-
-PFCaloGPUComparisonTask::~PFCaloGPUComparisonTask() {}
+PFCaloGPUComparisonTask::PFCaloGPUComparisonTask(const edm::ParameterSet& conf)
+    : pfClusterTok_ref_{consumes<reco::PFClusterCollection>(
+          conf.getUntrackedParameter<edm::InputTag>("pfClusterToken_ref"))},
+      pfClusterTok_target_{
+          consumes<reco::PFClusterCollection>(conf.getUntrackedParameter<edm::InputTag>("pfClusterToken_target"))},
+      pfCaloGPUCompDir{conf.getUntrackedParameter<std::string>("pfCaloGPUCompDir")} {}
 
 void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
                                              edm::Run const& irun,
@@ -136,7 +129,7 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
           matched = true;
           matched_idx.push_back((int)j);
         } else {
-          LOGWARN("PFCaloGPUComparisonTask") << " another matching? ";
+          edm::LogWarning("PFCaloGPUComparisonTask") << " another matching? ";
         }
       }
     }
@@ -150,7 +143,7 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
   sort(tmp.begin(), tmp.end());
   const bool hasDuplicates = std::adjacent_find(tmp.begin(), tmp.end()) != tmp.end();
   if (hasDuplicates)
-    LOGWARN("PFCaloGPUComparisonTask") << "find duplicated matched";
+    edm::LogWarning("PFCaloGPUComparisonTask") << "find duplicated matches";
 
   //
   // Plot matching PF cluster variables
@@ -161,10 +154,11 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
       int target_energy_bin =
           pfCluster_Energy_GPUvsCPU_->getTH2F()->GetXaxis()->FindBin(pfClusters_target->at(j).energy());
       if (ref_energy_bin != target_energy_bin)
-        std::cout << "Off-diagonal energy bin entries: " << pfClusters_ref->at(i).energy() << " "
-                  << pfClusters_ref->at(i).eta() << " " << pfClusters_ref->at(i).phi() << " "
-                  << pfClusters_target->at(j).energy() << " " << pfClusters_target->at(j).eta() << " "
-                  << pfClusters_target->at(j).phi() << std::endl;
+        edm::LogPrint("PFCaloGPUComparisonTask")
+            << "Off-diagonal energy bin entries: " << pfClusters_ref->at(i).energy() << " "
+            << pfClusters_ref->at(i).eta() << " " << pfClusters_ref->at(i).phi() << " "
+            << pfClusters_target->at(j).energy() << " " << pfClusters_target->at(j).eta() << " "
+            << pfClusters_target->at(j).phi() << std::endl;
       pfCluster_Energy_GPUvsCPU_->Fill(pfClusters_ref->at(i).energy(), pfClusters_target->at(j).energy());
       pfCluster_Layer_GPUvsCPU_->Fill(pfClusters_ref->at(i).layer(), pfClusters_target->at(j).layer());
       pfCluster_Eta_GPUvsCPU_->Fill(pfClusters_ref->at(i).eta(), pfClusters_target->at(j).eta());

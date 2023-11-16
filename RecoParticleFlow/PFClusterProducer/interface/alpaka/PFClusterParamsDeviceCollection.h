@@ -3,7 +3,6 @@
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 
 #include "RecoParticleFlow/PFClusterProducer/interface/PFClusterParamsHostCollection.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFClusterParamsSoA.h"

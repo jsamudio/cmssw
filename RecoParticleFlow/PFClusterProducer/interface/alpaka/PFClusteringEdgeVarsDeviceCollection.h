@@ -3,14 +3,14 @@
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 
 #include "RecoParticleFlow/PFClusterProducer/interface/PFClusteringEdgeVarsSoA.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE::reco {
 
   using PFClusteringEdgeVarsDeviceCollection = PortableCollection<::reco::PFClusteringEdgeVarsSoA>;
+  // needs nRH + maxNeighbors allocation
 
-}
+}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::reco
 
 #endif

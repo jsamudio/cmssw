@@ -34,8 +34,8 @@
 class LegacyPFClusterProducer : public edm::stream::EDProducer<> {
 public:
   LegacyPFClusterProducer(edm::ParameterSet const& config)
-      : alpakaPfClustersToken(consumes(config.getParameter<edm::InputTag>("src"))),
-        alpakaPfRHFractionToken(consumes(config.getParameter<edm::InputTag>("src"))),
+      : pfClusterSoAToken(consumes(config.getParameter<edm::InputTag>("src"))),
+        pfRecHitFractionSoAToken(consumes(config.getParameter<edm::InputTag>("src"))),
         InputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
         pfClusParamsToken(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
         legacyPfClustersToken(produces()),
@@ -48,13 +48,13 @@ public:
       if (pfcConf.exists("positionCalc")) {
         const edm::ParameterSet& acConf = pfcConf.getParameterSet("positionCalc");
         const std::string& algoac = acConf.getParameter<std::string>("algoName");
-        _positionCalc = PFCPositionCalculatorFactory::get()->create(algoac, acConf, cc);
+        positionCalc_ = PFCPositionCalculatorFactory::get()->create(algoac, acConf, cc);
       }
 
       if (pfcConf.exists("allCellsPositionCalc")) {
         const edm::ParameterSet& acConf = pfcConf.getParameterSet("allCellsPositionCalc");
         const std::string& algoac = acConf.getParameter<std::string>("algoName");
-        _allCellsPositionCalc = PFCPositionCalculatorFactory::get()->create(algoac, acConf, cc);
+        allCellsPositionCalc_ = PFCPositionCalculatorFactory::get()->create(algoac, acConf, cc);
       }
     }
   }
@@ -173,29 +173,26 @@ public:
   }
 
   // the actual algorithm
-  std::unique_ptr<PFCPositionCalculatorBase> _positionCalc;
-  std::unique_ptr<PFCPositionCalculatorBase> _allCellsPositionCalc;
+  std::unique_ptr<PFCPositionCalculatorBase> positionCalc_;
+  std::unique_ptr<PFCPositionCalculatorBase> allCellsPositionCalc_;
 
 private:
   void produce(edm::Event&, const edm::EventSetup&) override;
-  const edm::EDGetTokenT<reco::PFClusterHostCollection> alpakaPfClustersToken;
-  const edm::EDGetTokenT<reco::PFRecHitFractionHostCollection> alpakaPfRHFractionToken;
+  const edm::EDGetTokenT<reco::PFClusterHostCollection> pfClusterSoAToken;
+  const edm::EDGetTokenT<reco::PFRecHitFractionHostCollection> pfRecHitFractionSoAToken;
   const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
   const edm::ESGetToken<reco::PFClusterParamsHostCollection, JobConfigurationGPURecord> pfClusParamsToken;
   const edm::EDPutTokenT<reco::PFClusterCollection> legacyPfClustersToken;
   const edm::EDGetTokenT<reco::PFRecHitCollection> recHitsLabel;
-
-  int nRH = 0;
 };
 
 void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
   const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
 
-  reco::PFClusterHostCollection const& clusterSoA = event.get(alpakaPfClustersToken);
-  reco::PFRecHitFractionHostCollection const& fractionSoA = event.get(alpakaPfRHFractionToken);
+  auto const& pfClusterSoA = event.get(pfClusterSoAToken).const_view();
+  auto const& pfRecHitFractionSoA = event.get(pfRecHitFractionSoAToken).const_view();
 
-  auto const& alpakaPfClusters = clusterSoA.const_view();
-  auto const& alpakaPfRhFrac = fractionSoA.const_view();
+  int nRH;
 
   nRH = pfRecHits.view().size();
   reco::PFClusterCollection out;
@@ -203,48 +200,38 @@ void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& 
 
   auto const rechitsHandle = event.getHandle(recHitsLabel);
 
-  std::vector<int> seedlist1;
-  std::vector<int> seedlist2;
-  seedlist1.reserve(alpakaPfClusters.nSeeds());
-  for (int i = 0; i < alpakaPfClusters.nSeeds(); i++) {
-    seedlist1.push_back(alpakaPfClusters[i].seedRHIdx());
-  }
-
   // Build PFClusters in legacy format
   std::unordered_map<int, int> nTopoSeeds;
 
-  for (int i = 0; i < alpakaPfClusters.nSeeds(); i++) {
-    nTopoSeeds[alpakaPfClusters[i].topoId()]++;
+  for (int i = 0; i < pfClusterSoA.nSeeds(); i++) {
+    nTopoSeeds[pfClusterSoA[i].topoId()]++;
   }
 
   // Looping over SoA PFClusters to produce legacy PFCluster collection
-  for (int i = 0; i < alpakaPfClusters.nSeeds(); i++) {
-    unsigned int n = alpakaPfClusters[i].seedRHIdx();
+  for (int i = 0; i < pfClusterSoA.nSeeds(); i++) {
+    unsigned int n = pfClusterSoA[i].seedRHIdx();
     reco::PFCluster temp;
     temp.setSeed((*rechitsHandle)[n].detId());  // Pulling the detId of this PFRecHit from the legacy format input
-    seedlist2.push_back(n);
-    int offset = alpakaPfClusters[i].rhfracOffset();
-    for (int k = offset; k < (offset + alpakaPfClusters[i].rhfracSize()) && k >= 0;
+    int offset = pfClusterSoA[i].rhfracOffset();
+    for (int k = offset; k < (offset + pfClusterSoA[i].rhfracSize()) && k >= 0;
          k++) {  // Looping over PFRecHits in the same topo cluster
-      if (alpakaPfRhFrac[k].pfrhIdx() < nRH && alpakaPfRhFrac[k].pfrhIdx() > -1 && alpakaPfRhFrac[k].frac() > 0.0) {
-        const reco::PFRecHitRef& refhit = reco::PFRecHitRef(rechitsHandle, alpakaPfRhFrac[k].pfrhIdx());
-        temp.addRecHitFraction(reco::PFRecHitFraction(refhit, alpakaPfRhFrac[k].frac()));
+      if (pfRecHitFractionSoA[k].pfrhIdx() < nRH && pfRecHitFractionSoA[k].pfrhIdx() > -1 &&
+          pfRecHitFractionSoA[k].frac() > 0.0) {
+        const reco::PFRecHitRef& refhit = reco::PFRecHitRef(rechitsHandle, pfRecHitFractionSoA[k].pfrhIdx());
+        temp.addRecHitFraction(reco::PFRecHitFraction(refhit, pfRecHitFractionSoA[k].frac()));
       }
     }
 
     // Now PFRecHitFraction of this PFCluster is set. Now compute calculateAndSetPosition (energy, position etc)
-    if (nTopoSeeds[alpakaPfClusters[i].topoId()] == 1 && _allCellsPositionCalc) {
-      _allCellsPositionCalc->calculateAndSetPosition(temp);
+    if (nTopoSeeds[pfClusterSoA[i].topoId()] == 1 && allCellsPositionCalc_) {
+      allCellsPositionCalc_->calculateAndSetPosition(temp);
     } else {
-      _positionCalc->calculateAndSetPosition(temp);
+      positionCalc_->calculateAndSetPosition(temp);
     }
     out.emplace_back(std::move(temp));
   }
 
   event.emplace(legacyPfClustersToken, std::move(out));
-
-  sort(seedlist1.begin(), seedlist1.end());
-  sort(seedlist2.begin(), seedlist2.end());
 }
 
 #include "FWCore/Framework/interface/MakerMacros.h"

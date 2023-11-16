@@ -38,8 +38,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     PFClusterProducerKernel(Queue& queue, const reco::PFRecHitHostCollection& pfRecHits);
 
-    void execute(const Device&,
-                 Queue& queue,
+    void execute(Queue& queue,
                  const reco::PFClusterParamsDeviceCollection& params,
                  reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
                  reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,

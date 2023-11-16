@@ -52,8 +52,10 @@
 
 /*
  The code is modified for the specific use-case of generating topological clusters
- for PFClustering. It is adapted to work with the Alpaka portability library.
- 
+ for PFClustering. It is adapted to work with the Alpaka portability library. The
+ kernels for processing vertices at warp and block level granularity have been
+ removed since the degree of vertices in our inputs is only ever 8; the number of
+ neighbors.
 */
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -79,13 +81,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
-                                  const reco::PFRecHitHostCollection::ConstView pfRecHits,
+                                  reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusteringEdgeVarsDeviceCollection::View pfClusteringEdgeVars) const {
       const int nRH = pfRecHits.size();
-      const int from = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] +
-                       alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u] *
-                           alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u];
       for (int v : cms::alpakatools::elements_with_stride(acc, nRH)) {
         const int beg = pfClusteringEdgeVars[v].pfrh_edgeIdx();
         const int end = pfClusteringEdgeVars[v + 1].pfrh_edgeIdx();
@@ -97,22 +96,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         }
         pfClusteringVars[v].pfrh_topoId() = m;
       }
-
-      if (from == 0) {
-        pfClusteringVars.topL() = 0;
-        pfClusteringVars.posL() = 0;
-        pfClusteringVars.topH() = nRH - 1;
-        pfClusteringVars.posH() = nRH - 1;
-      }
     }
   };
 
   // First edge processing kernel of ECL-CC
+  // Processes vertices
   class ECLCCCompute1 {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
-                                  const reco::PFRecHitHostCollection::ConstView pfRecHits,
+                                  reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusteringEdgeVarsDeviceCollection::View pfClusteringEdgeVars) const {
       const int nRH = pfRecHits.size();
@@ -122,148 +115,32 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         if (v != vstat) {
           const int beg = pfClusteringEdgeVars[v].pfrh_edgeIdx();
           const int end = pfClusteringEdgeVars[v + 1].pfrh_edgeIdx();
-          int deg = end - beg;
-          if (deg > 16) {
-            int idx;
-            if (deg <= 352) {
-              idx = alpaka::atomicAdd(acc, &pfClusteringVars.topL(), 1);
-            } else {
-              idx = alpaka::atomicAdd(acc, &pfClusteringVars.topH(), -1);
-            }
-            pfClusteringVars[idx].wl_d() = v;
-          } else {
-            int vstat = representative(v, pfClusteringVars);
-            for (int i = beg; i < end; i++) {
-              const int nli = pfClusteringEdgeVars[i].pfrh_edgeList();
-              if (v > nli) {
-                int ostat = representative(nli, pfClusteringVars);
-                bool repeat;
-                do {
-                  repeat = false;
-                  if (vstat != ostat) {
-                    int ret;
-                    if (vstat < ostat) {
-                      if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[ostat].pfrh_topoId(), ostat, vstat)) !=
-                          ostat) {
-                        ostat = ret;
-                        repeat = true;
-                      }
-                    } else {
-                      if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[vstat].pfrh_topoId(), vstat, ostat)) !=
-                          vstat) {
-                        vstat = ret;
-                        repeat = true;
-                      }
+          int vstat = representative(v, pfClusteringVars);
+          for (int i = beg; i < end; i++) {
+            const int nli = pfClusteringEdgeVars[i].pfrh_edgeList();
+            if (v > nli) {
+              int ostat = representative(nli, pfClusteringVars);
+              bool repeat;
+              do {
+                repeat = false;
+                if (vstat != ostat) {
+                  int ret;
+                  if (vstat < ostat) {
+                    if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[ostat].pfrh_topoId(), ostat, vstat)) != ostat) {
+                      ostat = ret;
+                      repeat = true;
+                    }
+                  } else {
+                    if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[vstat].pfrh_topoId(), vstat, ostat)) != vstat) {
+                      vstat = ret;
+                      repeat = true;
                     }
                   }
-                } while (repeat);
-              }
+                }
+              } while (repeat);
             }
           }
         }
-      }
-    }
-  };
-
-  /* process medium-degree vertices at warp granularity */
-  class ECLCCCompute2 {
-  public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(const TAcc& acc,
-                                  const reco::PFRecHitHostCollection::ConstView pfRecHits,
-                                  reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
-                                  reco::PFClusteringEdgeVarsDeviceCollection::View pfClusteringEdgeVars) const {
-      const int lane = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] % alpaka::warp::getSize(acc);
-
-      int32_t idx = 0;
-      if (lane == 0)
-        idx = alpaka::atomicAdd(acc, &pfClusteringVars.posL(), 1);
-      idx = alpaka::warp::shfl(acc, idx, 0);
-      while (idx < pfClusteringVars.topL()) {
-        const int v = pfClusteringVars[idx].wl_d();
-        int vstat = representative(v, pfClusteringVars);
-        for (int i = pfClusteringEdgeVars[v].pfrh_edgeIdx() + lane; i < pfClusteringEdgeVars[v + 1].pfrh_edgeIdx();
-             i += alpaka::warp::getSize(acc)) {
-          const int nli = pfClusteringEdgeVars[i].pfrh_edgeList();
-          if (v > nli) {
-            int ostat = representative(nli, pfClusteringVars);
-            bool repeat;
-            do {
-              repeat = false;
-              if (vstat != ostat) {
-                int ret;
-                if (vstat < ostat) {
-                  if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[ostat].pfrh_topoId(), ostat, vstat)) != ostat) {
-                    ostat = ret;
-                    repeat = true;
-                  }
-                } else {
-                  if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[vstat].pfrh_topoId(), vstat, ostat)) != vstat) {
-                    vstat = ret;
-                    repeat = true;
-                  }
-                }
-              }
-            } while (repeat);
-          }
-        }
-        if (lane == 0)
-          idx = alpaka::atomicAdd(acc, &pfClusteringVars.posL(), 1);
-        idx = alpaka::warp::shfl(acc, idx, 0);
-      }
-    }
-  };
-
-  /* process high-degree vertices at block granularity */
-  class ECLCCCompute3 {
-  public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(const TAcc& acc,
-                                  const reco::PFRecHitHostCollection::ConstView pfRecHits,
-                                  reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
-                                  reco::PFClusteringEdgeVarsDeviceCollection::View pfClusteringEdgeVars) const {
-      int& vB = alpaka::declareSharedVar<int, __COUNTER__>(acc);
-      if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
-        const int idx = alpaka::atomicAdd(acc, &pfClusteringVars.posH(), -1);
-        vB = (idx > pfClusteringVars.topH()) ? pfClusteringVars[idx].wl_d() : -1;
-      }
-      alpaka::syncBlockThreads(acc);  // all threads call sync
-      while (vB >= 0) {
-        const int v = vB;
-        alpaka::syncBlockThreads(acc);  // all threads call sync
-        int vstat = representative(v, pfClusteringVars);
-        for (int i = pfClusteringEdgeVars[v].pfrh_edgeIdx() + alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u];
-             i < pfClusteringEdgeVars[v + 1].pfrh_edgeIdx();
-             i += alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]) {
-          const int nli = pfClusteringEdgeVars[i].pfrh_edgeList();
-          if (v > nli) {
-            int ostat = representative(nli, pfClusteringVars);
-            bool repeat;
-            do {
-              repeat = false;
-              if (vstat != ostat) {
-                int ret;
-                if (vstat < ostat) {
-                  if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[ostat].pfrh_topoId(), ostat, vstat)) != ostat) {
-                    ostat = ret;
-                    repeat = true;
-                  }
-                } else {
-                  if ((ret = alpaka::atomicCas(acc, &pfClusteringVars[vstat].pfrh_topoId(), vstat, ostat)) != vstat) {
-                    vstat = ret;
-                    repeat = true;
-                  }
-                }
-              }
-            } while (repeat);
-          }
-          alpaka::syncBlockThreads(acc);  // all threads call sync
-        }
-        if (alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
-          const int idx = alpaka::atomicAdd(acc, &pfClusteringVars.posH(), -1);
-          vB = (idx > pfClusteringVars.topH()) ? pfClusteringVars[idx].wl_d() : -1;
-        }
-        alpaka::syncBlockThreads(acc);  // all threads call sync
       }
     }
   };
@@ -273,7 +150,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
-                                  const reco::PFRecHitHostCollection::ConstView pfRecHits,
+                                  reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusteringEdgeVarsDeviceCollection::View pfClusteringEdgeVars) const {
       const int nRH = pfRecHits.size();
