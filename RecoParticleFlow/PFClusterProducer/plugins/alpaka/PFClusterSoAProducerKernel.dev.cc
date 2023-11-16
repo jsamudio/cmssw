@@ -230,7 +230,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
     } while (notDone);                // shared variable condition ensures synchronization is well defined
-    if (once_per_block(acc)) {                   // Cluster is finalized, assign cluster information to te SoA
+    if (once_per_block(acc)) {        // Cluster is finalized, assign cluster information to te SoA
       int rhIdx =
           pfClusteringVars[pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
       int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
@@ -1401,7 +1401,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
 
-      for (counter = 0; counter < (((nRH + (blocksForExoticClusters - 1)) / blocksForExoticClusters) * blocksForExoticClusters); counter += blocksForExoticClusters) {
+      for (counter = 0;
+           counter < (((nRH + (blocksForExoticClusters - 1)) / blocksForExoticClusters) * blocksForExoticClusters);
+           counter += blocksForExoticClusters) {
         if (once_per_block(acc)) {
           topoId = blockId + counter;
           if (topoId > nRH)
