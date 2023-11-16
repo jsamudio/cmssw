@@ -34,12 +34,12 @@
 class LegacyPFClusterProducer : public edm::stream::EDProducer<> {
 public:
   LegacyPFClusterProducer(edm::ParameterSet const& config)
-      : pfClusterSoAToken(consumes(config.getParameter<edm::InputTag>("src"))),
-        pfRecHitFractionSoAToken(consumes(config.getParameter<edm::InputTag>("src"))),
+      : pfClusterSoAToken_(consumes(config.getParameter<edm::InputTag>("src"))),
+        pfRecHitFractionSoAToken_(consumes(config.getParameter<edm::InputTag>("src"))),
         InputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
-        pfClusParamsToken(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
-        legacyPfClustersToken(produces()),
-        recHitsLabel(consumes(config.getParameter<edm::InputTag>("recHitsSource"))) {
+        pfClusParamsToken_(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
+        legacyPfClustersToken_(produces()),
+        recHitsLabel_(consumes(config.getParameter<edm::InputTag>("recHitsSource"))) {
     edm::ConsumesCollector cc = consumesCollector();
 
     //setup pf cluster builder if requested
@@ -172,33 +172,30 @@ public:
     descriptions.addWithDefaultLabel(desc);
   }
 
+private:
+  void produce(edm::Event&, const edm::EventSetup&) override;
+  const edm::EDGetTokenT<reco::PFClusterHostCollection> pfClusterSoAToken_;
+  const edm::EDGetTokenT<reco::PFRecHitFractionHostCollection> pfRecHitFractionSoAToken_;
+  const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
+  const edm::ESGetToken<reco::PFClusterParamsHostCollection, JobConfigurationGPURecord> pfClusParamsToken_;
+  const edm::EDPutTokenT<reco::PFClusterCollection> legacyPfClustersToken_;
+  const edm::EDGetTokenT<reco::PFRecHitCollection> recHitsLabel_;
   // the actual algorithm
   std::unique_ptr<PFCPositionCalculatorBase> positionCalc_;
   std::unique_ptr<PFCPositionCalculatorBase> allCellsPositionCalc_;
-
-private:
-  void produce(edm::Event&, const edm::EventSetup&) override;
-  const edm::EDGetTokenT<reco::PFClusterHostCollection> pfClusterSoAToken;
-  const edm::EDGetTokenT<reco::PFRecHitFractionHostCollection> pfRecHitFractionSoAToken;
-  const edm::EDGetTokenT<reco::PFRecHitHostCollection> InputPFRecHitSoA_Token_;
-  const edm::ESGetToken<reco::PFClusterParamsHostCollection, JobConfigurationGPURecord> pfClusParamsToken;
-  const edm::EDPutTokenT<reco::PFClusterCollection> legacyPfClustersToken;
-  const edm::EDGetTokenT<reco::PFRecHitCollection> recHitsLabel;
 };
 
 void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
   const reco::PFRecHitHostCollection& pfRecHits = event.get(InputPFRecHitSoA_Token_);
 
-  auto const& pfClusterSoA = event.get(pfClusterSoAToken).const_view();
-  auto const& pfRecHitFractionSoA = event.get(pfRecHitFractionSoAToken).const_view();
+  auto const& pfClusterSoA = event.get(pfClusterSoAToken_).const_view();
+  auto const& pfRecHitFractionSoA = event.get(pfRecHitFractionSoAToken_).const_view();
 
-  int nRH;
-
-  nRH = pfRecHits.view().size();
+  int nRH = pfRecHits.view().size();
   reco::PFClusterCollection out;
   out.reserve(nRH);
 
-  auto const rechitsHandle = event.getHandle(recHitsLabel);
+  auto const rechitsHandle = event.getHandle(recHitsLabel_);
 
   // Build PFClusters in legacy format
   std::unordered_map<int, int> nTopoSeeds;
@@ -231,7 +228,7 @@ void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& 
     out.emplace_back(std::move(temp));
   }
 
-  event.emplace(legacyPfClustersToken, std::move(out));
+  event.emplace(legacyPfClustersToken_, std::move(out));
 }
 
 #include "FWCore/Framework/interface/MakerMacros.h"

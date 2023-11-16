@@ -38,10 +38,8 @@
 
 #ifdef PFLOW_DEBUG
 #define LOGVERB(x) edm::LogVerbatim(x)
-//#define edm::LogWarning(x) edm::LogWarning(x)
 #else
 #define LOGVERB(x) LogTrace(x)
-//#define edm::LogWarning(x) edm::LogWarning(x)
 #endif
 
 class PFCaloGPUComparisonTask : public DQMEDAnalyzer {
@@ -50,7 +48,6 @@ public:
   ~PFCaloGPUComparisonTask() override = default;
   void analyze(edm::Event const& e, edm::EventSetup const& c) override;
   void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override;
-  //static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
   edm::EDGetTokenT<reco::PFClusterCollection> pfClusterTok_ref_;
