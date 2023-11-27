@@ -198,7 +198,7 @@ void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& 
   auto const rechitsHandle = event.getHandle(recHitsLabel_);
 
   // Build PFClusters in legacy format
-  std::unordered_map<int, int> nTopoSeeds;
+  std::vector<int> nTopoSeeds(nRH, 0);
 
   for (int i = 0; i < pfClusterSoA.nSeeds(); i++) {
     nTopoSeeds[pfClusterSoA[i].topoId()]++;
@@ -221,9 +221,11 @@ void LegacyPFClusterProducer::produce(edm::Event& event, const edm::EventSetup& 
 
     // Now PFRecHitFraction of this PFCluster is set. Now compute calculateAndSetPosition (energy, position etc)
     if (nTopoSeeds[pfClusterSoA[i].topoId()] == 1 && allCellsPositionCalc_) {
-      allCellsPositionCalc_->calculateAndSetPosition(temp);
+      allCellsPositionCalc_->calculateAndSetPosition(
+          temp, nullptr);  // temporarily use nullptr until we can properly set GT thresholds
     } else {
-      positionCalc_->calculateAndSetPosition(temp);
+      positionCalc_->calculateAndSetPosition(
+          temp, nullptr);  // temporarily use nullptr until we can properly set GT thresholds
     }
     out.emplace_back(std::move(temp));
   }

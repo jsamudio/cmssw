@@ -184,6 +184,7 @@ process.hltParticleFlowRecHitHBHE = cms.EDProducer("PFRecHitProducer",
         name = cms.string('PFHBHERecHitCreator'),
         qualityTests = cms.VPSet(
             cms.PSet(
+                usePFThresholdsFromDB = cms.bool(False),
                 cuts = cms.VPSet(
                     cms.PSet(
                         depth = cms.vint32(1, 2, 3, 4),
@@ -223,6 +224,7 @@ if hcal:
             name = cms.string('PFHBHERecHitCreator'),
             qualityTests = cms.VPSet(
                 cms.PSet(
+                    usePFThresholdsFromDB = cms.bool(False),
                     cuts = cms.VPSet(
                         cms.PSet(
                             depth = cms.vint32(1, 2, 3, 4),
@@ -441,6 +443,7 @@ process.hltParticleFlowAlpakaToLegacyPFClusters = cms.EDProducer("LegacyPFCluste
 process.hltParticleFlowAlpakaToLegacyPFClusters.PFRecHitsLabelIn = cms.InputTag("hltParticleFlowPFRecHitAlpaka")
 
 process.hltParticleFlowClusterHBHE.pfClusterBuilder.maxIterations = 5
+process.hltParticleFlowClusterHBHE.usePFThresholdsFromDB = cms.bool(False)
 
 # Additional customization
 process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring('drop  *_*_*_*')
