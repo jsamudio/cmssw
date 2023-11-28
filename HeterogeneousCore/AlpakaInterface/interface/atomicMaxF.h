@@ -2,6 +2,7 @@
 #define HeterogeneousCore_AlpakaCore_interface_atomicMaxF_h
 #include <alpaka/alpaka.hpp>
 
+#include "FWCore/Utilities/interface/bit_cast.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
 #if defined(__CUDA_ARCH__) or defined(__HIP_DEVICE_COMPILE__)
