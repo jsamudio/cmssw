@@ -18,6 +18,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   static const int threadsPerBlockForClustering = std::is_same_v<Device, alpaka::DevCpu> ? 32 : 512;
   static constexpr uint32_t blocksForExoticClusters = 4;
 
+  static constexpr uint32_t kHBHalf = 1296;
+  static constexpr uint32_t maxTopoInput = 2 * kHBHalf;
+
   // Calculation of dR2 for Clustering
   ALPAKA_FN_ACC ALPAKA_FN_INLINE static float dR2(Position4 pos1, Position4 pos2) {
     float mag1 = sqrtf(pos1.x * pos1.x + pos1.y * pos1.y + pos1.z * pos1.z);
@@ -37,14 +40,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   // Get index of seed
   ALPAKA_FN_ACC static auto getSeedRhIdx(int* seeds, int seedNum) { return seeds[seedNum]; }
-
-  // Get index of rechit fraction
-  ALPAKA_FN_ACC static auto getRhFracIdx(int* rechits, int rhNum) {
-    if (rhNum <= 0) {
-      printf("Invalid rhNum (%d) for get RhFracIdx!\n", rhNum);
-    }
-    return rechits[rhNum - 1];
-  }
 
   // Get rechit fraction of a given rechit for a given seed
   ALPAKA_FN_ACC static auto getRhFrac(reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
@@ -146,8 +141,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::syncBlockThreads(acc);  // all threads call sync
 
     do {
-      if constexpr (debug && once_per_block(acc)) {
-        printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
+      if constexpr (debug) {
+        if (once_per_block(acc))
+          printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
       }
       float dist2 = -1., d2 = -1., fraction = -1.;
       if (tid < nRHOther) {
@@ -168,8 +164,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
 
-      if constexpr (debug && once_per_block(acc))
-        printf("Computing cluster position for topoId %d\n", topoId);
+      if constexpr (debug) {
+        if (once_per_block(acc))
+          printf("Computing cluster position for topoId %d\n", topoId);
+      }
 
       if (once_per_block(acc)) {
         // Reset cluster position and energy
@@ -314,7 +312,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           for (int r = 1; r < nRHNotSeed; r++) {
             if (r != 1)
               printf(", ");
-            printf("%d", getRhFracIdx(rechits, r));
+            if (r <= 0) {
+              printf("Invalid rhNum (%d) for get RhFracIdx!\n", r);
+            }
+            printf("%d", rechits[r - 1]);
           }
           printf(")\n\n");
         }
@@ -363,8 +364,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     do {
-      if constexpr (debug && alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u] == 0) {
-        printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
+      if constexpr (debug) {
+        if (once_per_block(acc))
+          printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
       }
 
       // Reset rhFracSum
@@ -413,8 +415,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
 
-      if constexpr (debug && once_per_block(acc))
-        printf("Computing cluster position for topoId %d\n", topoId);
+      if constexpr (debug) {
+        if (once_per_block(acc))
+          printf("Computing cluster position for topoId %d\n", topoId);
+      }
 
       // Reset cluster position and energy
       if (tid < nSeeds) {
@@ -531,6 +535,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                    int* __restrict__ globalSeeds,
                                                    int* __restrict__ globalRechits) {
     int& nRHNotSeed = alpaka::declareSharedVar<int, __COUNTER__>(acc);
+    int& blockIdx = alpaka::declareSharedVar<int, __COUNTER__>(acc);
     int& topoSeedBegin = alpaka::declareSharedVar<int, __COUNTER__>(acc);
     int& gridStride = alpaka::declareSharedVar<int, __COUNTER__>(acc);
     int& iter = alpaka::declareSharedVar<int, __COUNTER__>(acc);
@@ -539,15 +544,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     float& rhENormInv = alpaka::declareSharedVar<float, __COUNTER__>(acc);
     bool& notDone = alpaka::declareSharedVar<bool, __COUNTER__>(acc);
 
-    int blockIdx = 2304 * alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u];
-    Position4* clusterPos = &globalClusterPos[blockIdx];
-    Position4* prevClusterPos = &globalPrevClusterPos[blockIdx];
-    float* clusterEnergy = &globalClusterEnergy[blockIdx];
-    float* rhFracSum = &globalRhFracSum[blockIdx];
-    int* seeds = &globalSeeds[blockIdx];
-    int* rechits = &globalRechits[blockIdx];
-
-    //alpaka::syncBlockThreads(acc); // all threads call sync
+    blockIdx = maxTopoInput * alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u];
+    Position4* clusterPos = globalClusterPos + blockIdx;
+    Position4* prevClusterPos = globalPrevClusterPos + blockIdx;
+    float* clusterEnergy = globalClusterEnergy + blockIdx;
+    float* rhFracSum = globalRhFracSum + blockIdx;
+    int* seeds = globalSeeds + blockIdx;
+    int* rechits = globalRechits + blockIdx;
 
     if (once_per_block(acc)) {
       nRHNotSeed = nRHTopo - nSeeds + 1;  // 1 + (# rechits per topoId that are NOT seeds)
@@ -594,7 +597,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           for (int r = 1; r < nRHNotSeed; r++) {
             if (r != 1)
               printf(", ");
-            printf("%d", getRhFracIdx(rechits, r));
+            if (r <= 0) {
+              printf("Invalid rhNum (%d) for get RhFracIdx!\n", r);
+            }
+            printf("%d", rechits[r - 1]);
           }
           printf(")\n\n");
         }
@@ -616,9 +622,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::syncBlockThreads(acc);  // all threads call sync
 
     do {
-      if constexpr (debug && once_per_block(acc)) {
-        printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
-      }
+      if constexpr (debug)
+        if (once_per_block(acc)) {
+          printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
+        }
 
       if (once_per_block(acc))
         diff2 = -1;
@@ -668,8 +675,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
 
-      if constexpr (debug && once_per_block(acc))
-        printf("Computing cluster position for topoId %d\n", topoId);
+      if constexpr (debug)
+        if (once_per_block(acc))
+          printf("Computing cluster position for topoId %d\n", topoId);
 
       // Reset cluster position and energy
       for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
@@ -770,6 +778,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         clusterView[seedIdx].y() = pfRecHits[s].y();
         clusterView[seedIdx].z() = pfRecHits[s].z();
       }
+    alpaka::syncBlockThreads(acc);  // all threads call sync
   }
 
   template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>, bool debug = false>
@@ -844,7 +853,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           for (int r = 1; r < nRHNotSeed; r++) {
             if (r != 1)
               printf(", ");
-            printf("%d", getRhFracIdx(rechits, r));
+            if (r <= 0) {
+              printf("Invalid rhNum (%d) for get RhFracIdx!\n", r);
+            }
+            printf("%d", rechits[r - 1]);
           }
           printf(")\n\n");
         }
@@ -866,8 +878,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::syncBlockThreads(acc);  // all threads call sync
 
     do {
-      if constexpr (debug && once_per_block(acc)) {
-        printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
+      if constexpr (debug) {
+        if (once_per_block(acc))
+          printf("\n--- Now on iter %d for topoId %d ---\n", iter, topoId);
       }
 
       if (once_per_block(acc))
@@ -918,8 +931,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
 
-      if constexpr (debug && once_per_block(acc))
-        printf("Computing cluster position for topoId %d\n", topoId);
+      if constexpr (debug) {
+        if (once_per_block(acc))
+          printf("Computing cluster position for topoId %d\n", topoId);
+      }
 
       // Reset cluster position and energy
       for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += gridStride) {
@@ -1433,6 +1448,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                    globalRechits);
           }
         }
+        alpaka::syncBlockThreads(acc);  // all threads call sync
       }
     }
   };
@@ -1487,9 +1503,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         return;
     }
   };
-
-  static constexpr uint32_t kHBHalf = 1296;
-  static constexpr uint32_t maxTopoInput = 2 * kHBHalf;
 
   PFClusterProducerKernel::PFClusterProducerKernel(Queue& queue, const reco::PFRecHitHostCollection& pfRecHits)
       : nSeeds(cms::alpakatools::make_device_buffer<uint32_t>(queue)),
@@ -1594,22 +1607,22 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                           pfClusteringVars.view(),
                           pfClusters.view(),
                           pfrhFractions.view());
-      alpaka::exec<Acc1D>(queue,
-                          make_workdiv<Acc1D>(blocksForExoticClusters,
-                                              threadsPerBlockForClustering),  // uses 4 blocks to minimize memory usage
-                          FastClusterExotic{},
-                          pfRecHits.view(),
-                          params.view(),
-                          pfClusteringVars.view(),
-                          pfClusters.view(),
-                          pfrhFractions.view(),
-                          globalClusterPos.data(),
-                          globalPrevClusterPos.data(),
-                          globalClusterEnergy.data(),
-                          globalRhFracSum.data(),
-                          globalSeeds.data(),
-                          globalRechits.data());
     }
+    alpaka::exec<Acc1D>(queue,
+                        make_workdiv<Acc1D>(blocksForExoticClusters,
+                                            threadsPerBlockForClustering),  // uses 4 blocks to minimize memory usage
+                        FastClusterExotic{},
+                        pfRecHits.view(),
+                        params.view(),
+                        pfClusteringVars.view(),
+                        pfClusters.view(),
+                        pfrhFractions.view(),
+                        globalClusterPos.data(),
+                        globalPrevClusterPos.data(),
+                        globalClusterEnergy.data(),
+                        globalRhFracSum.data(),
+                        globalSeeds.data(),
+                        globalRechits.data());
   }
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
