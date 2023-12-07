@@ -1333,7 +1333,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             clusterView[seedIdx].z() = pfRecHits[rhIdx].z();
           }
         } else if constexpr (!std::is_same_v<Device, alpaka::DevCpu>) {
-          // singleSeed and multiSeedParallel functions work only for GPU backend 
+          // singleSeed and multiSeedParallel functions work only for GPU backend
           if (nSeeds == 1) {
             // Single seed cluster
             hcalFastCluster_singleSeed(
