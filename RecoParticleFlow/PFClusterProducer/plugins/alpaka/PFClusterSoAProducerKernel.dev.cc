@@ -305,6 +305,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           fracView[pfClusteringVars[pfClusteringVars[topoSeedBegin].topoSeedList()].seedFracOffsets() + tid + 1]
               .pfrhIdx();
 
+    alpaka::syncBlockThreads(acc);  // all threads call sync
+
     if constexpr (debug) {
       if (once_per_block(acc)) {
         printf("\n===========================================================================================\n");
