@@ -121,6 +121,7 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
   //
   // Find matching PF cluster pairs
   std::vector<int> matched_idx;
+  matched_idx.reserve(pfClusters_ref->size());
   for (unsigned i = 0; i < pfClusters_ref->size(); ++i) {
     bool matched = false;
     for (unsigned j = 0; j < pfClusters_target->size(); ++j) {
