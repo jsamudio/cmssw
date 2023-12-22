@@ -1204,6 +1204,82 @@ upgradeWFs['PatatrackHCALOnlyGPUProfiling'] = PatatrackWorkflow(
     offset = 0.524,
 )
 
+# HCAL-PF Only workflow running HCAL local reco on CPU and PF with Alpaka slimmed for benchmarking
+# - HLT on CPU
+# - HCAL-only reconstruction using Alpaka
+upgradeWFs['PatatrackHCALOnlyAlpakaProfiling'] = PatatrackWorkflow(
+    digi = {
+        # the HLT menu is already set up for using GPUs if available and if the "gpu" modifier is enabled
+    },
+    reco = {
+        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnly',
+        '--procModifiers': 'alpaka'
+    },
+    harvest = {
+        '-s': 'HARVESTING:@hcalOnlyValidation'
+    },
+    suffix = 'Patatrack_HCALOnlyAlpaka_Profiling',
+    offset = 0.431,
+)
+
+# HCAL-PF Only workflow running HCAL local reco on CPU and PF with Alpaka with cluster level-validation
+# - HLT on CPU
+# - HCAL-only reconstruction using Alpaka with DQM and Validation for Alpaka vs CPU comparisons
+upgradeWFs['PatatrackHCALOnlyCPUandAlpakaValidation'] = PatatrackWorkflow(
+    digi = {
+        # the HLT menu is already set up for using GPUs if available and if the "gpu" modifier is enabled
+    },
+    reco = {
+        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation,DQM:@hcalOnly+@hcal2Only',
+        '--procModifiers': 'alpaka,alpakaValidationParticleFlow'
+    },
+    harvest = {
+        '-s': 'HARVESTING:@hcalOnlyValidation'
+    },
+    suffix = 'Patatrack_HCALOnlyCPUandAlpaka_Validation',
+    offset = 0.432,
+)
+
+# HCAL-PF Only workflow running HCAL local reco on GPU and PF with Alpaka with cluster level-validation
+# - HLT on GPU (optional)
+# - HCAL-only reconstruction using GPU and Alpaka with DQM and Validation for Alpaka vs CPU comparisons
+upgradeWFs['PatatrackHCALOnlyGPUandAlpakaValidation'] = PatatrackWorkflow(
+    digi = {
+        # the HLT menu is already set up for using GPUs if available and if the "gpu" modifier is enabled
+        '--procModifiers': 'gpu'
+    },
+    reco = {
+        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation,DQM:@hcalOnly+@hcal2Only',
+        '--procModifiers': 'alpaka,alpakaValidationParticleFlow,gpu'
+    },
+    harvest = {
+        '-s': 'HARVESTING:@hcalOnlyValidation'
+    },
+    suffix = 'Patatrack_HCALOnlyGPUandAlpaka_Validation',
+    offset = 0.433,
+)
+
+# HCAL-PF Only workflow running HCAL local reco on GPU and PF with Alpaka with cluster level-validation
+# - HLT on GPU (required)
+# - HCAL-only reconstruction using GPU and Alpaka GPU backend with DQM and Validation for Alpaka vs CPU comparisons
+upgradeWFs['PatatrackHCALOnlyAlpakaGPUValidation'] = PatatrackWorkflow(
+    digi = {
+        # the HLT menu is already set up for using GPUs if available and if the "gpu" modifier is enabled
+        '--accelerators': 'gpu-nvidia',
+        '--procModifiers': 'gpu'
+    },
+    reco = {
+        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation,DQM:@hcalOnly+@hcal2Only',
+        '--accelerators': 'gpu-nvidia',
+        '--procModifiers': 'alpaka,alpakaValidationParticleFlow,gpu'
+    },
+    harvest = {
+        '-s': 'HARVESTING:@hcalOnlyValidation'
+    },
+    suffix = 'Patatrack_HCALOnlyGPUandAlpaka_Validation',
+    offset = 0.434,
+)
+
 # Workflow running the Pixel quadruplets, ECAL and HCAL reconstruction on CPU
 #  - HLT on CPU
 #  - reconstruction on CPU, with DQM and validation
@@ -1903,7 +1979,7 @@ class UpgradeWorkflow_ECalComponent(UpgradeWorkflow):
                  ]):
         super(UpgradeWorkflow_ECalComponent, self).__init__(steps, PU, suffix, offset)
         self.__ecalMod = ecalMod
-    
+
     def setup_(self, step, stepName, stepDict, k, properties):
         if 'Sim' in step or 'Digi' in step:
             if self.__ecalMod is not None:
@@ -2666,7 +2742,7 @@ upgradeProperties[2017] = {
     },
     '2022HI' : {
         'Geom' : 'DB:Extended',
-        'GT':'auto:phase1_2022_realistic_hi', 
+        'GT':'auto:phase1_2022_realistic_hi',
         'HLTmenu': '@fake2',
         'Era':'Run3_pp_on_PbPb',
         'BeamSpot': 'DBrealistic',
@@ -2674,7 +2750,7 @@ upgradeProperties[2017] = {
     },
     '2022HIRP' : {
         'Geom' : 'DB:Extended',
-        'GT':'auto:phase1_2022_realistic_hi', 
+        'GT':'auto:phase1_2022_realistic_hi',
         'HLTmenu': '@fake2',
         'Era':'Run3_pp_on_PbPb_approxSiStripClusters',
         'BeamSpot': 'DBrealistic',
@@ -2682,7 +2758,7 @@ upgradeProperties[2017] = {
     },
     '2023HI' : {
         'Geom' : 'DB:Extended',
-        'GT':'auto:phase1_2023_realistic_hi', 
+        'GT':'auto:phase1_2023_realistic_hi',
         'HLTmenu': '@fake2',
         'Era':'Run3_pp_on_PbPb',
         'BeamSpot': 'DBrealistic',
@@ -2690,7 +2766,7 @@ upgradeProperties[2017] = {
     },
     '2023HIRP' : {
         'Geom' : 'DB:Extended',
-        'GT':'auto:phase1_2023_realistic_hi', 
+        'GT':'auto:phase1_2023_realistic_hi',
         'HLTmenu': '@fake2',
         'Era':'Run3_pp_on_PbPb_approxSiStripClusters',
         'BeamSpot': 'DBrealistic',
