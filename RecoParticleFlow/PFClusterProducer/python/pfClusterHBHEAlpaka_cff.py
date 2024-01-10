@@ -90,6 +90,7 @@ _alpaka_pfClusteringHBHEHFTask.add(pfRecHitSoAProducerHCAL)
 _alpaka_pfClusteringHBHEHFTask.add(legacyPFRecHitProducer)
 _alpaka_pfClusteringHBHEHFTask.add(pfClusterParamsESProducer)
 _alpaka_pfClusteringHBHEHFTask.add(pfClusterSoAProducer)
+_alpaka_pfClusteringHBHEHFTask.add(legacyPFClusterProducer)
 
 _alpaka_pfClusteringHBHEHFTask.remove(particleFlowRecHitHBHE)
 _alpaka_pfClusteringHBHEHFTask.remove(particleFlowClusterHBHE)
@@ -99,6 +100,14 @@ _alpaka_pfClusteringHBHEHFTask.add(particleFlowClusterHCAL)
 alpaka.toModify(particleFlowClusterHCAL, clustersSource = "legacyPFClusterProducer")
 
 alpaka.toReplaceWith(pfClusteringHBHEHFTask, _alpaka_pfClusteringHBHEHFTask)
+
+#Validation (needs legacy product and converted alpaka product)
+_alpaka_pfClusteringHBHEHFValidationTask = _alpaka_pfClusteringHBHEHFTask.copy()
+
+_alpaka_pfClusteringHBHEHFValidationTask.add(particleFlowRecHitHBHE)
+_alpaka_pfClusteringHBHEHFValidationTask.add(particleFlowClusterHBHE)
+
+alpakaValidationParticleFlow.toReplaceWith(pfClusteringHBHEHFTask, _alpaka_pfClusteringHBHEHFValidationTask)
 
 #HCAL Only
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALParamsRecordSource)

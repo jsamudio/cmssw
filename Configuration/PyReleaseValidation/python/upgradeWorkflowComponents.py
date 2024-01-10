@@ -1259,7 +1259,7 @@ upgradeWFs['PatatrackHCALOnlyGPUandAlpakaValidation'] = PatatrackWorkflow(
     offset = 0.433,
 )
 
-# HCAL-PF Only workflow running HCAL local reco on GPU and PF with Alpaka with cluster level-validation
+# HCAL-PF Only workflow running HCAL local reco on GPU and PF with Alpaka (GPU) with cluster level-validation
 # - HLT on GPU (required)
 # - HCAL-only reconstruction using GPU and Alpaka GPU backend with DQM and Validation for Alpaka vs CPU comparisons
 upgradeWFs['PatatrackHCALOnlyAlpakaGPUValidation'] = PatatrackWorkflow(
@@ -1476,6 +1476,27 @@ upgradeWFs['PatatrackFullRecoGPUValidation'] = PatatrackWorkflow(
     },
     suffix = 'Patatrack_FullRecoGPU_Validation',
     offset = 0.593,
+)
+
+# Workflow running the Pixel quadruplets, ECAL and HCAL reconstruction on GPU (optional), PF using Alpaka, together with the full offline reconstruction on CPU
+#  - HLT on GPU (optional)
+#  - reconstruction on GPU (optional), with DQM and validation
+#  - harvesting
+upgradeWFs['PatatrackFullRecoAlpaka'] = PatatrackWorkflow(
+    digi = {
+        # the HLT menu is already set up for using GPUs if available and if the "gpu" modifier is enabled
+        '--procModifiers': 'gpu'
+    },
+    reco = {
+        # skip the @pixelTrackingOnlyValidation which cannot run together with the full reconstruction
+        '-s': 'RAW2DIGI:RawToDigi+RawToDigi_pixelOnly,L1Reco,RECO:reconstruction+reconstruction_pixelTrackingOnly,RECOSIM,PAT,VALIDATION:@standardValidation+@miniAODValidation,DQM:@standardDQM+@ExtraHLT+@miniAODDQM+@pixelTrackingOnlyDQM',
+        '--procModifiers': 'alpaka,alpakaValidationParticleFlow,pixelNtupletFit,gpu'
+    },
+    harvest = {
+        # skip the @pixelTrackingOnlyDQM harvesting
+    },
+    suffix = 'Patatrack_FullRecoAlpaka',
+    offset = 0.594,
 )
 
 # Workflow running the Pixel triplets, ECAL and HCAL reconstruction on CPU, together with the full offline reconstruction
