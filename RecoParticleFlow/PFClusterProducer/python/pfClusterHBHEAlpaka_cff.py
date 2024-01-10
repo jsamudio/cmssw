@@ -129,6 +129,8 @@ _alpaka_pfClusteringHBHEHFOnlyTask.add(particleFlowClusterHCALOnly)
 
 alpaka.toModify(particleFlowClusterHCALOnly, clustersSource = "legacyPFClusterProducer")
 
+alpaka.toReplaceWith(pfClusteringHBHEHFOnlyTask, _alpaka_pfClusteringHBHEHFOnlyTask)
+
 #Validation (needs legacy product and converted alpaka product)
 _alpaka_pfClusteringHBHEHFOnlyValidationTask = _alpaka_pfClusteringHBHEHFOnlyTask.copy()
 
