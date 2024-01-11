@@ -30,6 +30,11 @@ The offsets currently in use are:
 * 0.2: Tracking Run-2 era, `Run2_2017_trackingRun2`
 * 0.3: 0.1 + 0.2
 * 0.4: LowPU tracking era, `Run2_2017_trackingLowPU`
+* 0.431: Patatrack, HCAL only on CPU, Alpaka-based PF, Alpaka profiling
+* 0.432: Patatrack, HCAL only, Alpaka-based PF, with automatic offload to GPU if available
+* 0.433: Patatrack, HCAL only on CPU, Alpaka-based PF, Alpaka vs. Legacy validation
+* 0.434: Patatrack, HCAL only, Alpaka-based PF, with automatic offload to GPU if available, Alpaka vs. Legacy validation
+* 0.435: Patatrack, HCAL only, Alpaka-based PF, Alpaka GPU vs. Legacy validation
 * 0.5: Pixel tracking only + 0.1
 * 0.501: Patatrack, pixel only quadruplets, on CPU
 * 0.502: Patatrack, pixel only quadruplets, with automatic offload to GPU if available
@@ -46,6 +51,7 @@ The offsets currently in use are:
 * 0.524: Patatrack, HCAL only, GPU profiling
 * 0.591: Patatrack, full reco with pixel quadruplets, on CPU
 * 0.592: Patatrack, full reco with pixel quadruplets, with automatic offload to GPU if available
+* 0.594: Patatrack, full reco with pixel quadruplets, and Alpaka-based PF, with automatic offload to GPU if available 
 * 0.595: Patatrack, full reco with pixel triplets, on CPU
 * 0.596: Patatrack, full reco with pixel triplets, with automatic offload to GPU if available
 * 0.6: HE Collapse (old depth segmentation for 2018)
