@@ -1,7 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
 from Configuration.ProcessModifiers.alpaka_cff import alpaka
-from Configuration.ProcessModifiers.alpakaValidationParticleFlow_cff import alpakaValidationParticleFlow
 
 from RecoParticleFlow.PFRecHitProducer.hcalRecHitSoAProducer_cfi import hcalRecHitSoAProducer as _hcalRecHitSoAProducer
 from RecoParticleFlow.PFRecHitProducer.pfRecHitHCALParamsESProducer_cfi import pfRecHitHCALParamsESProducer as _pfRecHitHCALParamsESProducer
@@ -101,40 +100,64 @@ alpaka.toModify(particleFlowClusterHCAL, clustersSource = "legacyPFClusterProduc
 
 alpaka.toReplaceWith(pfClusteringHBHEHFTask, _alpaka_pfClusteringHBHEHFTask)
 
-#Validation (needs legacy product and converted alpaka product)
-_alpaka_pfClusteringHBHEHFValidationTask = _alpaka_pfClusteringHBHEHFTask.copy()
-
-_alpaka_pfClusteringHBHEHFValidationTask.add(particleFlowRecHitHBHE)
-_alpaka_pfClusteringHBHEHFValidationTask.add(particleFlowClusterHBHE)
-
-alpakaValidationParticleFlow.toReplaceWith(pfClusteringHBHEHFTask, _alpaka_pfClusteringHBHEHFValidationTask)
-
 #HCAL Only
+
+from Configuration.Eras.Modifier_run3_HB_cff import run3_HB
+
+hbheOnlyRecHitToSoA = _hcalRecHitSoAProducer.clone(
+        src = "hbheprereco"
+    )
+run3_HB.toModify(hbheOnlyRecHitToSoA,
+        src = "hbhereco"
+    )
+
+pfRecHitSoAProducerHBHEOnly = _pfRecHitSoAProducerHCAL.clone(
+        producers = cms.VPSet(
+            cms.PSet(
+                src = cms.InputTag("hbheOnlyRecHitToSoA"),
+                params = cms.ESInputTag("pfRecHitHCALParamsESProducer:"),
+            )
+        ),
+        topology = "pfRecHitHCALTopologyESProducer:",
+        synchronise = cms.untracked.bool(False)
+    )
+
+legacyPFRecHitProducerHBHEOnly = _legacyPFRecHitProducer.clone(
+        src = "pfRecHitSoAProducerHBHEOnly"
+    )
+
+pfClusterSoAProducerHBHEOnly = _pfClusterSoAProducer.clone(
+        pfRecHits = 'pfRecHitSoAProducerHBHEOnly',
+        topology = "pfRecHitHCALTopologyESProducer:",
+        pfClusterParams = 'pfClusterParamsESProducer:',
+        synchronise = cms.bool(False)
+    )
+
+legacyPFClusterProducerHBHEOnly = _legacyPFClusterProducer.clone(
+        src = 'pfClusterSoAProducerHBHEOnly',
+        pfClusterParams = 'pfClusterParamsESProducer:',
+        pfClusterBuilder = particleFlowClusterHBHE.pfClusterBuilder,
+        recHitsSource = 'legacyPFRecHitProducerHBHEOnly',
+        PFRecHitsLabelIn = 'pfRecHitSoAProducerHBHEOnly'
+    )
+
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALParamsRecordSource)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALTopologyRecordSource)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfClusterParamsRecordSource)
-_alpaka_pfClusteringHBHEHFOnlyTask.add(hbheRecHitToSoA)
+_alpaka_pfClusteringHBHEHFOnlyTask.add(hbheOnlyRecHitToSoA)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALParamsESProducer)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALTopologyESProducer)
-_alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitSoAProducerHCAL)
-_alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFRecHitProducer)
+_alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitSoAProducerHBHEOnly)
+_alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFRecHitProducerHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfClusterParamsESProducer)
-_alpaka_pfClusteringHBHEHFOnlyTask.add(pfClusterSoAProducer)
-_alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFClusterProducer)
+_alpaka_pfClusteringHBHEHFOnlyTask.add(pfClusterSoAProducerHBHEOnly)
+_alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFClusterProducerHBHEOnly)
 
 _alpaka_pfClusteringHBHEHFOnlyTask.remove(particleFlowRecHitHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.remove(particleFlowClusterHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.remove(particleFlowClusterHCALOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(particleFlowClusterHCALOnly)
 
-alpaka.toModify(particleFlowClusterHCALOnly, clustersSource = "legacyPFClusterProducer")
+alpaka.toModify(particleFlowClusterHCALOnly, clustersSource = "legacyPFClusterProducerHBHEOnly")
 
 alpaka.toReplaceWith(pfClusteringHBHEHFOnlyTask, _alpaka_pfClusteringHBHEHFOnlyTask)
-
-#Validation (needs legacy product and converted alpaka product)
-_alpaka_pfClusteringHBHEHFOnlyValidationTask = _alpaka_pfClusteringHBHEHFOnlyTask.copy()
-
-_alpaka_pfClusteringHBHEHFOnlyValidationTask.add(particleFlowRecHitHBHEOnly)
-_alpaka_pfClusteringHBHEHFOnlyValidationTask.add(particleFlowClusterHBHEOnly)
-
-alpakaValidationParticleFlow.toReplaceWith(pfClusteringHBHEHFOnlyTask, _alpaka_pfClusteringHBHEHFOnlyValidationTask)

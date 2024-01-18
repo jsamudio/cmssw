@@ -1249,8 +1249,8 @@ upgradeWFs['PatatrackHCALOnlyCPUandAlpakaValidation'] = PatatrackWorkflow(
         # the HLT menu is already set up for using GPUs if available and if the "gpu" modifier is enabled
     },
     reco = {
-        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation,DQM:@hcalOnly+@hcal2Only',
-        '--procModifiers': 'alpaka,alpakaValidationParticleFlow'
+        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnlyLegacy+reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation+pfClusterHBHEOnlyAlpakaComparisonSequence,DQM:@hcalOnly+@hcal2Only',
+        '--procModifiers': 'alpaka'
     },
     harvest = {
         '-s': 'HARVESTING:@hcalOnlyValidation'
@@ -1268,8 +1268,8 @@ upgradeWFs['PatatrackHCALOnlyGPUandAlpakaValidation'] = PatatrackWorkflow(
         '--procModifiers': 'gpu'
     },
     reco = {
-        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation,DQM:@hcalOnly+@hcal2Only',
-        '--procModifiers': 'alpaka,alpakaValidationParticleFlow,gpu'
+        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnlyLegacy+reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation+pfClusterHBHEOnlyAlpakaComparisonSequence,DQM:@hcalOnly+@hcal2Only',
+        '--procModifiers': 'alpaka,gpu'
     },
     harvest = {
         '-s': 'HARVESTING:@hcalOnlyValidation'
@@ -1284,13 +1284,13 @@ upgradeWFs['PatatrackHCALOnlyGPUandAlpakaValidation'] = PatatrackWorkflow(
 upgradeWFs['PatatrackHCALOnlyAlpakaGPUValidation'] = PatatrackWorkflow(
     digi = {
         # the HLT menu is already set up for using GPUs if available and if the "gpu" modifier is enabled
-        '--accelerators': 'gpu-nvidia',
+        '--accelerators': 'gpu-*',
         '--procModifiers': 'gpu'
     },
     reco = {
-        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation,DQM:@hcalOnly+@hcal2Only',
-        '--accelerators': 'gpu-nvidia',
-        '--procModifiers': 'alpaka,alpakaValidationParticleFlow,gpu'
+        '-s': 'RAW2DIGI:RawToDigi_hcalOnly,RECO:reconstruction_hcalOnlyLegacy+reconstruction_hcalOnly,VALIDATION:@hcalOnlyValidation+pfClusterHBHEOnlyAlpakaComparisonSequence,DQM:@hcalOnly+@hcal2Only',
+        '--accelerators': 'gpu-*',
+        '--procModifiers': 'alpaka,gpu'
     },
     harvest = {
         '-s': 'HARVESTING:@hcalOnlyValidation'
