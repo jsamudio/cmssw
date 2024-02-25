@@ -55,7 +55,7 @@ private:
   std::map<int32_t, uint32_t> errors_;
   const std::string title_;
   const bool strictCompare_, dumpFirstEvent_, dumpFirstError_;
-  MonitorElement *hist_energy_, *hist_time_;
+  MonitorElement *hist_energy_, *hist_time_, *hist_x, *hist_y, *hist_z;
 
   // Container for PFRecHit, independent of how it was constructed
   struct GenericPFRecHit {
@@ -155,6 +155,9 @@ void PFRecHitProducerTest::analyze(const edm::Event& event, const edm::EventSetu
           return 3;  // time or energy different
         hist_energy_->Fill(rh1.energy, rh2.energy);
         hist_time_->Fill(rh1.time, rh2.time);
+        hist_x->Fill(rh1.x, rh2.x);
+        hist_y->Fill(rh1.y, rh2.y);
+        hist_z->Fill(rh1.z, rh2.z);
 
         if (rh1.neighbours4.size() != rh2.neighbours4.size() || rh1.neighbours8.size() != rh2.neighbours8.size())
           return 4;  // different number of neighbours
@@ -235,6 +238,9 @@ void PFRecHitProducerTest::bookHistograms(DQMStore::IBooker& ibooker, edm::Run c
   ibooker.setCurrentFolder("ParticleFlow/PFRecHitV");
   hist_energy_ = ibooker.book2D("energy", "energy;Input1;Input2;Entries", 100, 0, 100, 100, 0, 100);
   hist_time_ = ibooker.book2D("time", "time;Input1;Input2;Entries", 100, 0, 100, 100, 0, 100);
+  hist_x= ibooker.book2D("x", "x;Input1;Input2;Entries", 100, -200, 200, 100, -200, 200);
+  hist_y= ibooker.book2D("y", "y;Input1;Input2;Entries", 100, -300, 300, 100, -300, 300);
+  hist_z= ibooker.book2D("z", "z;Input1;Input2;Entries", 300, -500, 500, 300, -500, 500);
 }
 
 PFRecHitProducerTest::GenericPFRecHit::GenericPFRecHit(const reco::PFRecHit& pfRecHit)

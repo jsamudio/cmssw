@@ -89,16 +89,16 @@ void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
   pfCluster_RecHitMultiplicity_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
 
   histo = "pfCluster_Layer_GPUvsCPU";
-  pfCluster_Layer_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+  pfCluster_Layer_GPUvsCPU_ = ibooker.book2D(histo, histo, 10, 0, 10, 10, 0, 10);
 
   histo = "pfCluster_Depth_GPUvsCPU";
-  pfCluster_Depth_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+  pfCluster_Depth_GPUvsCPU_ = ibooker.book2D(histo, histo, 8, 0, 8, 8, 0, 8);
 
   histo = "pfCluster_Eta_GPUvsCPU";
-  pfCluster_Eta_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+  pfCluster_Eta_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, -5., 5., 100, -5., 5.);
 
   histo = "pfCluster_Phi_GPUvsCPU";
-  pfCluster_Phi_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, 0, 100, 100, 0, 100);
+  pfCluster_Phi_GPUvsCPU_ = ibooker.book2D(histo, histo, 100, -M_PI, M_PI, 100, -M_PI, M_PI);
 
   histo = "pfCluster_DuplicateMatches_GPUvsCPU";
   pfCluster_DuplicateMatches_GPUvsCPU_ = ibooker.book1D(histo, histo, 100, 0., 1000);
@@ -109,7 +109,7 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
 
   edm::Handle<reco::PFClusterCollection> pfClusters_target;
   event.getByToken(pfClusterTok_target_, pfClusters_target);
-
+  std::cout << "RUNNING " << std::endl;
   //
   // Compare per-event PF cluster multiplicity
 

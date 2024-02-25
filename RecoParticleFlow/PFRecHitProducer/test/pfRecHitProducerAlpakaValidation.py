@@ -20,13 +20,12 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('HLTrigger.Configuration.HLT_GRun_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-
 process.load('Configuration.StandardSequences.Accelerators_cff')
 process.load('HeterogeneousCore.AlpakaCore.ProcessAcceleratorAlpaka_cfi')
 
 process.maxEvents = cms.untracked.PSet(
     #input = cms.untracked.int32(5),
-    input = cms.untracked.int32(100),
+    input = cms.untracked.int32(5000),
     #input = cms.untracked.int32(1000),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
@@ -35,7 +34,45 @@ process.maxEvents = cms.untracked.PSet(
 # Need to use a file that contains HCAL/ECAL hits. Verify using:
 # root root://eoscms.cern.ch//eos/cms/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/0088b51b-0cda-40f2-95fc-590f446624ee.root -e 'Events->Print()' -q | grep -E "hltHbhereco|hltEcalRecHit"
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_130X_mcRun3_2022_realistic_v2_HS-v4/2590000/0088b51b-0cda-40f2-95fc-590f446624ee.root'),
+    fileNames = cms.untracked.vstring([
+        '/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/005bf7be-ebd6-4585-9b79-fd92dbebe89e.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/00fb6d88-823f-41d7-a0b0-06c20b1eaa35.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/01d1c475-0b2a-49c5-ba0f-c63f6e32445b.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/020932b4-3bc7-4fa3-b1cc-daacff3b6e77.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/024ed323-2e58-472a-8f96-27def61bf12d.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/03515fb4-2e77-449f-b92c-a37fba8c52ef.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/035e38f3-98ac-44db-a84b-98b7f3b58281.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/03e87bb6-a398-443c-a169-4e24eddd29f9.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/03ec4e53-f3cf-4f70-ae4c-1c4f8e7df2c5.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/04aaaac5-bae2-40fc-8813-31d4b75d6ded.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/04d5b04e-b32c-4ad0-8c7b-8c5b549f3d13.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/04fe7b92-8575-40fd-ac98-46dda25e3b4a.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0555e0b2-215a-4c81-9ee3-0dd84180daf3.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/055d950c-4282-4518-a733-98eb610b26f1.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/05af50bb-4cb2-4006-bf4f-f2a8260cf19a.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/062d3342-91d1-43c0-baf4-57ebf42efa52.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/067b7ee2-a63b-40b9-a8e1-1448ad7d22c4.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/06dd2916-0a83-4837-ba7e-212315dca774.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0713992d-4e9d-4dc4-b31e-165c6893599b.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/078e08fb-03e8-49ab-9be1-26697683f33b.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/08b98cfc-8433-4cf8-8ce1-386569add72e.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/08c2e92c-5daf-49bd-9986-8ab49a0951e4.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/08febe73-2796-4ad0-9d9f-4c6817752a45.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/093122d9-871c-4664-a167-3e5f498414d2.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/097c71e3-0a0d-488a-9271-61b5aa145b8c.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0ac90389-6b2c-4cfa-a070-55f4aa759796.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0ad5ebf4-edf9-4e35-856c-0b40309a2587.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0b25edee-001f-4328-92ea-e1e68646270f.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0b390bd1-3a2d-4c01-9e10-920ffcb73d5b.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0ba794bb-a7ce-4e7e-90ab-05ecece1b0f3.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0bf4d140-fa30-49d7-b7de-9bc49c5a28a2.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0cf687af-892b-4e05-b28d-ac417547eb64.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0dbf69d5-42e2-4eaa-a988-cc8fc8181dd9.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0e61407d-5253-447b-bed5-58b90eb5267d.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0f21d37c-784b-44d8-b0d5-03922cc59ae5.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0f58649c-2ee0-494f-9dd1-70811bf93d3e.root',
+	'/store/mc/Run3Winter24Digi/QCD_PT-15to7000_TuneCP5_Flat2022_13p6TeV_pythia8/GEN-SIM-RAW/FlatPU0to120_133X_mcRun3_2024_realistic_v9-v2/40001/0f7fe512-a6bf-4452-b2f6-3a58430dcc20.root' 
+        ]),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -89,7 +126,7 @@ from HLTrigger.Configuration.CustomConfigs import ProcessName
 process = ProcessName(process)
 
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2022_realistic', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2024_realistic', '')
 
 # Path and EndPath definitions
 process.endjob_step = cms.EndPath(process.endOfProcess)
@@ -160,6 +197,18 @@ alpaka_backend_str = alpaka_backends[args.backend.lower()]
 ##    Legacy PFRecHit producer     ##
 #####################################
 if hcal:
+    process.hltHbhereco = SwitchProducerCUDA(
+        cpu = cms.EDAlias(
+            hltHbherecoLegacy = cms.VPSet(cms.PSet(
+                type = cms.string('*')
+            ))
+        ),
+        cuda = cms.EDAlias(
+            hltHbherecoFromGPU = cms.VPSet(cms.PSet(
+                type = cms.string('HBHERecHitsSorted')
+            ))
+        )
+    )
     process.hltParticleFlowRecHit = cms.EDProducer("PFRecHitProducer",
         navigator = cms.PSet(
             hcalEnums = cms.vint32(1, 2),
@@ -181,7 +230,8 @@ if hcal:
                             threshold = cms.vdouble(0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2)
                         )
                     ),
-                    name = cms.string('PFRecHitQTestHCALThresholdVsDepth')
+                    name = cms.string('PFRecHitQTestHCALThresholdVsDepth'),
+                    usePFThresholdsFromDB = cms.bool(True)
                 ),
                 cms.PSet(
                     cleaningThresholds = cms.vdouble(0.0),
@@ -198,6 +248,7 @@ else:  # ecal
         cms.PSet(
             name = cms.string("PFRecHitQTestDBThreshold"),
             applySelectionsToAllCrystals=cms.bool(True),
+            usePFThresholdsFromDB = cms.bool(True)
         ),
         cms.PSet(
             name = cms.string("PFRecHitQTestECAL"),
@@ -262,11 +313,18 @@ if hcal:
         iovIsRunNotTime = cms.bool(True),
         firstValid = cms.vuint32(1)
     )
-process.hltParticleFlowRecHitTopologyESProducer = cms.ESProducer(alpaka_backend_str % f"PFRecHit{CAL}TopologyESProducer")
+process.hltParticleFlowRecHitTopologyESProducer = cms.ESProducer(alpaka_backend_str % f"PFRecHit{CAL}TopologyESProducer",
+        appendToDataLabel = cms.string(''),
+        usePFThresholdsFromDB = cms.bool(True)
+        )
 if hcal:
     process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitHCALParamsESProducer",
-        energyThresholdsHB = cms.vdouble( 0.1, 0.2, 0.3, 0.3 ),
-        energyThresholdsHE = cms.vdouble( 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 )
+        appendToDataLabel = cms.string(''),
+        energyThresholdsHB = cms.vdouble(0.1, 0.2, 0.3, 0.3),
+        energyThresholdsHE = cms.vdouble(
+            0.1, 0.2, 0.2, 0.2, 0.2,
+            0.2, 0.2
+        )
     )
 else:  # ecal
     process.hltParticleFlowRecHitParamsESProducer = cms.ESProducer(alpaka_backend_str % "PFRecHitECALParamsESProducer",

@@ -1,5 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 from HeterogeneousCore.AlpakaCore.functions import *
+from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
 
 ## PF HLT in Alpaka
 def customizeHLTforAlpakaParticleFlowClustering(process):
@@ -199,8 +200,15 @@ def customizeHLTforAlpakaParticleFlowClustering(process):
             PFRecHitsLabelIn = cms.InputTag("hltPFRecHitSoAProducerHCAL")
             )
 
-
     #Same as default except change the clusterSource
+    process.hltParticleFlowRecHitHBHELegacy = process.hltParticleFlowRecHitHBHE.clone()
+    process.hltParticleFlowClusterHBHELegacy = process.hltParticleFlowClusterHBHE.clone(
+        recHitsSource = cms.InputTag("hltParticleFlowRecHitHBHELegacy")
+        )
+    process.hltParticleFlowClusterHCALLegacy = process.hltParticleFlowClusterHCAL.clone(
+                clustersSource = cms.InputTag("hltParticleFlowClusterHBHELegacy")
+            )
+
     process.hltParticleFlowClusterHCAL = cms.EDProducer("PFMultiDepthClusterProducer",
             clustersSource = cms.InputTag("hltLegacyPFClusterProducer"),
             usePFThresholdsFromDB = cms.bool(True),
@@ -208,22 +216,39 @@ def customizeHLTforAlpakaParticleFlowClustering(process):
             pfClusterBuilder = process.hltParticleFlowClusterHCAL.pfClusterBuilder,
             positionReCalc = process.hltParticleFlowClusterHCAL.positionReCalc
             )
+    process.hltParticleFlowClusterHCALCPUSerial = process.hltParticleFlowClusterHCAL.clone(
+            clustersSource = cms.InputTag("hltLegacyPFClusterProducer")
+            )
 
+    process.hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest",
+        #caloRecHits = cms.untracked.InputTag("hltParticleFlowRecHitToSoA"),
+        pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHELegacy"),
+        pfRecHitsSource2 = cms.untracked.InputTag("hltPFRecHitSoAProducerHCAL"),
+        pfRecHitsType1 = cms.untracked.string("legacy"),
+        pfRecHitsType2 = cms.untracked.string("alpaka"),
+        title = cms.untracked.string("Legacy vs Alpaka"),
+        dumpFirstEvent = cms.untracked.bool(False),
+        dumpFirstError = cms.untracked.bool(True),
+        strictCompare = cms.untracked.bool(True)
+    )
     #Define the task (I assume the name has to be the same as the default task)
     process.HLTPFHcalRecHits = cms.Sequence(
             process.hltHBHERecHitToSoA+
             process.hltPFRecHitSoAProducerHCAL+
-            process.hltLegacyPFRecHitProducer
+            process.hltLegacyPFRecHitProducer+
+            process.hltParticleFlowRecHitHBHELegacy
             )
 
     process.HLTPFHcalClustering = cms.Sequence(
             process.HLTPFHcalRecHits+
             process.hltPFClusterSoAProducer+
             process.hltLegacyPFClusterProducer+
-            process.hltParticleFlowClusterHCAL
+            process.hltParticleFlowClusterHCAL+
+            process.hltParticleFlowClusterHBHELegacy+
+            process.hltParticleFlowClusterHCALLegacy
             )
 
-
+    process.HLTAnalyzerEndpath.insert(0, process.hltParticleFlowPFRecHitComparison)
     #Some Sequences contain all the modules of process.HLTPFHcalClustering Sequence instead of the Sequence itself
     #find these Sequences and replace all the modules with the Sequence
     def replaceItemsInSequence(process, itemsToReplace, replacingSequence):
