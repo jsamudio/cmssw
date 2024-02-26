@@ -12,8 +12,9 @@ pfClusterHBHEAlpakaComparison = DQMEDAnalyzer("PFCaloGPUComparisonTask",
                                                     pfClusterToken_target = cms.untracked.InputTag('legacyPFClusterProducer'),
                                                     pfCaloGPUCompDir = cms.untracked.string("pfClusterHBHEAlpakaV")
 )
+
 HLTpfClusterHBHEAlpakaComparison = DQMEDAnalyzer("PFCaloGPUComparisonTask",
-                                                    pfClusterToken_ref = cms.untracked.InputTag('hltParticleFlowClusterHCAL'),
-                                                    pfClusterToken_target = cms.untracked.InputTag('hltParticleFlowClusterHCALLegacy'),
+                                                    pfClusterToken_ref = cms.untracked.InputTag('hltParticleFlowClusterHCALLegacy'),
+                                                    pfClusterToken_target = cms.untracked.InputTag('hltParticleFlowClusterHCAL'),
                                                     pfCaloGPUCompDir = cms.untracked.string("pfClusterHBHEAlpakaV")
 )

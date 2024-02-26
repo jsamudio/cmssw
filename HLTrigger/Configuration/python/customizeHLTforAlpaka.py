@@ -577,13 +577,9 @@ def customizeHLTforAlpakaPixelRecoLocal(process):
     ###
     ### CPUSerial version of Pixel Local Reconstruction
     ###
-    process.hltOnlineBeamSpotDeviceCPUSerial = process.hltOnlineBeamSpotDevice.clone(
-        alpaka = dict( backend = 'serial_sync' )
-    )
+    process.hltOnlineBeamSpotDeviceCPUSerial = makeSerialClone(process.hltOnlineBeamSpotDevice)
 
-    process.hltSiPixelClustersCPUSerial = process.hltSiPixelClustersSoA.clone(
-        alpaka = dict( backend = 'serial_sync' )
-    )
+    process.hltSiPixelClustersCPUSerial = makeSerialClone(process.hltSiPixelClustersSoA)
 
     process.hltSiPixelClustersLegacyFormatCPUSerial = process.hltSiPixelClusters.clone(
         src = 'hltSiPixelClustersCPUSerial'
@@ -594,10 +590,9 @@ def customizeHLTforAlpakaPixelRecoLocal(process):
         fmtErrorsSoASrc = 'hltSiPixelClustersCPUSerial',
     )
 
-    process.hltSiPixelRecHitsCPUSerial = process.hltSiPixelRecHitsSoA.clone(
+    process.hltSiPixelRecHitsCPUSerial = makeSerialClone(process.hltSiPixelRecHitsSoA,
         beamSpot = 'hltOnlineBeamSpotDeviceCPUSerial',
-        src = 'hltSiPixelClustersCPUSerial',
-        alpaka = dict( backend = 'serial_sync' )
+        src = 'hltSiPixelClustersCPUSerial'
     )
 
     process.hltSiPixelRecHitsLegacyFormatCPUSerial = process.hltSiPixelRecHits.clone(
@@ -675,9 +670,8 @@ def customizeHLTforAlpakaPixelRecoTracking(process):
         )
     )
 
-    process.hltPixelTracksCPUSerial = process.hltPixelTracksSoA.clone(
+    process.hltPixelTracksCPUSerial = makeSerialClone(process.hltPixelTracksSoA,
         pixelRecHitSrc = 'hltSiPixelRecHitsCPUSerial',
-        alpaka = dict( backend = 'serial_sync' )
     )
 
     process.hltPixelTracks = cms.EDProducer("PixelTrackProducerFromSoAAlpakaPhase1",
@@ -734,9 +728,8 @@ def customizeHLTforAlpakaPixelRecoVertexing(process):
         )
     )
 
-    process.hltPixelVerticesCPUSerial = process.hltPixelVerticesSoA.clone(
+    process.hltPixelVerticesCPUSerial = makeSerialClone(process.hltPixelVerticesSoA,
         pixelTrackSrc = 'hltPixelTracksCPUSerial',
-        alpaka = dict( backend = 'serial_sync' )
     )
 
     process.hltPixelVertices = cms.EDProducer("PixelVertexProducerFromSoAAlpaka",

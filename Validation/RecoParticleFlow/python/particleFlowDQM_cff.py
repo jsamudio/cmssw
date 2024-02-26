@@ -154,6 +154,7 @@ PFCandAnalyzerHLTDQM = cms.EDProducer("PFCandidateAnalyzerHLTDQM",
     pdgStrs = cms.vstring( default.pdgIDDict.values() )
 )
 from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
+
 hltParticleFlowPFRecHitComparison = DQMEDAnalyzer("PFRecHitProducerTest",
     #caloRecHits = cms.untracked.InputTag("hltParticleFlowRecHitToSoA"),
     pfRecHitsSource1 = cms.untracked.InputTag("hltParticleFlowRecHitHBHELegacy"),

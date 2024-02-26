@@ -61,6 +61,12 @@ private:
   MonitorElement* pfCluster_Eta_GPUvsCPU_;
   MonitorElement* pfCluster_Phi_GPUvsCPU_;
   MonitorElement* pfCluster_DuplicateMatches_GPUvsCPU_;
+  MonitorElement* pfcluster_ref_energy;
+  MonitorElement* pfcluster_ref_eta;
+  MonitorElement* pfcluster_ref_phi;
+  MonitorElement* pfcluster_target_energy;
+  MonitorElement* pfcluster_target_eta;
+  MonitorElement* pfcluster_target_phi;
 
   std::string pfCaloGPUCompDir_;
 };
@@ -102,6 +108,25 @@ void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
 
   histo = "pfCluster_DuplicateMatches_GPUvsCPU";
   pfCluster_DuplicateMatches_GPUvsCPU_ = ibooker.book1D(histo, histo, 100, 0., 1000);
+
+  histo = "pfcluster_ref_energy";
+  pfcluster_ref_energy = ibooker.book1D(histo, histo, 100, 0, 500);
+
+  histo = "pfcluster_ref_phi";
+  pfcluster_ref_phi = ibooker.book1D(histo, histo, 100, -M_PI, M_PI );
+
+  histo = "pfcluster_ref_eta";
+  pfcluster_ref_eta = ibooker.book1D(histo, histo, 100, -5., 5.);
+
+  histo = "pfcluster_target_energy";
+  pfcluster_target_energy = ibooker.book1D(histo, histo, 100, 0, 500);
+
+  histo = "pfcluster_target_phi";
+  pfcluster_target_phi = ibooker.book1D(histo, histo, 100, -M_PI, M_PI );
+
+  histo = "pfcluster_target_eta";
+  pfcluster_target_eta = ibooker.book1D(histo, histo, 100, -5., 5.);
+
 }
 void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup const& c) {
   edm::Handle<reco::PFClusterCollection> pfClusters_ref;
@@ -122,7 +147,17 @@ void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup c
   // Find matching PF cluster pairs
   std::vector<int> matched_idx;
   matched_idx.reserve(pfClusters_ref->size());
+
+  for (unsigned i = 0; i < pfClusters_target->size(); ++i) {
+    pfcluster_target_energy->Fill(pfClusters_target->at(i).energy());
+    pfcluster_target_eta->Fill(pfClusters_target->at(i).eta());
+    pfcluster_target_phi->Fill(pfClusters_target->at(i).phi());
+  }
+
   for (unsigned i = 0; i < pfClusters_ref->size(); ++i) {
+    pfcluster_ref_energy->Fill(pfClusters_ref->at(i).energy());
+    pfcluster_ref_eta->Fill(pfClusters_ref->at(i).eta());
+    pfcluster_ref_phi->Fill(pfClusters_ref->at(i).phi());
     bool matched = false;
     for (unsigned j = 0; j < pfClusters_target->size(); ++j) {
       if (pfClusters_ref->at(i).seed() == pfClusters_target->at(j).seed()) {
