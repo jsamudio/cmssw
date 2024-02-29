@@ -238,9 +238,9 @@ void PFRecHitProducerTest::bookHistograms(DQMStore::IBooker& ibooker, edm::Run c
   ibooker.setCurrentFolder("ParticleFlow/PFRecHitV");
   hist_energy_ = ibooker.book2D("energy", "energy;Input1;Input2;Entries", 100, 0, 100, 100, 0, 100);
   hist_time_ = ibooker.book2D("time", "time;Input1;Input2;Entries", 100, 0, 100, 100, 0, 100);
-  hist_x= ibooker.book2D("x", "x;Input1;Input2;Entries", 100, -200, 200, 100, -200, 200);
-  hist_y= ibooker.book2D("y", "y;Input1;Input2;Entries", 100, -300, 300, 100, -300, 300);
-  hist_z= ibooker.book2D("z", "z;Input1;Input2;Entries", 300, -500, 500, 300, -500, 500);
+  hist_x = ibooker.book2D("x", "x;Input1;Input2;Entries", 100, -200, 200, 100, -200, 200);
+  hist_y = ibooker.book2D("y", "y;Input1;Input2;Entries", 100, -300, 300, 100, -300, 300);
+  hist_z = ibooker.book2D("z", "z;Input1;Input2;Entries", 300, -500, 500, 300, -500, 500);
 }
 
 PFRecHitProducerTest::GenericPFRecHit::GenericPFRecHit(const reco::PFRecHit& pfRecHit)

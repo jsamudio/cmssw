@@ -113,7 +113,7 @@ void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
   pfcluster_ref_energy = ibooker.book1D(histo, histo, 100, 0, 500);
 
   histo = "pfcluster_ref_phi";
-  pfcluster_ref_phi = ibooker.book1D(histo, histo, 100, -M_PI, M_PI );
+  pfcluster_ref_phi = ibooker.book1D(histo, histo, 100, -M_PI, M_PI);
 
   histo = "pfcluster_ref_eta";
   pfcluster_ref_eta = ibooker.book1D(histo, histo, 100, -5., 5.);
@@ -122,11 +122,10 @@ void PFCaloGPUComparisonTask::bookHistograms(DQMStore::IBooker& ibooker,
   pfcluster_target_energy = ibooker.book1D(histo, histo, 100, 0, 500);
 
   histo = "pfcluster_target_phi";
-  pfcluster_target_phi = ibooker.book1D(histo, histo, 100, -M_PI, M_PI );
+  pfcluster_target_phi = ibooker.book1D(histo, histo, 100, -M_PI, M_PI);
 
   histo = "pfcluster_target_eta";
   pfcluster_target_eta = ibooker.book1D(histo, histo, 100, -5., 5.);
-
 }
 void PFCaloGPUComparisonTask::analyze(edm::Event const& event, edm::EventSetup const& c) {
   edm::Handle<reco::PFClusterCollection> pfClusters_ref;

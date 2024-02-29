@@ -1380,16 +1380,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             clusterView[seedIdx].y() = pfRecHits[rhIdx].y();
             clusterView[seedIdx].z() = pfRecHits[rhIdx].z();
           }
-        } else if constexpr (!std::is_same_v<Device, alpaka::DevCpu>) {
           // singleSeed and multiSeedParallel functions work only for GPU backend
-          if (nSeeds == 1) {
-            // Single seed cluster
-            hcalFastCluster_singleSeed(
-                acc, pfClusParams, topology, topoId, nRHTopo, pfRecHits, pfClusteringVars, clusterView, fracView);
-          } else if (nSeeds <= 100 && nRHTopo - nSeeds < threadsPerBlockForClustering) {
-            hcalFastCluster_multiSeedParallel(
-                acc, pfClusParams, topology, topoId, nSeeds, nRHTopo, pfRecHits, pfClusteringVars, clusterView, fracView);
-          }
+        } else if (nSeeds == 1 && !std::is_same_v<Device, alpaka::DevCpu>) {
+          // Single seed cluster
+          hcalFastCluster_singleSeed(
+              acc, pfClusParams, topology, topoId, nRHTopo, pfRecHits, pfClusteringVars, clusterView, fracView);
+        } else if (nSeeds <= 100 && nRHTopo - nSeeds < threadsPerBlockForClustering &&
+                   !std::is_same_v<Device, alpaka::DevCpu>) {
+          hcalFastCluster_multiSeedParallel(
+              acc, pfClusParams, topology, topoId, nSeeds, nRHTopo, pfRecHits, pfClusteringVars, clusterView, fracView);
         } else if (nSeeds <= 400 && nRHTopo - nSeeds <= 1500) {
           hcalFastCluster_multiSeedIterative(
               acc, pfClusParams, topology, topoId, nSeeds, nRHTopo, pfRecHits, pfClusteringVars, clusterView, fracView);

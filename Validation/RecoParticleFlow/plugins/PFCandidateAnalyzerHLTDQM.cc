@@ -76,7 +76,7 @@ void PFCandidateAnalyzerHLTDQM::bookHistograms(DQMStore::IBooker& booker, edm::R
 
   //eta has variable bin sizes, use 4th def of TH1F constructor
   TH1F* etaHist = new TH1F("AllCandidateEta", "AllCandidateEta", n, etabinArray);
-//  me["AllCandidateEta"] = booker.book1D("AllCandidateEta", etaHist);
+  //  me["AllCandidateEta"] = booker.book1D("AllCandidateEta", etaHist);
   me["AllCandidateEta"] = booker.book1D("AllCandidateEta", "AllCandidateEta", 20, -3.0, 3.0);
 
   me["AllCandidateLog10Pt"] = booker.book1D("AllCandidateLog10Pt", "AllCandidateLog10Pt", 120, -2, 4);
@@ -93,17 +93,19 @@ void PFCandidateAnalyzerHLTDQM::bookHistograms(DQMStore::IBooker& booker, edm::R
   me["AllCandidatePtHigh"] = booker.book1D("AllCandidatePtHigh", "AllCandidatePtHigh", 100, 0., 1000.);
   me["AllCandidateECALEnergyLow"] = booker.book1D("AllCandidateECALEnergyLow", "AllCandidateECALEnergy", 100, 0., 5.);
   me["AllCandidateECALEnergyMid"] = booker.book1D("AllCandidateECALEnergyMid", "AllCandidateECALEnergy", 100, 0., 100.);
-  me["AllCandidateECALEnergyHigh"] = booker.book1D("AllCandidateECALEnergyHigh", "AllCandidateECALEnergy", 100, 0., 1000.);
+  me["AllCandidateECALEnergyHigh"] =
+      booker.book1D("AllCandidateECALEnergyHigh", "AllCandidateECALEnergy", 100, 0., 1000.);
   me["AllCandidateHCALEnergyLow"] = booker.book1D("AllCandidateHCALEnergyLow", "AllCandidateHCALEnergy", 100, 0., 5.);
   me["AllCandidateHCALEnergyMid"] = booker.book1D("AllCandidateHCALEnergyMid", "AllCandidateHCALEnergy", 100, 0., 100.);
-  me["AllCandidateHCALEnergyHigh"] = booker.book1D("AllCandidateHCALEnergyHigh", "AllCandidateHCALEnergy", 100, 0., 1000.);
+  me["AllCandidateHCALEnergyHigh"] =
+      booker.book1D("AllCandidateHCALEnergyHigh", "AllCandidateHCALEnergy", 100, 0., 1000.);
   me["AllCandidateHCALEnergy"] = booker.book1D("AllCandidateHCALEnergy", "AllCandidateHCALEnergy", 100, 0., 1000.);
   me["AllCandidateHOEnergy"] = booker.book1D("AllCandidateHOEnergy", "AllCandidateHOEnergy", 50, 0., 0.1);
   me["AllCandidatePSEnergy"] = booker.book1D("AllCandidatePSEnergy", "AllCandidatePSEnergy", 50, 0., 0.1);
   booker.setCurrentFolder("ParticleFlow/PFCandidate/Undefined");
 
-  me["UndefinedPhi"] = booker.book1D(
-      "UndefinedPhi", "UndefinedPhi", nPhiBins, -M_PI - 0.25 * phiBinWidth, +M_PI + 0.75 * phiBinWidth);
+  me["UndefinedPhi"] =
+      booker.book1D("UndefinedPhi", "UndefinedPhi", nPhiBins, -M_PI - 0.25 * phiBinWidth, +M_PI + 0.75 * phiBinWidth);
 
   me["UndefinedCharge"] = booker.book1D("UndefinedCharge", "UndefinedCharge", 3, -1.5, 1.5);
   me["UndefinedPtLow"] = booker.book1D("UndefinedPtLow", "UndefinedPtLow", 100, 0., 5.);
@@ -126,8 +128,8 @@ void PFCandidateAnalyzerHLTDQM::bookHistograms(DQMStore::IBooker& booker, edm::R
     //TH1F only takes char*, so have to do conversions for histogram name
     etaHistName = pair.second + "Eta";
     TH1F* etaHist = new TH1F(etaHistName.c_str(), etaHistName.c_str(), n, etabinArray);
-//    me[pair.second + "Eta"] = booker.book1D(pair.second + "Eta", etaHist);
-    me[pair.second + "Eta"] = booker.book1D(pair.second + "Eta", pair.second + "Eta",  20, -3.0, 3.0);
+    //    me[pair.second + "Eta"] = booker.book1D(pair.second + "Eta", etaHist);
+    me[pair.second + "Eta"] = booker.book1D(pair.second + "Eta", pair.second + "Eta", 20, -3.0, 3.0);
     me[pair.second + "Log10Pt"] = booker.book1D(pair.second + "Log10Pt", pair.second + "Log10Pt", 120, -2, 4);
     me[pair.second + "Phi"] = booker.book1D(
         pair.second + "Phi", pair.second + "Phi", nPhiBins, -M_PI - 0.25 * phiBinWidth, +M_PI + 0.75 * phiBinWidth);
@@ -135,12 +137,18 @@ void PFCandidateAnalyzerHLTDQM::bookHistograms(DQMStore::IBooker& booker, edm::R
     me[pair.second + "PtLow"] = booker.book1D(pair.second + "PtLow", pair.second + "PtLow", 100, 0., 5.);
     me[pair.second + "PtMid"] = booker.book1D(pair.second + "PtMid", pair.second + "PtMid", 100, 0., 200.);
     me[pair.second + "PtHigh"] = booker.book1D(pair.second + "PtHigh", pair.second + "PtHigh", 100, 0., 1000.);
-    me[pair.second + "ECALEnergyLow"] = booker.book1D(pair.second + "ECALEnergyLow", pair.second + "ECALEnergyLow", 100, 0., 5.);
-    me[pair.second + "ECALEnergyMid"] = booker.book1D(pair.second + "ECALEnergyMid", pair.second + "ECALEnergyMid", 50, 0., 100.);
-    me[pair.second + "ECALEnergyHigh"] = booker.book1D(pair.second + "ECALEnergyHigh", pair.second + "ECALEnergyHigh", 30, 0., 1000.);
-    me[pair.second + "HCALEnergyLow"] = booker.book1D(pair.second + "HCALEnergyLow", pair.second + "HCALEnergyLow", 100, 0., 5.);
-    me[pair.second + "HCALEnergyMid"] = booker.book1D(pair.second + "HCALEnergyMid", pair.second + "HCALEnergyMid", 50, 0., 100.);
-    me[pair.second + "HCALEnergyHigh"] = booker.book1D(pair.second + "HCALEnergyHigh", pair.second + "HCALEnergyHigh", 30, 0., 1000.);
+    me[pair.second + "ECALEnergyLow"] =
+        booker.book1D(pair.second + "ECALEnergyLow", pair.second + "ECALEnergyLow", 100, 0., 5.);
+    me[pair.second + "ECALEnergyMid"] =
+        booker.book1D(pair.second + "ECALEnergyMid", pair.second + "ECALEnergyMid", 50, 0., 100.);
+    me[pair.second + "ECALEnergyHigh"] =
+        booker.book1D(pair.second + "ECALEnergyHigh", pair.second + "ECALEnergyHigh", 30, 0., 1000.);
+    me[pair.second + "HCALEnergyLow"] =
+        booker.book1D(pair.second + "HCALEnergyLow", pair.second + "HCALEnergyLow", 100, 0., 5.);
+    me[pair.second + "HCALEnergyMid"] =
+        booker.book1D(pair.second + "HCALEnergyMid", pair.second + "HCALEnergyMid", 50, 0., 100.);
+    me[pair.second + "HCALEnergyHigh"] =
+        booker.book1D(pair.second + "HCALEnergyHigh", pair.second + "HCALEnergyHigh", 30, 0., 1000.);
     me[pair.second + "HOEnergy"] = booker.book1D(pair.second + "HOEnergy", pair.second + "HOEnergy", 50, 0., 0.1);
     me[pair.second + "PSEnergy"] = booker.book1D(pair.second + "PSEnergy", pair.second + "PSEnergy", 50, 0., 0.1);
   }
@@ -175,7 +183,7 @@ void PFCandidateAnalyzerHLTDQM::analyze(const edm::Event& iEvent, const edm::Eve
       me["AllCandidateHCALEnergyLow"]->Fill(pfHandle->at(i).rawHcalEnergy());
       me["AllCandidateHCALEnergyMid"]->Fill(pfHandle->at(i).rawHcalEnergy());
       me["AllCandidateHCALEnergyHigh"]->Fill(pfHandle->at(i).rawHcalEnergy());
-      me["AllCandidateHOEnergy"]->Fill(pfHandle->at(i).rawHoEnergy()); 
+      me["AllCandidateHOEnergy"]->Fill(pfHandle->at(i).rawHoEnergy());
       me["AllCandidatePSEnergy"]->Fill(pfHandle->at(i).pS1Energy() + pfHandle->at(i).pS2Energy());
 
       int pdgId = abs(pfHandle->at(i).pdgId());
@@ -193,10 +201,9 @@ void PFCandidateAnalyzerHLTDQM::analyze(const edm::Event& iEvent, const edm::Eve
         me[pdgMap[pdgId] + "HCALEnergyLow"]->Fill(pfHandle->at(i).rawHcalEnergy());
         me[pdgMap[pdgId] + "HCALEnergyMid"]->Fill(pfHandle->at(i).rawHcalEnergy());
         me[pdgMap[pdgId] + "HCALEnergyHigh"]->Fill(pfHandle->at(i).rawHcalEnergy());
-        me[pdgMap[pdgId] + "HOEnergy"]->Fill(pfHandle->at(i).rawHoEnergy()); 
+        me[pdgMap[pdgId] + "HOEnergy"]->Fill(pfHandle->at(i).rawHoEnergy());
         me[pdgMap[pdgId] + "PSEnergy"]->Fill(pfHandle->at(i).pS1Energy() + pfHandle->at(i).pS2Energy());
-      }
-      else{
+      } else {
         me["UndefinedLog10Pt"]->Fill(log10(pfHandle->at(i).pt()));
         me["UndefinedEta"]->Fill(pfHandle->at(i).eta());
         me["UndefinedPhi"]->Fill(pfHandle->at(i).phi());
@@ -210,7 +217,7 @@ void PFCandidateAnalyzerHLTDQM::analyze(const edm::Event& iEvent, const edm::Eve
         me["UndefinedHCALEnergyLow"]->Fill(pfHandle->at(i).rawHcalEnergy());
         me["UndefinedHCALEnergyMid"]->Fill(pfHandle->at(i).rawHcalEnergy());
         me["UndefinedHCALEnergyHigh"]->Fill(pfHandle->at(i).rawHcalEnergy());
-        me["UndefinedHOEnergy"]->Fill(pfHandle->at(i).rawHoEnergy()); 
+        me["UndefinedHOEnergy"]->Fill(pfHandle->at(i).rawHoEnergy());
         me["UndefinedPSEnergy"]->Fill(pfHandle->at(i).pS1Energy() + pfHandle->at(i).pS2Energy());
       }
     }

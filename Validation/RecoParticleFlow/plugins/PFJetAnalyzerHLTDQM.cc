@@ -345,7 +345,8 @@ PFJetAnalyzerHLTDQM::PFJetAnalyzerHLTDQM(const edm::ParameterSet& iConfig) {
   genJetsToken = consumes<edm::View<reco::GenJet>>(genJetsLabel);
 }
 
-void PFJetAnalyzerHLTDQM::fillJetResponse(edm::View<reco::PFJet>& recoJetCollection, edm::View<reco::GenJet>& genJetCollection) {
+void PFJetAnalyzerHLTDQM::fillJetResponse(edm::View<reco::PFJet>& recoJetCollection,
+                                          edm::View<reco::GenJet>& genJetCollection) {
   //match gen jets to reco jets, require minimum jetDeltaR, choose closest, do not try to match charge
   std::vector<int> matchIndices;
   std::vector<int> matchIndicesReco;
@@ -416,7 +417,7 @@ void PFJetAnalyzerHLTDQM::fillJetResponse(edm::View<reco::PFJet>& recoJetCollect
       auto pt_reco = recoJet.pt();
 
       const auto response = pt_reco / pt_gen;
-//      const auto response_raw = pt_reco * recoJet.jecFactor("Uncorrected") / pt_gen;
+      //      const auto response_raw = pt_reco * recoJet.jecFactor("Uncorrected") / pt_gen;
 
       //Loop linearly through all plots and check if they match the pt and eta bin
       //this is not algorithmically optimal but we don't expect to more than a few hundred plots
@@ -429,7 +430,7 @@ void PFJetAnalyzerHLTDQM::fillJetResponse(edm::View<reco::PFJet>& recoJetCollect
       // this loop should be for NoJEC plots
       for (auto& plot : jetResponsePlots_noJEC) {
         if (plot.isInPtEtaBin(pt_gen, eta_gen)) {
- //         plot.fill(response_raw);
+          //         plot.fill(response_raw);
         }
       }
     }
