@@ -56,7 +56,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       const HCAL::TopologyTypeDevice::ConstView topology) {
     // Reject HCAL recHits below enery threshold
     float threshold = 9999.;
-    const uint32_t detId = rh.detId();
+    //const uint32_t detId = rh.detId();
+    const uint32_t detId = rh.did();
     const uint32_t depth = HCAL::getDepth(detId);
     const uint32_t subdet = getSubdet(detId);
     if (topology.cutsFromDB()) {
@@ -96,10 +97,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   ALPAKA_FN_ACC void PFRecHitProducerKernelConstruct<HCAL>::constructPFRecHit(
       reco::PFRecHitDeviceCollection::View::element pfrh,
       const HCAL::CaloRecHitSoATypeDevice::ConstView::const_element rh) {
-    pfrh.detId() = rh.detId();
-    pfrh.denseId() = HCAL::detId2denseId(rh.detId());
+    //pfrh.detId() = rh.detId();
+    pfrh.detId() = rh.did();
+    //pfrh.denseId() = HCAL::detId2denseId(rh.detId());
+    pfrh.denseId() = HCAL::detId2denseId(rh.did());
     pfrh.energy() = rh.energy();
-    pfrh.time() = rh.time();
+    //pfrh.time() = rh.time();
+    pfrh.time() = rh.timeM0();
     pfrh.depth() = HCAL::getDepth(pfrh.detId());
     const uint32_t subdet = getSubdet(pfrh.detId());
     if (subdet == HcalBarrel)
