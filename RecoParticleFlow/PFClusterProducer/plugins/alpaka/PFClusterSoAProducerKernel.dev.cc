@@ -1090,7 +1090,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   const reco::PFRecHitHCALTopologyDeviceCollection::ConstView topology,
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusterDeviceCollection::View clusterView,
-                                  reco::PFRecHitFractionDeviceCollection::View fracView,
                                   uint32_t* __restrict__ nSeeds) const {
       const int nRH = pfRecHits.size();
 
@@ -1467,14 +1466,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::memset(queue, nSeeds, 0x00);  // Reset nSeeds
   }
 
-  void PFClusterProducerKernel::execute(Queue& queue,
+  void PFClusterProducerKernel::step1(Queue& queue,
                                         const reco::PFClusterParamsDeviceCollection& params,
                                         const reco::PFRecHitHCALTopologyDeviceCollection& topology,
                                         reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
                                         reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,
                                         const reco::PFRecHitHostCollection& pfRecHits,
-                                        reco::PFClusterDeviceCollection& pfClusters,
-                                        reco::PFRecHitFractionDeviceCollection& pfrhFractions) {
+                                        reco::PFClusterDeviceCollection& pfClusters) {
     const int nRH = pfRecHits->size();
     const int threadsPerBlock = 256;
     const int blocks = divide_up_by(nRH, threadsPerBlock);
@@ -1488,7 +1486,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         topology.view(),
                         pfRecHits.view(),
                         pfClusters.view(),
-                        pfrhFractions.view(),
                         nSeeds.data());
     // prepareTopoInputs
     alpaka::exec<Acc1D>(queue,
@@ -1525,6 +1522,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         pfClusteringVars.view(),
                         pfClusters.view(),
                         nSeeds.data());
+
+  }
+
+    void PFClusterProducerKernel::step2(Queue& queue,
+                                        const reco::PFClusterParamsDeviceCollection& params,
+                                        const reco::PFRecHitHCALTopologyDeviceCollection& topology,
+                                        reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
+                                        reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,
+                                        const reco::PFRecHitHostCollection& pfRecHits,
+                                        reco::PFClusterDeviceCollection& pfClusters,
+                                        reco::PFRecHitFractionDeviceCollection& pfrhFractions) {
+    const int nRH = pfRecHits->size();
 
     // fillRhfIndex
     alpaka::exec<Acc2D>(queue,

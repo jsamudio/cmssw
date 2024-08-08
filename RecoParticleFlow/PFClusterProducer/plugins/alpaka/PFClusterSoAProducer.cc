@@ -8,7 +8,7 @@
 #include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "FWCore/Utilities/interface/StreamID.h"
-#include "HeterogeneousCore/AlpakaCore/interface/alpaka/stream/EDProducer.h"
+#include "HeterogeneousCore/AlpakaCore/interface/alpaka/stream/SynchronizingEDProducer.h"
 #include "HeterogeneousCore/CUDACore/interface/JobConfigurationGPURecord.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/PFCPositionCalculatorBase.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusterParamsDeviceCollection.h"
@@ -16,7 +16,7 @@
 #include "RecoParticleFlow/PFRecHitProducer/interface/PFRecHitTopologyRecord.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-  class PFClusterSoAProducer : public stream::EDProducer<> {
+  class PFClusterSoAProducer : public stream::SynchronizingEDProducer<> {
   public:
     PFClusterSoAProducer(edm::ParameterSet const& config)
         : pfClusParamsToken(esConsumes(config.getParameter<edm::ESInputTag>("pfClusterParams"))),
@@ -27,7 +27,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           synchronise_(config.getParameter<bool>("synchronise")),
           pfRecHitFractionAllocation_(config.getParameter<int>("pfRecHitFractionAllocation")) {}
 
-    void produce(device::Event& event, device::EventSetup const& setup) override {
+    void acquire(device::Event const& event, device::EventSetup const& setup) override {
       const reco::PFClusterParamsDeviceCollection& params = setup.getData(pfClusParamsToken);
       const reco::PFRecHitHCALTopologyDeviceCollection& topology = setup.getData(topologyToken_);
       const reco::PFRecHitHostCollection& pfRecHits = event.get(inputPFRecHitSoA_Token_);
@@ -35,28 +35,56 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if (pfRecHits->metadata().size() != 0)
         nRH = pfRecHits->size();
 
-      reco::PFClusteringVarsDeviceCollection pfClusteringVars{nRH, event.queue()};
-      reco::PFClusteringEdgeVarsDeviceCollection pfClusteringEdgeVars{(nRH * 8), event.queue()};
-      reco::PFClusterDeviceCollection pfClusters{nRH, event.queue()};
-      reco::PFRecHitFractionDeviceCollection pfrhFractions{nRH * pfRecHitFractionAllocation_, event.queue()};
+      pfClusteringVars = std::make_unique<reco::PFClusteringVarsDeviceCollection>(nRH, event.queue());
+      pfClusteringEdgeVars = std::make_unique<reco::PFClusteringEdgeVarsDeviceCollection>(nRH * 8, event.queue());
+      pfClusters = std::make_unique<reco::PFClusterDeviceCollection>(nRH, event.queue());
 
       if (nRH != 0) {
         PFClusterProducerKernel kernel(event.queue(), pfRecHits);
-        kernel.execute(event.queue(),
+        kernel.step1(event.queue(),
                        params,
                        topology,
-                       pfClusteringVars,
-                       pfClusteringEdgeVars,
+                       *pfClusteringVars,
+                       *pfClusteringEdgeVars,
                        pfRecHits,
-                       pfClusters,
-                       pfrhFractions);
+                       *pfClusters);
       }
 
+      pfClusters_h = reco::PFClusterHostCollection{nRH, event.queue()};
+
+      alpaka::memcpy(event.queue(), pfClusters_h.buffer(), pfClusters.get()->buffer());
+    }
+
+    void produce(device::Event& event, device::EventSetup const& setup) override {
+
+      const reco::PFClusterParamsDeviceCollection& params = setup.getData(pfClusParamsToken);
+      const reco::PFRecHitHCALTopologyDeviceCollection& topology = setup.getData(topologyToken_);
+      const reco::PFRecHitHostCollection& pfRecHits = event.get(inputPFRecHitSoA_Token_);
+      int nRH = 0;
+      if (pfRecHits->metadata().size() != 0)
+        nRH = pfRecHits->size();
+
+      if (nRH != 0) {
+        pfrhFractions = std::make_unique<reco::PFRecHitFractionDeviceCollection>(pfClusters_h.view().nRHFracs(), event.queue());
+        PFClusterProducerKernel kernel(event.queue(), pfRecHits);
+        kernel.step2(event.queue(),
+                       params,
+                       topology,
+                       *pfClusteringVars,
+                       *pfClusteringEdgeVars,
+                       pfRecHits,
+                       *pfClusters,
+                       *pfrhFractions);
+      } else {
+        pfrhFractions = std::make_unique<reco::PFRecHitFractionDeviceCollection>(0, event.queue());
+      }
+
+      
       if (synchronise_)
         alpaka::wait(event.queue());
 
-      event.emplace(outputPFClusterSoA_Token_, std::move(pfClusters));
-      event.emplace(outputPFRHFractionSoA_Token_, std::move(pfrhFractions));
+      event.emplace(outputPFClusterSoA_Token_, std::move(*pfClusters));
+      event.emplace(outputPFRHFractionSoA_Token_, std::move(*pfrhFractions));
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
@@ -75,6 +103,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const edm::EDGetTokenT<reco::PFRecHitHostCollection> inputPFRecHitSoA_Token_;
     const device::EDPutToken<reco::PFClusterDeviceCollection> outputPFClusterSoA_Token_;
     const device::EDPutToken<reco::PFRecHitFractionDeviceCollection> outputPFRHFractionSoA_Token_;
+    unsigned int num_rhf_;
+    std::unique_ptr<reco::PFClusteringVarsDeviceCollection> pfClusteringVars;
+    std::unique_ptr<reco::PFClusteringEdgeVarsDeviceCollection> pfClusteringEdgeVars;
+    std::unique_ptr<reco::PFClusterDeviceCollection> pfClusters;
+    //reco::PFClusterDeviceCollection pfClusters;
+    std::unique_ptr<reco::PFRecHitFractionDeviceCollection> pfrhFractions;
+    reco::PFClusterHostCollection pfClusters_h;
     const bool synchronise_;
     const int pfRecHitFractionAllocation_;
   };
