@@ -4,6 +4,7 @@
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitDeviceCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecHitHostCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFClusterDeviceCollection.h"
+#include "DataFormats/ParticleFlowReco/interface/PFClusterHostCollection.h"
 #include "DataFormats/ParticleFlowReco/interface/alpaka/PFRecHitFractionDeviceCollection.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusterParamsDeviceCollection.h"
 #include "RecoParticleFlow/PFClusterProducer/interface/alpaka/PFClusteringVarsDeviceCollection.h"
@@ -39,7 +40,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     PFClusterProducerKernel(Queue& queue, const reco::PFRecHitHostCollection& pfRecHits);
 
-    void execute(Queue& queue,
+    void step1(Queue& queue,
+                 const reco::PFClusterParamsDeviceCollection& params,
+                 const reco::PFRecHitHCALTopologyDeviceCollection& topology,
+                 reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
+                 reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,
+                 const reco::PFRecHitHostCollection& pfRecHits,
+                 reco::PFClusterDeviceCollection& pfClusters,
+                 uint32_t* __restrict__ size_d);
+
+    void step2(Queue& queue,
                  const reco::PFClusterParamsDeviceCollection& params,
                  const reco::PFRecHitHCALTopologyDeviceCollection& topology,
                  reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
@@ -47,7 +57,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                  const reco::PFRecHitHostCollection& pfRecHits,
                  reco::PFClusterDeviceCollection& pfClusters,
                  reco::PFRecHitFractionDeviceCollection& pfrhFractions);
-
+                 
   private:
     cms::alpakatools::device_buffer<Device, uint32_t> nSeeds;
     cms::alpakatools::device_buffer<Device, reco::pfClustering::Position4[]> globalClusterPos;
@@ -56,6 +66,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     cms::alpakatools::device_buffer<Device, float[]> globalRhFracSum;
     cms::alpakatools::device_buffer<Device, int[]> globalSeeds;
     cms::alpakatools::device_buffer<Device, int[]> globalRechits;
+
   };
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
