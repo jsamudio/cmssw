@@ -1090,6 +1090,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   const reco::PFRecHitHCALTopologyDeviceCollection::ConstView topology,
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusterDeviceCollection::View clusterView,
+                                  reco::PFRecHitFractionDeviceCollection::View fracView,
                                   uint32_t* __restrict__ nSeeds) const {
       const int nRH = pfRecHits.size();
 
@@ -1195,7 +1196,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
     ALPAKA_FN_ACC void operator()(const TAcc& acc,
-                                  const int allocation,
                                   const reco::PFRecHitHostCollection::ConstView pfRecHits,
                                   reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
                                   reco::PFClusterDeviceCollection::View clusterView,
@@ -1304,7 +1304,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         clusterView.nRHFracs() = totalSeedFracOffset;
         clusterView.nSeeds() = *nSeeds;
         clusterView.nTopos() = pfClusteringVars.nTopos();
-        printf("Allocation: %d\n", allocation);
 
         if (pfClusteringVars.pcrhFracSize() > 200000)  // Warning in case the fraction is too large
           printf("At the end of topoClusterContraction, found large *pcrhFracSize = %d\n",
@@ -1468,14 +1467,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::memset(queue, nSeeds, 0x00);  // Reset nSeeds
   }
 
-  void PFClusterProducerKernel::step1(Queue& queue,
-                                        const int allocation,
+  void PFClusterProducerKernel::execute(Queue& queue,
                                         const reco::PFClusterParamsDeviceCollection& params,
                                         const reco::PFRecHitHCALTopologyDeviceCollection& topology,
                                         reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
                                         reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,
                                         const reco::PFRecHitHostCollection& pfRecHits,
-                                        reco::PFClusterDeviceCollection& pfClusters) {
+                                        reco::PFClusterDeviceCollection& pfClusters,
+                                        reco::PFRecHitFractionDeviceCollection& pfrhFractions) {
     const int nRH = pfRecHits->size();
     const int threadsPerBlock = 256;
     const int blocks = divide_up_by(nRH, threadsPerBlock);
@@ -1489,6 +1488,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         topology.view(),
                         pfRecHits.view(),
                         pfClusters.view(),
+                        pfrhFractions.view(),
                         nSeeds.data());
     // prepareTopoInputs
     alpaka::exec<Acc1D>(queue,
@@ -1521,26 +1521,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     alpaka::exec<Acc1D>(queue,
                         make_workdiv<Acc1D>(1, threadsPerBlockForClustering),
                         TopoClusterContraction{},
-                        allocation,
                         pfRecHits.view(),
                         pfClusteringVars.view(),
                         pfClusters.view(),
                         nSeeds.data());
-
-  }
-
-    void PFClusterProducerKernel::step2(Queue& queue,
-                                        const int allocation,
-                                        const reco::PFClusterParamsDeviceCollection& params,
-                                        const reco::PFRecHitHCALTopologyDeviceCollection& topology,
-                                        reco::PFClusteringVarsDeviceCollection& pfClusteringVars,
-                                        reco::PFClusteringEdgeVarsDeviceCollection& pfClusteringEdgeVars,
-                                        const reco::PFRecHitHostCollection& pfRecHits,
-                                        reco::PFClusterDeviceCollection& pfClusters,
-                                        reco::PFRecHitFractionDeviceCollection& pfrhFractions) {
-    const int nRH = pfRecHits->size();
-    const int threadsPerBlock = 256;
-
 
     // fillRhfIndex
     alpaka::exec<Acc2D>(queue,
