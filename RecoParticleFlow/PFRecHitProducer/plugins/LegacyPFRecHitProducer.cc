@@ -75,6 +75,8 @@ void LegacyPFRecHitProducer::produce(edm::Event& event, const edm::EventSetup& s
     }
   }
 
+  std::cout << "Ran PFRechit" << std::endl;
+
   event.emplace(legacyPfRecHitsToken_, out);
 }
 

@@ -1541,7 +1541,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const int nRH = pfRecHits->size();
     const int threadsPerBlock = 256;
 
+    printf("Step2 started\n");
 
+    if (nRH != 0) {
     // fillRhfIndex
     alpaka::exec<Acc2D>(queue,
                         make_workdiv<Acc2D>({divide_up_by(nRH, 32), divide_up_by(nRH, 32)}, {32, 32}),
@@ -1577,6 +1579,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         globalRhFracSum.data(),
                         globalSeeds.data(),
                         globalRechits.data());
+    }
+
+    printf("Step2 ended\n");
   }
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE

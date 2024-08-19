@@ -19,6 +19,7 @@
   <use name="HeterogeneousCore/CUDACore"/>
   <use name="RecoParticleFlow/PFClusterProducer"/>
   <flags EDM_PLUGIN="1"/>
+  <flags CXXFLAGS="-g"/>
 </library>
 
 <library name="RecoParticleFlowPFClusterProducerPlugins_simmappers" file="SimMappers/*.cc">
@@ -40,6 +41,7 @@
   <use name="RecoLocalCalo/HGCalRecProducers"/>
   <use name="RecoParticleFlow/PFClusterProducer"/>
   <flags EDM_PLUGIN="1"/>
+  <flags CXXFLAGS="-g"/>
 </library>
 
 <!-- alpaka-based portable plugins -->
@@ -60,4 +62,5 @@
   <use name="RecoParticleFlow/PFRecHitProducer"/>
   <flags ALPAKA_BACKENDS="1"/>
   <flags EDM_PLUGIN="1"/>
+  <flags CXXFLAGS="-g"/>
 </library>
