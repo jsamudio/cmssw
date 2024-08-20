@@ -1541,7 +1541,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const int nRH = pfRecHits->size();
     const int threadsPerBlock = 256;
 
-
     // fillRhfIndex
     alpaka::exec<Acc2D>(queue,
                         make_workdiv<Acc2D>({divide_up_by(nRH, 32), divide_up_by(nRH, 32)}, {32, 32}),
