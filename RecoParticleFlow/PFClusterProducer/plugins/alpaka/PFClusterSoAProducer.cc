@@ -78,9 +78,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       //reco::PFClusteringEdgeVarsDeviceCollection pfClusteringEdgeVars{(nRH * 8), event.queue()};
       //reco::PFClusterDeviceCollection pfClusters{nRH, event.queue()};
       //reco::PFRecHitFractionDeviceCollection pfrhFractions{pfClusters_h.view().nRHFracs(), event.queue()};
-      pfrhFractions = std::make_unique<reco::PFRecHitFractionDeviceCollection>(pfClusters_h.view().nRHFracs(), event.queue());
 
       if (nRH != 0) {
+        pfrhFractions = std::make_unique<reco::PFRecHitFractionDeviceCollection>(pfClusters_h.view().nRHFracs(), event.queue());
         PFClusterProducerKernel kernel(event.queue(), pfRecHits);
         kernel.step2(event.queue(),
                        pfRecHitFractionAllocation_,
