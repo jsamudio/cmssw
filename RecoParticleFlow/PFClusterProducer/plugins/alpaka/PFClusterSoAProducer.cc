@@ -93,6 +93,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       desc.add<edm::ESInputTag>("pfClusterParams", edm::ESInputTag(""));
       desc.add<edm::ESInputTag>("topology", edm::ESInputTag(""));
       desc.add<bool>("synchronise", false);
+      desc.addOptional<int>("pfRecHitFractionAllocation"); // Stay transparent to the HLT menu for now
       descriptions.addWithDefaultLabel(desc);
     }
 
