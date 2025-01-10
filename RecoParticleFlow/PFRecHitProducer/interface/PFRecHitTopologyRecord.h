@@ -5,6 +5,7 @@
 #include "FWCore/Framework/interface/EventSetupRecordImplementation.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/Records/interface/HcalRecNumberingRecord.h"
+#include "CondFormats/DataRecord/interface/EcalPFRecHitThresholdsRcd.h"
 #include "CondFormats/DataRecord/interface/HcalPFCutsRcd.h"
 
 class PFRecHitHCALTopologyRecord : public edm::eventsetup::DependentRecordImplementation<
@@ -13,6 +14,7 @@ class PFRecHitHCALTopologyRecord : public edm::eventsetup::DependentRecordImplem
 
 class PFRecHitECALTopologyRecord
     : public edm::eventsetup::DependentRecordImplementation<PFRecHitECALTopologyRecord,
-                                                            edm::mpl::Vector<CaloGeometryRecord>> {};
+                                                            edm::mpl::Vector<HcalRecNumberingRecord, CaloGeometryRecord, EcalPFRecHitThresholdsRcd>> {};
+                                                            //edm::mpl::Vector<CaloGeometryRecord, EcalPFRecHitThresholdsRcd>> {};
 
 #endif  // RecoParticleFlow_PFRecHitProducer_interface_PFRecHitTopologyRecord_h

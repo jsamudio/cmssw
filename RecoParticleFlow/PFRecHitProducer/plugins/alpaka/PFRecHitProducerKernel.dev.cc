@@ -61,8 +61,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const uint32_t subdet = getSubdet(detId);
 
     // skip bad channels
-    if (rh.chi2() < 0)
-      return false;
+    //if (rh.chi2() < 0)
+    //  return false;
 
     if (topology.cutsFromDB()) {
       const auto& denseId = HCAL::detId2denseId(detId);

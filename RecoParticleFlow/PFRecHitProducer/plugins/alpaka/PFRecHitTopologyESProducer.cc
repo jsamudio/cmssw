@@ -4,6 +4,8 @@
 #include <utility>
 #include <variant>
 
+#include "CondFormats/EcalObjects/interface/EcalPFRecHitThresholds.h"
+#include "CondFormats/DataRecord/interface/EcalPFRecHitThresholdsRcd.h"
 #include "CondFormats/DataRecord/interface/HcalPFCutsRcd.h"
 #include "CondTools/Hcal/interface/HcalPFCutsHandler.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
@@ -36,15 +38,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       if constexpr (std::is_same_v<CAL, HCAL>) {
         hcalToken_ = cc.consumes();
         hcalCutsToken_ = cc.consumes();
+      } else if constexpr (std::is_same_v<CAL, ECAL>){
+        hcalToken_ = cc.consumes();
+        ecalCutsToken_ = cc.consumes();
       }
     }
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      if constexpr (std::is_same_v<CAL, HCAL>)
-        desc.add<bool>("usePFThresholdsFromDB", true);
-      else  // only needs to be true for HBHE
-        desc.add<bool>("usePFThresholdsFromDB", false);
+      // Both EBEE and HBHE can use GT thresholds, so default to true
+      desc.add<bool>("usePFThresholdsFromDB", true);
       descriptions.addWithDefaultLabel(desc);
     }
 
@@ -72,6 +75,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           const uint32_t denseId = CAL::detId2denseId(detId);
           assert(denseId < CAL::kSize);
 
+          const HcalTopology& htopo = iRecord.get(hcalToken_);
           // Fill SoA members with HCAL PF Thresholds from GT
           if constexpr (std::is_same_v<CAL, HCAL>) {
             view.cutsFromDB() = false;
@@ -83,6 +87,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
               prod->setTopo(&htopo);
               view.noiseThreshold(denseId) = prod->getValues(detId.rawId())->noiseThreshold();
               view.seedThreshold(denseId) = prod->getValues(detId.rawId())->seedThreshold();
+            }
+          } else if constexpr (std::is_same_v<CAL, ECAL>) {
+            view.cutsFromDB() = false;
+            if (cutsFromDB_) {
+              view.cutsFromDB() = true;
+              const EcalPFRecHitThresholds& pfCuts = iRecord.get(ecalCutsToken_);
+              std::unique_ptr<EcalPFRecHitThresholds> prod = std::make_unique<EcalPFRecHitThresholds>(pfCuts);
+              //prod->setTopo(&htopo);
+              view.threshold(denseId) = (*prod)[detId];
+              std::cout << view.threshold(denseId) << std::endl;
             }
           }
 
@@ -147,6 +161,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     edm::ESGetToken<CaloGeometry, CaloGeometryRecord> geomToken_;
     edm::ESGetToken<HcalTopology, HcalRecNumberingRecord> hcalToken_;
     edm::ESGetToken<HcalPFCuts, HcalPFCutsRcd> hcalCutsToken_;
+    edm::ESGetToken<EcalPFRecHitThresholds, EcalPFRecHitThresholdsRcd> ecalCutsToken_;
     const bool cutsFromDB_;
 
     // specialised for HCAL/ECAL, because non-nearest neighbours are defined differently
