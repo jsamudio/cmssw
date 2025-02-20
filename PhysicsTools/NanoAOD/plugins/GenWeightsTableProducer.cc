@@ -279,7 +279,11 @@ public:
     produces<std::string>("genModel");
     produces<nanoaod::FlatTable>("LHEScale");
     produces<nanoaod::FlatTable>("LHEPdf");
-    produces<nanoaod::FlatTable>("LHEEFT");
+    produces<nanoaod::FlatTable>("EFTfitCoefficients");
+    produces<nanoaod::FlatTable>("EFTfitCoefficientIndex1");
+    produces<nanoaod::FlatTable>("EFTfitCoefficientIndex2");
+    produces<nanoaod::FlatTable>("EFTfitCoefficientName1");
+    produces<nanoaod::FlatTable>("EFTfitCoefficientName2");
     produces<nanoaod::FlatTable>("WCnames");
     produces<nanoaod::FlatTable>("LHEReweighting");
     produces<nanoaod::FlatTable>("LHENamed");
@@ -320,7 +324,7 @@ public:
     bool getLHEweightsFromGenInfo = !model_label.empty();
 
     // tables for LHE weights, may not be filled
-    std::unique_ptr<nanoaod::FlatTable> lheScaleTab, lhePdfTab, lheRwgtTab, lheNamedTab, lheEFTTab, wcnamesTab; 
+    std::unique_ptr<nanoaod::FlatTable> lheScaleTab, lhePdfTab, lheRwgtTab, lheNamedTab, lheEFTTab, ind1Tab, ind2Tab, name1Tab, name2Tab, wcnamesTab;
     std::unique_ptr<nanoaod::FlatTable> genPSTab;
 
     edm::Handle<LHEEventProduct> lheInfo;
@@ -339,8 +343,23 @@ public:
       // get the dynamic choice of weights
       const DynamicWeightChoice* weightChoice = runCache(iEvent.getRun().index());
       // go fill tables
-      // fillLHEWeightTables(counter, weightChoice, genWeightChoice, weight, *lheInfo, *genInfo, lheScaleTab, lhePdfTab, lheRwgtTab, lheNamedTab, genPSTab);
-      fillLHEWeightTables(counter, weightChoice, genWeightChoice, weight, *lheInfo, *genInfo, lheScaleTab, lhePdfTab, lheEFTTab, wcnamesTab, lheRwgtTab, lheNamedTab, genPSTab);
+      fillLHEWeightTables(counter,
+                          weightChoice,
+                          genWeightChoice,
+                          weight,
+                          *lheInfo,
+                          *genInfo,
+                          lheScaleTab,
+                          lhePdfTab,
+                          lheEFTTab,
+						  ind1Tab,
+						  ind2Tab,
+						  name1Tab,
+						  name2Tab,
+                          wcnamesTab,
+                          lheRwgtTab,
+                          lheNamedTab,
+                          genPSTab);
     } else if (getLHEweightsFromGenInfo) {
       fillLHEPdfWeightTablesFromGenInfo(
           counter, genWeightChoice, weight, *genInfo, lheScaleTab, lhePdfTab, lheNamedTab, genPSTab);
@@ -353,7 +372,11 @@ public:
       // make dummy values
       lheScaleTab = std::make_unique<nanoaod::FlatTable>(1, "LHEScaleWeights", true);
       lhePdfTab = std::make_unique<nanoaod::FlatTable>(1, "LHEPdfWeights", true);
-      lheEFTTab.reset(new nanoaod::FlatTable(1, "LHEEFTWeights", true));
+      lheEFTTab.reset(new nanoaod::FlatTable(1, "EFTfitCoefficients", true));
+	  ind1Tab.reset(new nanoaod::FlatTable(1, "EFTfitCoefficientIndex1", true));
+	  ind2Tab.reset(new nanoaod::FlatTable(1, "EFTfitCoefficientIndex2", true));
+	  name1Tab.reset(new nanoaod::FlatTable(1, "EFTfitCoefficientName1", true));
+	  name2Tab.reset(new nanoaod::FlatTable(1, "EFTfitCoefficientName2", true));
       wcnamesTab.reset(new nanoaod::FlatTable(1, "WCNames", true));
       lheRwgtTab = std::make_unique<nanoaod::FlatTable>(1, "LHEReweightingWeights", true);
       lheNamedTab = std::make_unique<nanoaod::FlatTable>(1, "LHENamedWeights", true);
@@ -364,7 +387,11 @@ public:
 
     iEvent.put(std::move(lheScaleTab), "LHEScale");
     iEvent.put(std::move(lhePdfTab), "LHEPdf");
-    iEvent.put(std::move(lheEFTTab), "LHEEFT");
+    iEvent.put(std::move(lheEFTTab), "EFTfitCoefficients");
+    iEvent.put(std::move(ind1Tab), "EFTfitCoefficientIndex1");
+    iEvent.put(std::move(ind2Tab), "EFTfitCoefficientIndex2");
+    iEvent.put(std::move(name1Tab), "EFTfitCoefficientName1");
+    iEvent.put(std::move(name2Tab), "EFTfitCoefficientName2");
     iEvent.put(std::move(wcnamesTab), "WCnames");
     iEvent.put(std::move(lheRwgtTab), "LHEReweighting");
     iEvent.put(std::move(lheNamedTab), "LHENamed");
@@ -380,6 +407,10 @@ public:
                            std::unique_ptr<nanoaod::FlatTable>& outScale,
                            std::unique_ptr<nanoaod::FlatTable>& outPdf,
                            std::unique_ptr<nanoaod::FlatTable> & outEFT,
+                           std::unique_ptr<nanoaod::FlatTable> & outEFT_index1,
+                           std::unique_ptr<nanoaod::FlatTable> & outEFT_index2,
+                           std::unique_ptr<nanoaod::FlatTable> & outEFT_name1,
+                           std::unique_ptr<nanoaod::FlatTable> & outEFT_name2,
                            std::unique_ptr<nanoaod::FlatTable> & outWCnam,
                            std::unique_ptr<nanoaod::FlatTable>& outRwgt,
                            std::unique_ptr<nanoaod::FlatTable>& outNamed,
@@ -393,35 +424,90 @@ public:
 
     double w0 = lheProd.originalXWGTUP();
 
-    // Count number of EFT weights
-    int nEFT = 0;
-    std::vector<WCPoint> vwc;
-    WCFit wcfit;
-    std::string s_wcnames;
+    bool madjax_EFT = false;
+    bool EFT_reweight = false;
     for (auto & weight : lheProd.weights()){
+      if (weight.id.rfind("MJEFT",0)==0){
+        madjax_EFT = true;
+      }
       if (weight.id.rfind("EFTrwgt",0)==0){
-         s_wcnames = (weight.id);
-         nEFT++;
-         WCPoint wc = WCPoint(weight.id, weight.wgt);
-         vwc.push_back(wc);
+        EFT_reweight = true;
       }
     }
-    wcfit = WCFit(vwc, "wcfit");
-    std::vector<double> coefs = wcfit.getCoefficients();
+
+    std::vector<std::string> wcnames_string;
+    std::vector<double> coefs;
+	std::vector<int> EFT_ind1, EFT_ind2;
+	std::vector<std::string> EFT_name1_str, EFT_name2_str;
+
+    if (madjax_EFT){
+      // Get the WC names, and also collect the coefficients into a map for later extraction
+      std::set<std::string> wcnames_seen;
+      std::map<std::pair<std::string, std::string>, double> coef_map;
+      for (auto & weight : lheProd.weights()){
+        if (weight.id.rfind("MJEFT",0)==0){
+          // ex str: "MJEFT_SM_ctW"
+          std::vector<std::string> words;
+          split_string(weight.id, words, "_");
+		  if (words.size() < 3)
+			  continue;
+
+          // Put the weight into the map, with either WC order
+          coef_map[std::make_pair(words.at(1), words.at(2))] = weight.wgt;
+          coef_map[std::make_pair(words.at(2), words.at(1))] = weight.wgt;
+
+          // Only collect WC names that we haven't yet seen
+          for (unsigned int i = 1; i <= 2; ++i){
+            if (auto search = wcnames_seen.find(words.at(i)); search == wcnames_seen.end()){
+              wcnames_seen.insert(words.at(i));
+              wcnames_string.push_back(words.at(i));
+            }
+          }
+        }
+      }
+
+      // Extract the coefficients in this order:
+      // (0, 0), (1,0), (1,1), (2,0), (2,1), (2,2), etc.,
+      // where the indices refer to the order of WC names in wcnames_string
+      for (unsigned int i = 0; i < wcnames_string.size(); ++i){
+        for (unsigned int j = 0; j <= i; ++j){
+          coefs.push_back(coef_map[std::make_pair(wcnames_string.at(i), wcnames_string.at(j))]);
+		  //std::cout << "Coef: " << wcnames_string.at(i) << " x " << wcnames_string.at(j) << std::endl;
+		  EFT_ind1.push_back(i);
+		  EFT_ind2.push_back(j);
+		  EFT_name1_str.push_back(wcnames_string.at(i));
+		  EFT_name2_str.push_back(wcnames_string.at(j));
+        }
+      }
+    } else if (EFT_reweight){
+      std::vector<WCPoint> vwc;
+      WCFit wcfit;
+      for (auto & weight : lheProd.weights()){
+        if (weight.id.rfind("EFTrwgt",0)==0){
+           WCPoint wc = WCPoint(weight.id, weight.wgt);
+           vwc.push_back(wc);
+        }
+      }
+      wcfit = WCFit(vwc, "wcfit");
+      coefs = wcfit.getCoefficients();
+    }
+
     int nCoef = coefs.size();
 
+    // Turn the list of WC names into a vector of integers, for NanoAOD
     std::vector<int> wcnames;
-    std::vector<std::string> wcnames_string;
-
-    wcnames_string = wcfit.getNames(); 
     wcnames_string.erase(wcnames_string.begin());
     wcnames = VectorStringToInt(wcnames_string);
-
     int nWC = wcnames.size();
 
-    std::vector<double> wScale(scaleWeightIDs.size(), 1), wPDF(pdfWeightIDs.size(), 1), wRwgt(rwgtWeightIDs.size(), 1), wNamed(namedWeightIDs_.size(), 1), wEFT(nEFT, 1);
-    std::vector<double> wEFTstr(nEFT, 1);
+	std::vector<int> EFT_name1, EFT_name2;
+	EFT_name1 = VectorStringToInt(EFT_name1_str);
+	EFT_name2 = VectorStringToInt(EFT_name2_str);
+	int nEFT_name1 = EFT_name1.size();
+	int nEFT_name2 = EFT_name2.size();
 
+    std::vector<double> wScale(scaleWeightIDs.size(), 1), wPDF(pdfWeightIDs.size(), 1), wRwgt(rwgtWeightIDs.size(), 1),
+        wNamed(namedWeightIDs_.size(), 1);
     for (auto& weight : lheProd.weights()) {
       if (lheDebug)
         printf("Weight  %+9.5f   rel %+9.5f   for id %s\n", weight.wgt, weight.wgt / w0, weight.id.c_str());
@@ -433,13 +519,6 @@ public:
       auto mPDF = std::find(pdfWeightIDs.begin(), pdfWeightIDs.end(), weight.id);
       if (mPDF != pdfWeightIDs.end())
         wPDF[mPDF - pdfWeightIDs.begin()] = weight.wgt / w0;
-
-      // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-      if (weight.id.rfind("EFTrwgt",0)==0){
-        std::string s_id = std::regex_replace(weight.id, std::regex("EFTrwgt[^0-9]*([0-9]+).*"), std::string("$1"));
-        int i_id = std::stoi(s_id);
-        wEFT[i_id] = weight.wgt/w0;
-      }
 
       auto mRwgt = std::find(rwgtWeightIDs.begin(), rwgtWeightIDs.end(), weight.id);
       if (mRwgt != rwgtWeightIDs.end())
@@ -473,6 +552,19 @@ public:
     std::string EFTcoefDoc = "EFT fit coefficients";
     outEFT.reset(new nanoaod::FlatTable(nCoef, "EFTfitCoefficients", false));
     outEFT->addColumn<float>("", coefs, EFTcoefDoc, lheWeightPrecision_);
+
+	std::string EFTind1Doc = "EFT fit WCname index 1";
+	std::string EFTind2Doc = "EFT fit WCname index 2";
+	std::string EFTname1Doc = "EFT fit WCname 1";
+	std::string EFTname2Doc = "EFT fit WCname 2";
+	outEFT_index1.reset(new nanoaod::FlatTable(nCoef, "EFTfitCoefficientIndex1", false));
+	outEFT_index2.reset(new nanoaod::FlatTable(nCoef, "EFTfitCoefficientIndex2", false));
+	outEFT_name1.reset(new nanoaod::FlatTable(nEFT_name1, "EFTfitCoefficientName1", false));
+	outEFT_name2.reset(new nanoaod::FlatTable(nEFT_name2, "EFTfitCoefficientName2", false));
+	outEFT_index1->addColumn<int>("", EFT_ind1, EFTind1Doc, lheWeightPrecision_);
+	outEFT_index2->addColumn<int>("", EFT_ind2, EFTind2Doc, lheWeightPrecision_);
+	outEFT_name1->addColumn<int>("", EFT_name1, EFTname1Doc, lheWeightPrecision_);
+	outEFT_name2->addColumn<int>("", EFT_name2, EFTname2Doc, lheWeightPrecision_);
 
     std::string WCnamDoc = "EFT WC names";
     outWCnam.reset(new nanoaod::FlatTable(nWC, "WCnames", false));
