@@ -9,19 +9,16 @@ namespace reco {
 
   GENERATE_SOA_LAYOUT(PFClusterSoALayout,
                       SOA_COLUMN(int, depth),
-                      SOA_COLUMN(int, seedRHIdx),
-                      SOA_COLUMN(int, topoId),
-                      SOA_COLUMN(int, rhfracSize),
-                      SOA_COLUMN(int, rhfracOffset),
+                      SOA_COLUMN(int, seedRHIdx),     // index of seed in PF rechits SoA
+                      SOA_COLUMN(int, topoId),        // topo cluster ID, used in legacy cluster formation
+                      SOA_COLUMN(int, rhfracSize),    // number of rechit fractions in cluster
+                      SOA_COLUMN(int, rhfracOffset),  // start position of cluster in rechit fraction SoA
                       SOA_COLUMN(float, energy),
                       SOA_COLUMN(float, x),
                       SOA_COLUMN(float, y),
                       SOA_COLUMN(float, z),
-                      SOA_COLUMN(int, topoRHCount),
-                      SOA_SCALAR(int, nTopos),
-                      SOA_SCALAR(int, nSeeds),
-                      SOA_SCALAR(int, nRHFracs),
-                      SOA_SCALAR(int, size)  // nRH
+                      SOA_SCALAR(int, nTopos),  // number of topological clusters in event
+                      SOA_SCALAR(int, nSeeds)   // number of seeds in event
   )
   using PFClusterSoA = PFClusterSoALayout<>;
 }  // namespace reco

@@ -1091,10 +1091,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   uint32_t* __restrict__ nSeeds) const {
       const int nRH = pfRecHits.size();
 
-      if (once_per_grid(acc)) {
-        clusterView.size() = nRH;
-      }
-
       for (auto i : uniform_elements(acc, nRH)) {
         // Initialize arrays
         pfClusteringVars[i].pfrh_isSeed() = 0;
@@ -1203,10 +1199,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       // rhCount, topoRHCount, topoSeedCount initialized earlier
       if (once_per_block(acc)) {
         pfClusteringVars.nTopos() = 0;
-        pfClusteringVars.nRHFracs() = 0;
         totalSeedOffset = 0;
         totalSeedFracOffset = 0;
-        pfClusteringVars.pcrhFracSize() = 0;
       }
 
       alpaka::syncBlockThreads(acc);  // all threads call sync
@@ -1222,9 +1216,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           alpaka::atomicAdd(acc, &pfClusteringVars[topoId].topoRHCount(), 1);
           // Valid topoId not counted yet
           if (topoId == rhIdx) {  // For every topo cluster, there is one rechit that meets this condition.
-            int topoIdx = alpaka::atomicAdd(acc, &pfClusteringVars.nTopos(), 1);
-            pfClusteringVars[topoIdx].topoIds() =
-                topoId;  // topoId: the smallest index of rechits that belong to a topo cluster.
+            alpaka::atomicAdd(acc, &pfClusteringVars.nTopos(), 1);
           }
           // This is a cluster seed
           if (pfClusteringVars[rhIdx].pfrh_isSeed()) {  // # of seeds in this topo cluster
@@ -1295,9 +1287,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);  // all threads call sync
 
       if (once_per_block(acc)) {
-        pfClusteringVars.pcrhFracSize() = totalSeedFracOffset;
-        pfClusteringVars.nRHFracs() = totalSeedFracOffset;
-        clusterView.nRHFracs() = totalSeedFracOffset;
         *nRHF = totalSeedFracOffset;
         clusterView.nSeeds() = *nSeeds;
         clusterView.nTopos() = pfClusteringVars.nTopos();
