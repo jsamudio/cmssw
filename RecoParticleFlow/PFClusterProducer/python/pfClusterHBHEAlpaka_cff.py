@@ -9,6 +9,9 @@ from RecoParticleFlow.PFRecHitProducer.pfRecHitSoAProducerHCAL_cfi import pfRecH
 from RecoParticleFlow.PFRecHitProducer.legacyPFRecHitProducer_cfi import legacyPFRecHitProducer as _legacyPFRecHitProducer
 from RecoParticleFlow.PFClusterProducer.pfClusterSoAProducer_cfi import pfClusterSoAProducer as _pfClusterSoAProducer
 from RecoParticleFlow.PFClusterProducer.legacyPFClusterProducer_cfi import legacyPFClusterProducer as _legacyPFClusterProducer
+# add the new modules
+from RecoParticleFlow.PFClusterProducer.pfMultiDepthClusterSoAProducer_cfi import pfMultiDepthClusterSoAProducer as _pfMultiDepthClusterSoAProducer
+from RecoParticleFlow.PFClusterProducer.legacyMultiDepthPFClusterProducer_cfi import legacyMultiDepthPFClusterProducer as _legacyPFMultiDepthClusterProducer
 
 from RecoParticleFlow.PFClusterProducer.particleFlowCluster_cff import pfClusteringHBHEHFTask, pfClusteringHBHEHFOnlyTask, particleFlowClusterHBHE, particleFlowRecHitHBHE, particleFlowClusterHCAL, particleFlowClusterHBHEOnly, particleFlowRecHitHBHEOnly, particleFlowClusterHCALOnly
 #Full Reco
@@ -64,6 +67,7 @@ legacyPFClusterProducer = _legacyPFClusterProducer.clone(
         PFRecHitsLabelIn = 'pfRecHitSoAProducerHCAL'
     )
 
+
 #Full Reco
 _alpaka_pfClusteringHBHEHFTask.add(pfRecHitHCALParamsRecordSource)
 _alpaka_pfClusteringHBHEHFTask.add(pfRecHitHCALTopologyRecordSource)
@@ -113,6 +117,22 @@ legacyPFClusterProducerHBHEOnly = _legacyPFClusterProducer.clone(
         PFRecHitsLabelIn = 'pfRecHitSoAProducerHBHEOnly'
     )
 
+# HCAL only definitions
+
+pfMultiDepthClusterSoAProducerHBHEOnly = _pfMultiDepthClusterSoAProducer.clone(
+    alpaka = cms.untracked.PSet(backend = cms.untracked.string("serial_sync")),
+    clustersSrc    = "pfClusterSoAProducerHBHEOnly",
+    rhfracSrc      = 'pfClusterSoAProducerHBHEOnly',
+    rechitSrc         = 'pfRecHitSoAProducerHBHEOnly',
+)
+
+legacyPFMultiDepthClusterProducerHBHEOnly = _legacyPFMultiDepthClusterProducer.clone(
+    src              = 'pfMultiDepthClusterSoAProducerHBHEOnly',
+    #pfClusterBuilder = particleFlowClusterHBHE.pfClusterBuilder,
+    recHitsSource    = 'legacyPFRecHitProducerHBHEOnly',
+    PFRecHitsLabelIn = 'pfRecHitSoAProducerHBHEOnly'
+)
+
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALParamsRecordSource)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALTopologyRecordSource)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALParamsESProducer)
@@ -120,13 +140,21 @@ _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALTopologyESProducer)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitSoAProducerHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFRecHitProducerHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfClusterSoAProducerHBHEOnly)
-_alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFClusterProducerHBHEOnly)
+#_alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFClusterProducerHBHEOnly)
 
 _alpaka_pfClusteringHBHEHFOnlyTask.remove(particleFlowRecHitHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.remove(particleFlowClusterHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.remove(particleFlowClusterHCALOnly)
+#_alpaka_pfClusteringHBHEHFOnlyTask.add(particleFlowClusterHCALOnly)
+
+_alpaka_pfClusteringHBHEHFOnlyTask.add(pfMultiDepthClusterSoAProducerHBHEOnly)
+_alpaka_pfClusteringHBHEHFOnlyTask.add(legacyPFMultiDepthClusterProducerHBHEOnly)
+
+# add the last step which outputs clusters
 _alpaka_pfClusteringHBHEHFOnlyTask.add(particleFlowClusterHCALOnly)
 
-alpaka.toModify(particleFlowClusterHCALOnly, clustersSource = "legacyPFClusterProducerHBHEOnly")
+#alpaka.toReplaceWith(particleFlowClusterHCALOnly, legacyPFMultiDepthClusterProducerHBHEOnly) # I wonder if this preserves the naming so that downstream DQM modules don't need their configurations modifie
+
+#alpaka.toModify(particleFlowClusterHCALOnly, clustersSource = "legacyPFClusterProducerHBHEOnly")
 
 alpaka.toReplaceWith(pfClusteringHBHEHFOnlyTask, _alpaka_pfClusteringHBHEHFOnlyTask)

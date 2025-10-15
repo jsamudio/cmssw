@@ -86,7 +86,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     //
     data_t* tp;
     //
-    const int nClusters;
+    const unsigned int nClusters;
 
     CCGAlgorithmArgs(Queue& queue, TBufAcc& workl, TBufAcc& tp, const int nClusters_ = 0)
         : workl(workl.data()), tp(tp.data()), nClusters(nClusters_) {
