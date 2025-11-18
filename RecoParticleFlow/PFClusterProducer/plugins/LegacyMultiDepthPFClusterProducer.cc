@@ -159,8 +159,9 @@ void LegacyMultiDepthPFClusterProducer::produce(edm::Event& event, const edm::Ev
 
   // Build PFClusters in legacy format
 
-  std::unordered_map<int, int> nTopoSeeds;
-  nTopoSeeds.reserve(static_cast<size_t>(pfClusterSoA.nSeeds()));
+  std::unordered_map<int,int> nTopoSeeds;
+  //nTopoSeeds.reserve(static_cast<size_t>(pfClusterSoA.nSeeds()));
+  nTopoSeeds.reserve(static_cast<size_t>(nRH));
 
   for (int i = 0; i < pfClusterSoA.nSeeds(); ++i)
     nTopoSeeds[pfClusterSoA[i].topoId()]++;
