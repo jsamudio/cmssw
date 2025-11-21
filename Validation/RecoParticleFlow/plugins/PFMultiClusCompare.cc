@@ -42,48 +42,20 @@
 #define LOGVERB(x) LogTrace(x)
 #endif
 
-// Helper function to calculate DeltaR between two clusters
-float calculateDeltaR(const reco::PFCluster& clusterA, const reco::PFCluster& clusterB) {
-  // reco::PFCluster inherits eta() and phi() from reco::CaloCluster/reco::ClusterMixin
-  float etaA = clusterA.eta();
-  float phiA = clusterA.phi();
-  float etaB = clusterB.eta();
-  float phiB = clusterB.phi();
-  
-  // Use the standard CMS DeltaR function
-  return reco::deltaR(etaA, phiA, etaB, phiB); 
-}
+// Check if a cluster contains a specific RecHit DetId (regardless of fraction)
+bool clusterContainsDetId(const reco::PFCluster& cluster, const DetId& id) {
+  if (id.null()) return false;
 
-// You will also need to define a threshold for the DeltaR match (e.g., a common value like 0.01)
-const float DELTAR_THRESHOLD = 0.01;
-
-// Define the type for a unique constituent key
-using ConstituentKey = std::pair<DetId, float>;
-
-bool isConstituentMatch(const reco::PFCluster& clusterA, const reco::PFCluster& clusterB) {
-  
-  // 1. Helper function to build the unique set of constituents
-  auto buildConstituentSet = [](const reco::PFCluster& cluster) {
-    std::set<ConstituentKey> constituents;
-    const auto& fractions = cluster.recHitFractions();
-
-    for (const auto& fraction : fractions) {
-      // Must check if the RecHit reference is valid!
-      if (fraction.recHitRef().isAvailable() && fraction.recHitRef().isNonnull()) {
-        constituents.insert({fraction.recHitRef()->detId(), fraction.fraction()});
+  const auto& fractions = cluster.recHitFractions();
+  for (const auto& rhf : fractions) {
+    if (rhf.recHitRef().isAvailable() && rhf.recHitRef().isNonnull()) {
+      if (rhf.recHitRef()->detId() == id) {
+        return true;
       }
     }
-    return constituents;
-  };
-
-  // 2. Build the sets for both clusters
-  std::set<ConstituentKey> constituentsA = buildConstituentSet(clusterA);
-  std::set<ConstituentKey> constituentsB = buildConstituentSet(clusterB);
-
-  // 3. Compare the sets for exact equality (size and content)
-  return constituentsA == constituentsB;
+  }
+  return false;
 }
-
 
 class PFMultiClusCompare : public DQMEDAnalyzer {
 public:
@@ -116,8 +88,8 @@ PFMultiClusCompare::PFMultiClusCompare(const edm::ParameterSet& conf)
       pfCaloGPUCompDir_{conf.getUntrackedParameter<std::string>("pfCaloGPUCompDir")} {}
 
 void PFMultiClusCompare::bookHistograms(DQMStore::IBooker& ibooker,
-                                             edm::Run const& irun,
-                                             edm::EventSetup const& isetup) {
+                                        edm::Run const& irun,
+                                        edm::EventSetup const& isetup) {
   const char* histo;
 
   ibooker.setCurrentFolder("ParticleFlow/" + pfCaloGPUCompDir_);
@@ -146,6 +118,7 @@ void PFMultiClusCompare::bookHistograms(DQMStore::IBooker& ibooker,
   histo = "pfCluster_DuplicateMatches_GPUvsCPU";
   pfCluster_DuplicateMatches_GPUvsCPU_ = ibooker.book1D(histo, histo, 100, 0., 1000);
 }
+
 void PFMultiClusCompare::analyze(edm::Event const& event, edm::EventSetup const& c) {
   edm::Handle<reco::PFClusterCollection> pfClusters_ref;
   event.getByToken(pfClusterTok_ref_, pfClusters_ref);
@@ -155,147 +128,49 @@ void PFMultiClusCompare::analyze(edm::Event const& event, edm::EventSetup const&
 
   //
   // Compare per-event PF cluster multiplicity
-
   if (pfClusters_ref->size() != pfClusters_target->size())
-    LOGVERB("PFMultiClusCompare") << " PFCluster multiplicity " << pfClusters_ref->size() << " "
-                                       << pfClusters_target->size();
+    edm::LogPrint("PFMultiClusCompare") << " PFCluster multiplicity " << pfClusters_ref->size() << " "
+                                  << pfClusters_target->size();
   pfCluster_Multiplicity_GPUvsCPU_->Fill((float)pfClusters_ref->size(), (float)pfClusters_target->size());
 
-  // --- Counters initialized before the matching loop ---
+  // --- Matching Logic ---
   unsigned int N_Ref = pfClusters_ref->size();
-  unsigned int N_Constituent = 0;
-  unsigned int N_DeltaR = 0;
-  // ---------------------------------------------------
+  unsigned int N_Matched = 0;
 
-  //
-  // Stage 1: Constituent-Based Matching (as before)
-  // Ref: CPU clusters, Target: GPU clusters
   std::vector<int> matched_idx(pfClusters_ref->size(), -1); // Initialize to -1 (unmatched)
   std::vector<bool> is_target_matched(pfClusters_target->size(), false);
 
   for (unsigned i = 0; i < pfClusters_ref->size(); ++i) {
+    const auto& refCluster = pfClusters_ref->at(i);
+
+    // 1. Get the seed directly from the Reference Cluster object
+    DetId refSeedId = refCluster.seed();
+
+    if (refSeedId.null()) {
+         LOGVERB("PFMultiClusCompare") << "Ref Cluster " << i << " has no seed";
+         continue;
+    }
+
+    // 2. Look for a Target cluster that contains this seed DetId
     for (unsigned j = 0; j < pfClusters_target->size(); ++j) {
       if (is_target_matched[j]) continue;
 
-      // isConstituentMatch is the gold standard (exact identity)
-      if (isConstituentMatch(pfClusters_ref->at(i), pfClusters_target->at(j))) {
-        if (matched_idx[i] == -1) { 
-          matched_idx[i] = (int)j;        // Store match
-          is_target_matched[j] = true;    // Mark target as used
-          N_Constituent++;
-        } else {
-          edm::LogWarning("PFMultiClusCompare") << "Duplicate Constituent Match for Ref Cluster " << i;
-        }
-        break; // Break inner loop: constituent match is unique and final
+      // Target must contain the Ref Seed ID as one of its hits
+      if (clusterContainsDetId(pfClusters_target->at(j), refSeedId)) {
+        matched_idx[i] = (int)j;
+        is_target_matched[j] = true;
+        N_Matched++;
+        break;
       }
     }
   }
-
-  // ---
-  // Stage 2: DeltaR Matching for Unmatched Clusters (the backup)
-  // ---
-  for (unsigned i = 0; i < pfClusters_ref->size(); ++i) {
-    
-    // Only process clusters that were NOT matched in Stage 1
-    if (matched_idx[i] != -1) continue; 
-
-    int best_target_idx = -1;
-    float min_deltaR = DELTAR_THRESHOLD; // Start with the maximum allowed DeltaR
-
-    for (unsigned j = 0; j < pfClusters_target->size(); ++j) {
-
-      // Only match to target clusters not yet used in Stage 1
-      if (is_target_matched[j]) continue; 
-
-      float current_deltaR = calculateDeltaR(pfClusters_ref->at(i), pfClusters_target->at(j));
-
-      if (current_deltaR < min_deltaR) {
-        min_deltaR = current_deltaR;
-        best_target_idx = (int)j;
-      }
-    }
-
-    // If a match within the threshold was found
-    if (best_target_idx != -1) {
-      matched_idx[i] = best_target_idx;   // Store the DeltaR match
-      is_target_matched[best_target_idx] = true; // Mark target as used
-      N_DeltaR++;
-      
-      // Log the backup match for monitoring purposes
-      edm::LogInfo("PFMultiClusCompare") 
-          << "DeltaR Match: Ref " << i << " to Target " << best_target_idx 
-          << " with dR=" << min_deltaR;
-          
-      // You may want to fill a separate histogram here to track dR-matched clusters.
-    } else {
-      edm::LogWarning("PFMultiClusCompare") 
-          << "Ref Cluster " << i << " remains unmatched after both stages.";
-    }
-  }
-
-
-  /*
-  //
-  // Find matching PF cluster pairs
-  std::vector<int> matched_idx;
-  matched_idx.reserve(pfClusters_ref->size());
-  for (unsigned i = 0; i < pfClusters_ref->size(); ++i) {
-    bool matched = false;
-    for (unsigned j = 0; j < pfClusters_target->size(); ++j) {
-      if (pfClusters_ref->at(i).seed() == pfClusters_target->at(j).seed()) {
-        if (!matched) {
-          matched = true;
-          matched_idx.push_back((int)j);
-        } else {
-          edm::LogWarning("PFMultiClusCompare") << "Found duplicate match";
-          pfCluster_DuplicateMatches_GPUvsCPU_->Fill((int)j);
-        }
-      }
-    }
-    if (!matched)
-      matched_idx.push_back(-1);  // if you don't find a match, put a dummy number
-      edm::LogWarning("PFMultiClusCompare") << "Found unmatched";
-  }
-
-  //
-  // Match multi-depth clusters based on constituents
-  // Get hits from both clusters
-  for (unsigned i = 0; i < pfClusters_ref->size(); ++i) {
-    bool matched = false;
-    for (unsigned j = 0; j < pfClusters_target->size(); ++j) {
-        const auto& hits1 = pfClusters_ref->at(i).hitsAndFractions();
-        const auto& hits2 = pfClusters_target->at(j).hitsAndFractions();
-        for (const auto& h1 : hits1) {
-            for (const auto& h2 : hits2) {
-                // Compare the DetIds of the hits
-                if (h1.first == h2.first) {
-                    if (!matched) {
-                      matched = true;
-                      matched_idx.push_back((int)j);
-                    }
-                }
-            }
-        }
-    }
-    if (!matched) {
-      matched_idx.push_back(-1);
-      edm::LogWarning("PFMultiClusCompare") << "Found unmatched";
-    }
-  }
-  */
 
   if (N_Ref > 0) {
-    float F_Constituent = (float)N_Constituent / N_Ref;
-    float F_DeltaR = (float)N_DeltaR / N_Ref;
-    float F_Total = F_Constituent + F_DeltaR;
-
-    edm::LogPrint("PFMultiClusCompare") 
-        << "\n--- Cluster Matching Summary ---\n"
-        << "Total Reference Clusters (CPU): " << N_Ref << "\n"
-        << "1. Matched by Constituents: " << N_Constituent << " (" << F_Constituent * 100.0 << "%)\n"
-        << "2. Matched by DeltaR: " << N_DeltaR << " (" << F_DeltaR * 100.0 << "%)\n"
-        << "Total Matched: " << (N_Constituent + N_DeltaR) << " (" << F_Total * 100.0 << "%)\n"
-        << "Unmatched: " << (N_Ref - N_Constituent - N_DeltaR) << " (" << (1.0 - F_Total) * 100.0 << "%)\n";
+    float F_Matched = (float)N_Matched / N_Ref;
+    edm::LogPrint("PFMultiClusCompare")
+        << "\n--- Cluster Matching Summary (Ref.seed() Match) ---\n"
+        << "Total Reference Clusters: " << N_Ref << "\n"
+        << "Total Matched: " << N_Matched << " (" << F_Matched * 100.0 << "%)\n";
   }
 
   //
