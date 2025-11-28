@@ -47,6 +47,11 @@ _collapse_hcalLocalRecoTask.add(hbhecollapse)
 from Configuration.ProcessModifiers.run2_HECollapse_2018_cff import run2_HECollapse_2018
 run2_HECollapse_2018.toReplaceWith(hcalLocalRecoTask, _collapse_hcalLocalRecoTask)
 
+#--- Legacy HCAL Only Task
+hbheprerecoLegacy = hbheprereco.clone()
+hcalOnlyLegacyLocalRecoTask = hcalLocalRecoTask.copyAndExclude([zdcreco,hbheprereco])
+hcalOnlyLegacyLocalRecoTask.add(hbheprerecoLegacy)
+
 #--- for Run 3 and later
 _run3_hcalLocalRecoTask = _phase1_hcalLocalRecoTask.copy()
 _run3_hcalLocalRecoTask.remove(hbheprereco)
@@ -69,7 +74,7 @@ hcalOnlyLocalRecoTask = hcalLocalRecoTask.copyAndExclude([zdcreco,zdcrecoRun3])
 
 #--- HCAL-only workflow for Run 2 on GPU
 from Configuration.Eras.Modifier_run3_HB_cff import run3_HB
-from RecoLocalCalo.HcalRecProducers.hcalRecHitSoAToLegacy_cfi import hcalRecHitSoAToLegacy 
+from RecoLocalCalo.HcalRecProducers.hcalRecHitSoAToLegacy_cfi import hcalRecHitSoAToLegacy
 (alpaka & ~run3_HB).toReplaceWith(hbheprereco, hcalRecHitSoAToLegacy.clone())
 
 #--- for FastSim
@@ -77,7 +82,3 @@ _fastSim_hcalLocalRecoTask = hcalLocalRecoTask.copyAndExclude([zdcreco,zdcrecoRu
 from Configuration.Eras.Modifier_fastSim_cff import fastSim
 fastSim.toReplaceWith(hcalLocalRecoTask, _fastSim_hcalLocalRecoTask)
 
-#--- Legacy HCAL Only Task
-hbheprerecoLegacy = hbheprereco.clone()
-hcalOnlyLegacyLocalRecoTask = hcalLocalRecoTask.copyAndExclude([zdcreco,hbheprereco])
-hcalOnlyLegacyLocalRecoTask.add(hbheprerecoLegacy)

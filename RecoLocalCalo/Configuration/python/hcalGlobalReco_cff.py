@@ -39,8 +39,6 @@ hbherecoSerial = hcalRecHitSoAToLegacy.clone(
 alpaka.toReplaceWith(hcalGlobalRecoTask, hcalGlobalRecoTask.copyAndAdd(hbherecoSerial))
 alpaka.toReplaceWith(hcalOnlyGlobalRecoTask, hcalOnlyGlobalRecoTask.copyAndAdd(hbherecoSerial))
 
-alpaka.toReplaceWith(hcalOnlyLegacyGlobalRecoTask, hcalOnlyLegacyGlobalRecoTask.copyAndAdd(hbhereco))
-
 ##
 ## Modify for the tau embedding methods cleaning step
 ##
