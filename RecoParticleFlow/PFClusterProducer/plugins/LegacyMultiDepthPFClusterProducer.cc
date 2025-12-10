@@ -174,8 +174,11 @@ void LegacyMultiDepthPFClusterProducer::produce(edm::Event& event, const edm::Ev
       continue;
 
     reco::PFCluster temp;
+    temp.reset();
 
     temp.setSeed((*rechitsHandle)[seedIdx].detId());
+    std::cout << "DetId of Seed " << (*rechitsHandle)[seedIdx].detId() << std::endl;
+    std::cout << "Energy of Seed " << (*rechitsHandle)[seedIdx].energy() << std::endl;
 
     int const offset = pfClusterSoA[i].rhfracOffset();
     int const size = pfClusterSoA[i].rhfracSize();
@@ -184,6 +187,7 @@ void LegacyMultiDepthPFClusterProducer::produce(edm::Event& event, const edm::Ev
       if (pfRecHitFractionSoA[k].pfrhIdx() < nRH && pfRecHitFractionSoA[k].pfrhIdx() > -1 &&
           pfRecHitFractionSoA[k].frac() > 0.0f) {
         const reco::PFRecHitRef& refhit = reco::PFRecHitRef(rechitsHandle, pfRecHitFractionSoA[k].pfrhIdx());
+        std::cout << "refhit detId: " << refhit->detId() << std::endl;
         temp.addRecHitFraction(reco::PFRecHitFraction(refhit, pfRecHitFractionSoA[k].frac()));
       }
     }

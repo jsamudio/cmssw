@@ -245,6 +245,17 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       //int rhIdx =
       //    pfClusteringVars[pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
       int seedIdx = pfClusteringVars[i].rhIdxToSeedIdx();
+      // === DEBUG PRINT START ===
+          printf("GARBAGE DETECTED [singleSeed]: topoId %d, seedIdx %d, Energy: %f, Position: (%f, %f, %f)\n",
+                 topoId, seedIdx, clusterEnergy, clusterPos.x, clusterPos.y, clusterPos.z);
+      // === DEBUG PRINT END ===
+      // === COLLISION CHECK START ===
+      float currentVal = clusterView[seedIdx].energy();
+      if (currentVal != 0.0f) {
+           printf("COLLISION [singleSeed]: TopoId %d writing to SeedIdx %d. Found existing value: %f. Overwriting with: %f\n",
+                  topoId, seedIdx, currentVal, clusterEnergy);
+      }
+      // === COLLISION CHECK END ===
       clusterView[seedIdx].energy() = clusterEnergy;
       clusterView[seedIdx].x() = clusterPos.x;
       clusterView[seedIdx].y() = clusterPos.y;
@@ -531,6 +542,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
        //int rhIdx = pfClusteringVars[tid + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
        int rhIdx = seeds[tid];
        int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
+       // === DEBUG PRINT START ===
+        float finalE = clusterEnergy[tid];
+             printf("GARBAGE DETECTED [multiSeedParallel]: topoId %d, tid %d, seedIdx %d, Energy: %f\n",
+                    topoId, tid, seedIdx, finalE);
+        // === DEBUG PRINT END ===
+       // === COLLISION CHECK START ===
+        float currentVal = clusterView[seedIdx].energy();
+        if (currentVal != 0.0f) {
+             printf("COLLISION [multiSeedParallel]: TopoId %d (tid %d) writing to SeedIdx %d. Found existing value: %f. Overwriting with: %f\n", 
+                    topoId, tid, seedIdx, currentVal, clusterEnergy[tid]);
+        }
+        // === COLLISION CHECK END ===
        clusterView[seedIdx].energy() = clusterEnergy[tid];
        clusterView[seedIdx].x() = clusterPos[tid].x;
        clusterView[seedIdx].y() = clusterPos[tid].y;
@@ -805,6 +828,17 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       //int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
       int rhIdx = seeds[s];
       int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
+      // === DEBUG PRINT START ===
+      float finalE = clusterEnergy[s];
+           printf("GARBAGE DETECTED [exotic]: topoId %d, seedIter %d, seedIdx %d, Energy: %f\n", 
+                  topoId, s, seedIdx, finalE);
+      // === DEBUG PRINT END ===
+      // === COLLISION CHECK START ===
+      float currentVal = clusterView[seedIdx].energy();
+      if (currentVal != 0.0f) {
+           printf("COLLISION [exotic]: TopoId %d (iter %d) writing to SeedIdx %d. Found existing value: %f. Overwriting with: %f\n",
+                  topoId, s, seedIdx, currentVal, clusterEnergy[s]);
+      }
       clusterView[seedIdx].energy() = clusterEnergy[s];
       clusterView[seedIdx].x() = clusterPos[s].x;
       clusterView[seedIdx].y() = clusterPos[s].y;
@@ -1072,6 +1106,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       //int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
       int rhIdx = seeds[s];
       int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
+      // === DEBUG PRINT START ===
+      float finalE = clusterEnergy[s];
+      printf("GARBAGE DETECTED [multiSeedIterative]: topoId %d, seedIter %d, seedIdx %d, Energy: %f\n",
+                  topoId, s, seedIdx, finalE);
+      // === COLLISION CHECK START ===
+      float currentVal = clusterView[seedIdx].energy();
+      if (currentVal != 0.0f) {
+           printf("COLLISION [multiSeedIterative]: TopoId %d (iter %d) writing to SeedIdx %d. Found existing value: %f. Overwriting with: %f\n",
+                  topoId, s, seedIdx, currentVal, clusterEnergy[s]);
+      }
+      // === COLLISION CHECK END ===
+      // === DEBUG PRINT END ===
       clusterView[seedIdx].energy() = clusterEnergy[s];
       clusterView[seedIdx].x() = clusterPos[s].x;
       clusterView[seedIdx].y() = clusterPos[s].y;
@@ -1105,6 +1151,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         pfClusteringVars[i].topoSeedOffsets() = -1;
         pfClusteringVars[i].topoSeedList() = -1;
         clusterView[i].seedRHIdx() = -1;
+        clusterView[i].energy() = 0.0f;
+        clusterView[i].x() = 0.0f;
+        clusterView[i].y() = 0.0f;
+        clusterView[i].z() = 0.0f;
 
         int layer = pfRecHits[i].layer();
         int depthOffset = pfRecHits[i].depth() - 1;
@@ -1251,7 +1301,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       for (int rhIdx = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; rhIdx < nRH;
            rhIdx += alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]) {
         int topoId = pfClusteringVars[rhIdx].pfrh_topoId();
-        if (pfClusteringVars[rhIdx].pfrh_isSeed()) {
+        if (pfClusteringVars[rhIdx].pfrh_isSeed() && topoId >= 0) {
           // Valid topo cluster and this rhIdx corresponds to a seed
           int k = alpaka::atomicAdd(acc, &pfClusteringVars[topoId].rhCount(), 1);
           int seedIdx = pfClusteringVars[topoId].topoSeedOffsets() + k;
@@ -1323,6 +1373,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           if (!pfClusteringVars[j].pfrh_isSeed()) {  // NOT a seed
             int k = alpaka::atomicAdd(
                 acc, &pfClusteringVars[i].rhCount(), 1);  // Increment the number of rechit fractions for this seed
+            if (k == 0) {
+                // We call atomicAdd AGAIN. This guarantees we get a unique, safe index
+                // (likely 1, or higher if other threads are active) without clobbering anyone.
+                k = alpaka::atomicAdd(acc, &pfClusteringVars[i].rhCount(), 1);
+            }
             auto fraction = fracView[pfClusteringVars[i].seedFracOffsets() + k];
             fraction.pfrhIdx() = j;
             fraction.pfcIdx() = pfClusteringVars[i].rhIdxToSeedIdx();

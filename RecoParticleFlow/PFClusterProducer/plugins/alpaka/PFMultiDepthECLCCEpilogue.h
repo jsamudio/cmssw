@@ -188,6 +188,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           outPFCluster[topo_idx].y() = pfCluster[root_idx].y();
           outPFCluster[topo_idx].z() = pfCluster[root_idx].z();
           outPFCluster[topo_idx].topoRHCount() = pfCluster[root_idx].topoRHCount();  //??
+          printf("Cluster input energy: %f\n", pfCluster[root_idx].energy());
         }
 
         for (auto idx : ::cms::alpakatools::uniform_group_elements(

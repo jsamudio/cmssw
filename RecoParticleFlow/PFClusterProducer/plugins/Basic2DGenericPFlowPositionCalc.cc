@@ -282,6 +282,7 @@ void Basic2DGenericPFlowPositionCalc::calculateAndSetPositionActual(reco::PFClus
           hits.begin(), hits.end(), nei.begin(), nei.end(), boost::make_function_output_iterator(compute), LHitLess());
     }
   } else {
+    //std::cout << "Hit Id: " << mySeed.hit->detId() << std::endl;
     throw cms::Exception("Basic2DGenerticPFlowPositionCalc")
         << "Cluster seed hit is null, something is wrong with PFlow RecHit!";
   }
