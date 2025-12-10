@@ -67,7 +67,7 @@ public:
     edm::ParameterSetDescription desc;
     desc.add<edm::InputTag>("src", edm::InputTag("pfClusterSoAProducer"));
     desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("pfRecHitSoAProducerHCAL"));
-    //desc.add<edm::InputTag>("recHitsSource", edm::InputTag("legacyPFRecHitProducer"));
+    desc.add<edm::InputTag>("recHitsSource", edm::InputTag("legacyPFRecHitProducer"));
     desc.add<bool>("usePFThresholdsFromDB", true);
     {
       edm::ParameterSetDescription pfClusterBuilder;
@@ -205,7 +205,7 @@ void PFClusterConverter::produce(edm::Event& event, const edm::EventSetup& setup
   int nRH = 0;
   if (pfRecHits->metadata().size() != 0) nRH = pfRecHits.view().size();
 
-  if (pfClusterSoA.nSeeds() == 0 || nRH == 0) event.emplace(outPFClusterSoAToken_, PFClusterHostCollection{});
+  //if (pfClusterSoA.nSeeds() == 0 || nRH == 0) event.emplace(outPFClusterSoAToken_, reco::PFClusterHostCollection{});
 
   auto const& pfRecHitFractionSoA = event.get(pfRecHitFractionSoAToken_).const_view();
 
@@ -256,7 +256,7 @@ void PFClusterConverter::produce(edm::Event& event, const edm::EventSetup& setup
     outPFClusterSoA[i].y() = temp.y();
     outPFClusterSoA[i].z() = temp.z();
     outPFClusterSoA[i].topoRHCount() = pfClusterSoA[i].topoRHCount();
-  }
+  
   }
 
   event.emplace(outPFClusterSoAToken_, std::move(*outPFClusterSoAPtr));

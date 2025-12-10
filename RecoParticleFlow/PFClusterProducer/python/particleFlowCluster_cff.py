@@ -163,12 +163,22 @@ pfClusterSoAProducerHBHEOnly = _pfClusterSoAProducer.clone(
         synchronise = cms.bool(False)
     )
 
+from RecoParticleFlow.PFClusterProducer.pfClusterConverter_cfi import pfClusterConverter as _pfClusterConverter
+
+pfClusterSoAToSoA = _pfClusterConverter.clone(
+        src = 'pfClusterSoAProducerHBHEOnly',
+        pfClusterBuilder = particleFlowClusterHBHE.pfClusterBuilder,
+        recHitsSource = 'particleFlowRecHitHBHEOnly',
+        PFRecHitsLabelIn = 'pfRecHitSoAProducerHBHEOnly'
+    )
+
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALParamsRecordSource)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALTopologyRecordSource)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALParamsESProducer)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitHCALTopologyESProducer)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitSoAProducerHBHEOnly)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfClusterSoAProducerHBHEOnly)
+_alpaka_pfClusteringHBHEHFOnlyTask.add(pfClusterSoAToSoA)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfMultiDepthClusterSoAProducerHBHEOnly)
 
 _alpaka_pfClusteringHBHEHFOnlyLegacyTask = _alpaka_pfClusteringHBHEHFOnlyTask.copy()

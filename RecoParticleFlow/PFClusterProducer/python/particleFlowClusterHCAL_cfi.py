@@ -82,7 +82,7 @@ from RecoParticleFlow.PFClusterProducer.legacyMultiDepthPFClusterProducer_cfi im
 
 pfMultiDepthClusterSoAProducerHBHEOnly = _pfMultiDepthClusterSoAProducer.clone(
     #alpaka = cms.untracked.PSet(backend = cms.untracked.string("serial_sync")),
-    clustersSrc    = "pfClusterSoAProducerHBHEOnly",
+    clustersSrc    = "pfClusterSoAToSoA",
     rhfracSrc      = 'pfClusterSoAProducerHBHEOnly',
     rechitSrc         = 'pfRecHitSoAProducerHBHEOnly',
 )
