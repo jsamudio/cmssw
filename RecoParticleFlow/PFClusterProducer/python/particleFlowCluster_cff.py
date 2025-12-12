@@ -163,7 +163,7 @@ pfClusterSoAProducerHBHEOnly = _pfClusterSoAProducer.clone(
         synchronise = cms.bool(False)
     )
 
-from RecoParticleFlow.PFClusterProducer.pfClusterConverter_cfi import pfClusterConverter as _pfClusterConverter
+from RecoParticleFlow.PFClusterProducer.pfClusterSoAPositionUpdater_cfi import pfClusterSoAPositionUpdater as _pfClusterConverter
 
 pfClusterSoAToSoA = _pfClusterConverter.clone(
         src = 'pfClusterSoAProducerHBHEOnly',

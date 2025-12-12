@@ -86,7 +86,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                   reco::PFMultiDepthClusteringVarsDeviceCollection::View mdpfClusteringVars,
                                   const reco::PFClusterDeviceCollection::ConstView pfClusters,
                                   const reco::PFRecHitFractionDeviceCollection::ConstView pfRecHitFracs,
-                                  const reco::PFRecHitDeviceCollection::ConstView pfRecHit) const {
+                                  const reco::PFRecHitDeviceCollection::ConstView pfRecHit,
+                                  const float rms2_threshold = 0.1) const {
       //const unsigned int nClusters = pfClusters.size();
       const unsigned int nClusters = pfClusters.nSeeds();
 
@@ -115,12 +116,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           mdpfClusteringVars[i].depth() = pfClusters[i].depth();
           mdpfClusteringVars[i].energy() = pfc_energy;
 
-          const auto x_c = pfClusters[i].x();
-          const auto y_c = pfClusters[i].y();
-          const auto z_c = pfClusters[i].z();
+          const double x_c = pfClusters[i].x();
+          const double y_c = pfClusters[i].y();
+          const double z_c = pfClusters[i].z();
 
-          const auto eta_c = cms::alpakamath::eta(acc, x_c, y_c, z_c);
-          const auto phi_c = cms::alpakamath::phi(acc, x_c, y_c);
+          const float eta_c = static_cast<float>(cms::alpakamath::eta(acc, x_c, y_c, z_c));
+          const float phi_c = static_cast<float>(cms::alpakamath::phi(acc, x_c, y_c));
 
           mdpfClusteringVars[i].eta() = eta_c;
           mdpfClusteringVars[i].phi() = phi_c;
@@ -211,12 +212,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
               const float frac = pfRecHitFracs[pfrhfrac_idx].frac();
               const float energy = pfRecHit[pfrh_idx].energy();
 
-              const auto x_rh = pfRecHit[pfrh_idx].x();
-              const auto y_rh = pfRecHit[pfrh_idx].y();
-              const auto z_rh = pfRecHit[pfrh_idx].z();
+              const double x_rh = pfRecHit[pfrh_idx].x();
+              const double y_rh = pfRecHit[pfrh_idx].y();
+              const double z_rh = pfRecHit[pfrh_idx].z();
 
-              const auto eta_rh = cms::alpakamath::eta(acc, x_rh, y_rh, z_rh);
-              const auto phi_rh = cms::alpakamath::phi(acc, x_rh, y_rh);
+              const float eta_rh = static_cast<float>(cms::alpakamath::eta(acc, x_rh, y_rh, z_rh));
+              const float phi_rh = static_cast<float>(cms::alpakamath::phi(acc, x_rh, y_rh));
 
               auto etaSum_tmp = (frac * energy) * alpaka::math::abs(acc, eta_rh - eta_c);
               auto phiSum_tmp = (frac * energy) * alpaka::math::abs(acc, ::cms::alpakatools::deltaPhi(acc, phi_rh, phi_c)); 
