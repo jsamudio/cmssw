@@ -9,7 +9,15 @@ pfClusterAlpakaComparisonSequence = cms.Sequence( pfClusterHBHEAlpakaComparison 
 pfClusterCaloOnlyValidation = pfClusterValidation.clone(
     pflowClusterHCAL = 'particleFlowClusterHCALOnly'
 )
+from DQMServices.Core.DQMEDAnalyzer import DQMEDAnalyzer
+
+pfClusterHCALOnlyAlpakaComparison = DQMEDAnalyzer("PFMultiClusCompare",
+                                                    pfClusterToken_ref = cms.untracked.InputTag('particleFlowClusterHCALOnlyLegacy'),
+                                                    pfClusterToken_target = cms.untracked.InputTag('particleFlowClusterHCALOnly'),
+                                                    pfCaloGPUCompDir = cms.untracked.string("pfClusterHCALAlpakaV")
+)
+
 
 pfClusterCaloOnlyValidationSequence = cms.Sequence( pfClusterCaloOnlyValidation )
 
-pfClusterHBHEOnlyAlpakaComparisonSequence = cms.Sequence( pfClusterHBHEOnlyAlpakaComparison )
+pfClusterHBHEOnlyAlpakaComparisonSequence = cms.Sequence( pfClusterHBHEOnlyAlpakaComparison + pfClusterHCALOnlyAlpakaComparison )
