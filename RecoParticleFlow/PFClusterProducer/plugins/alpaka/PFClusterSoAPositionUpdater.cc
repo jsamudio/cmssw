@@ -74,7 +74,7 @@ public:
     edm::ParameterSetDescription desc;
     desc.add<edm::InputTag>("src", edm::InputTag("pfClusterSoAProducer"));
     desc.add<edm::InputTag>("PFRecHitsLabelIn", edm::InputTag("pfRecHitSoAProducerHCAL"));
-    //desc.add<edm::InputTag>("recHitsSource", edm::InputTag("legacyPFRecHitProducer"));
+    desc.add<edm::InputTag>("recHitsSource", edm::InputTag("legacyPFRecHitProducer"));
     desc.add<bool>("usePFThresholdsFromDB", true);
     {
       edm::ParameterSetDescription pfClusterBuilder;
