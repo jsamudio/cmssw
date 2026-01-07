@@ -1105,6 +1105,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         pfClusteringVars[i].topoSeedOffsets() = -1;
         pfClusteringVars[i].topoSeedList() = -1;
         clusterView[i].seedRHIdx() = -1;
+        clusterView[i].energy() = 0.0f;
+        clusterView[i].x() = 0.0f;
+        clusterView[i].y() = 0.0f;
+        clusterView[i].z() = 0.0f;
 
         int layer = pfRecHits[i].layer();
         int depthOffset = pfRecHits[i].depth() - 1;
