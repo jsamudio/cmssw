@@ -113,12 +113,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (once_per_block(acc)) {
       i = pfClusteringVars[pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
       nRHOther = nRHTopo - 1;                                                           // number of non-seed rechits
-      seedPos = Position4{pfRecHits[i].x(), pfRecHits[i].y(), pfRecHits[i].z(), 1.};
-      clusterPos = seedPos;  // Initial cluster position is just the seed
-      prevClusterPos = seedPos;
       seedEnergy = pfRecHits[i].energy();
       clusterEnergy = seedEnergy;
-      tol = pfClusParams.stoppingTolerance();  // stopping tolerance * tolerance scaling
 
       if (topology.cutsFromDB()) {
         rhENormInv = (1.f / topology[pfRecHits[i].denseId()].noiseThreshold());
@@ -132,6 +128,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           printf("Rechit %d has invalid layer %d!\n", i, pfRecHits[i].layer());
         }
       }
+
+      float seedWeight = fmaxf(0., logf(seedEnergy * rhENormInv));
+
+      // Initialize seedPos with WEIGHTED coordinates
+      seedPos = Position4{
+          pfRecHits[i].x() * seedWeight,
+          pfRecHits[i].y() * seedWeight,
+          pfRecHits[i].z() * seedWeight,
+          seedWeight
+      };
+
+      clusterPos = seedPos;
+      prevClusterPos = seedPos;
+      tol = pfClusParams.stoppingTolerance();
 
       iter = 0;
       notDone = true;
@@ -241,9 +251,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
     } while (notDone);  // shared variable condition ensures synchronization is well defined
-    if (once_per_block(acc)) {  // Cluster is finalized, assign cluster information to te SoA
-      //int rhIdx =
-      //    pfClusteringVars[pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
+    if (once_per_block(acc)) {  // Cluster is finalized, assign cluster information to the SoA
       int seedIdx = pfClusteringVars[i].rhIdxToSeedIdx();
       clusterView[seedIdx].energy() = clusterEnergy;
       clusterView[seedIdx].x() = clusterPos.x;
@@ -528,7 +536,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     } while (notDone);  // shared variable condition ensures synchronization is well defined
      // Fill PFCluster-level info
      if (tid < nSeeds) {
-       //int rhIdx = pfClusteringVars[tid + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
        int rhIdx = seeds[tid];
        int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
        clusterView[seedIdx].energy() = clusterEnergy[tid];
@@ -802,7 +809,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);  // all threads call sync
     } while (notDone);  // shared variable ensures synchronization is well defined
     for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += stride) {
-      //int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
       int rhIdx = seeds[s];
       int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
       clusterView[seedIdx].energy() = clusterEnergy[s];
@@ -1069,13 +1075,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       alpaka::syncBlockThreads(acc);  // all threads call sync
     } while (notDone);  // shared variable ensures synchronization is well defined
     for (int s = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]; s < nSeeds; s += stride) {
-      //int rhIdx = pfClusteringVars[s + pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
       int rhIdx = seeds[s];
       int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
       clusterView[seedIdx].energy() = clusterEnergy[s];
       clusterView[seedIdx].x() = clusterPos[s].x;
       clusterView[seedIdx].y() = clusterPos[s].y;
       clusterView[seedIdx].z() = clusterPos[s].z;
+      clusterView[seedIdx].seedRHIdx() = rhIdx;
     }
   }
 
@@ -1309,6 +1315,71 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   };
 
+
+  /*
+  // Corrected: Prefill the rechit index for all PFCluster fractions
+  // Ensures deterministic ordering of rechits across all seeds in a topo cluster
+  class FillRhfIndex {
+  public:
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
+                                  const reco::PFRecHitDeviceCollection::ConstView pfRecHits,
+                                  reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
+                                  reco::PFRecHitFractionDeviceCollection::View fracView) const {
+      const int nRH = pfRecHits.size();
+
+      // Iterate over every rechit 'j' in the event
+      for (int j : uniform_elements(acc, nRH)) {
+
+        int topoId = pfClusteringVars[j].pfrh_topoId();
+
+        // Check if rechit belongs to a valid topo cluster
+        if (topoId > -1) {
+
+          // CASE 1: The rechit 'j' IS a seed.
+          // It always goes into slot 0 of its OWN fraction list.
+          if (pfClusteringVars[j].pfrh_isSeed()) {
+             auto seedFrac = fracView[pfClusteringVars[j].seedFracOffsets()]; // Offset + 0
+             seedFrac.pfrhIdx() = j;
+             seedFrac.frac() = 1.0f;
+             seedFrac.pfcIdx() = pfClusteringVars[j].rhIdxToSeedIdx();
+          }
+          // CASE 2: The rechit 'j' is NOT a seed.
+          // It must be added to the lists of ALL seeds in this topo cluster.
+          else {
+            // We use the topo leader's rhCount as a shared atomic counter for the whole group.
+            // Note: rhCount was initialized to 1 in TopoClusterContraction (reserving slot 0 for the seed).
+            int k = alpaka::atomicAdd(acc, &pfClusteringVars[topoId].rhCount(), 1);
+
+            // Now we must write rechit 'j' into slot 'k' for EVERY seed in this topology.
+
+            // 1. Get the range of seeds for this topology
+            int seedStart = pfClusteringVars[topoId].topoSeedOffsets();
+            int nSeeds = pfClusteringVars[topoId].topoSeedCount();
+
+            // 2. Loop over all seeds in this topology
+            for(int s = 0; s < nSeeds; ++s) {
+                // Get the global rechit index of the s-th seed
+                int seedRhIdx = pfClusteringVars[seedStart + s].topoSeedList();
+
+                // Get the global seed index (for pfcIdx)
+                int seedGlobalIdx = pfClusteringVars[seedRhIdx].rhIdxToSeedIdx();
+
+                // Get the start of this seed's fraction array
+                int seedFracOffset = pfClusteringVars[seedRhIdx].seedFracOffsets();
+
+                // Write rechit 'j' at the common index 'k'
+                auto fraction = fracView[seedFracOffset + k];
+                fraction.pfrhIdx() = j;
+                // Fraction value is calculated later in the clustering kernel
+                fraction.frac() = 0.0f;
+                fraction.pfcIdx() = seedGlobalIdx;
+            }
+          }
+        }
+      }
+    }
+  };
+  */
   // Prefill the rechit index for all PFCluster fractions
   // Optimized for GPU parallel, but works on any backend
   class FillRhfIndex {
@@ -1369,12 +1440,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           // PF cluster is isolated seed. No iterations needed
           if (once_per_block(acc)) {
             // Fill PFCluster-level information
-            int rhIdx = pfClusteringVars[pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();
-            int seedIdx = pfClusteringVars[rhIdx].rhIdxToSeedIdx();
-            clusterView[seedIdx].energy() = pfRecHits[rhIdx].energy();
-            clusterView[seedIdx].x() = pfRecHits[rhIdx].x();
-            clusterView[seedIdx].y() = pfRecHits[rhIdx].y();
-            clusterView[seedIdx].z() = pfRecHits[rhIdx].z();
+            int seedStartOffset = pfClusteringVars[topoId].topoSeedOffsets();
+
+            // Loop over all seeds in the case of the topo cluster containing all seeds and more than 1
+            for(int i = 0; i < nSeeds; ++i) {
+               int rhIdx_tmp = pfClusteringVars[seedStartOffset + i].topoSeedList();
+               int seedIdx_tmp = pfClusteringVars[rhIdx_tmp].rhIdxToSeedIdx();
+
+               clusterView[seedIdx_tmp].energy() = pfRecHits[rhIdx_tmp].energy();
+               clusterView[seedIdx_tmp].x() = pfRecHits[rhIdx_tmp].x();
+               clusterView[seedIdx_tmp].y() = pfRecHits[rhIdx_tmp].y();
+               clusterView[seedIdx_tmp].z() = pfRecHits[rhIdx_tmp].z();
+            }
           }
           // singleSeed and multiSeedParallel functions work only for GPU backend
         } else if ((not std::is_same_v<Device, alpaka::DevCpu>) && nSeeds == 1) {
@@ -1444,6 +1521,66 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                  globalRechits);
         }
         alpaka::syncBlockThreads(acc);  // all threads call sync
+      }
+    }
+  };
+
+  // Add some compaction so that valid rechit fractions are contiguous within the same offset
+  // This is a behavior exhbited by the SoA to Legacy format conversion plugin
+  // Muultidepth clustering expects this contiguous format
+  class FilterRechitFractions {
+  public:
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
+                                  reco::PFClusterDeviceCollection::View clusterView,
+                                  reco::PFRecHitFractionDeviceCollection::View fracView,
+                                  const reco::PFRecHitDeviceCollection::ConstView pfRecHits,
+                                  int nRH) const {
+      for (int i : uniform_elements(acc, clusterView.nSeeds())) {
+
+        int offset = clusterView[i].rhfracOffset();
+        int originalSize = clusterView[i].rhfracSize();
+        int validCount = 0;
+
+        // Compaction; loop over rechit fractions and move valid ones to the front within the same "chunk" of array 
+        for (int k = 0; k < originalSize; ++k) {
+          auto ref = fracView[offset + k];
+
+          if (ref.pfrhIdx() < nRH && ref.pfrhIdx() > -1 && ref.frac() > 0.0f) {
+            if (k != validCount) {
+              auto target = fracView[offset + validCount];
+              target.pfrhIdx() = ref.pfrhIdx();
+              target.frac() = ref.frac();
+              target.pfcIdx() = ref.pfcIdx();
+            }
+            validCount++;
+          }
+        }
+
+        // For that original size of number of rh fractions, ensure the tails are zeroed out and not associated to a cluster
+        for (int k = validCount; k < originalSize; ++k) {
+             auto target = fracView[offset + k];
+             target.pfrhIdx() = -1;    // Mark as invalid
+             target.frac() = 0.0f;     // Zero energy
+             target.pfcIdx() = -1;  // Does not belong to any cluster
+        }
+
+        // Update the size so any plugin using this size should not encounter those invalid tails
+        clusterView[i].rhfracSize() = validCount;
+
+        // Cover some edge case where a cluster has no energy, but contains a valid hit
+        if (clusterView[i].energy() < 1e-6f && validCount > 0) {
+          printf("Cluster with no energy has %d valid rechits\n", validCount);
+           // We take the first valid fraction (which is now at 'offset' due to compaction)
+           int firstRecHitIdx = fracView[offset].pfrhIdx();
+
+           if(firstRecHitIdx >= 0 && firstRecHitIdx < nRH) {
+               // Update cluster properties to match the singular rechit
+               clusterView[i].energy() = pfRecHits[firstRecHitIdx].energy();
+               clusterView[i].x()      = pfRecHits[firstRecHitIdx].x();
+               clusterView[i].y()      = pfRecHits[firstRecHitIdx].y();
+               clusterView[i].z()      = pfRecHits[firstRecHitIdx].z();
+           }
+        }
       }
     }
   };
@@ -1566,6 +1703,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                         globalRhFracSum.data(),
                         globalSeeds.data(),
                         globalRechits.data());
+    // Filter and compact rhf
+    alpaka::exec<Acc1D>(queue,
+                        make_workdiv<Acc1D>(divide_up_by(nRH, 256), 256),
+                        FilterRechitFractions{},
+                        pfClusters.view(),
+                        pfrhFractions.view(),
+                        pfRecHits.view(),
+                        nRH);
   }
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
