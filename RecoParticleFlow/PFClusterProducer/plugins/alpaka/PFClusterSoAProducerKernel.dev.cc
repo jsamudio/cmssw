@@ -113,8 +113,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (once_per_block(acc)) {
       i = pfClusteringVars[pfClusteringVars[topoId].topoSeedOffsets()].topoSeedList();  // i is the seed rechit index
       nRHOther = nRHTopo - 1;                                                           // number of non-seed rechits
+      seedPos = Position4{pfRecHits[i].x(), pfRecHits[i].y(), pfRecHits[i].z(), 1.};
+      clusterPos = seedPos;  // Initial cluster position is just the seed
+      prevClusterPos = seedPos;
       seedEnergy = pfRecHits[i].energy();
       clusterEnergy = seedEnergy;
+      tol = pfClusParams.stoppingTolerance();  // stopping tolerance * tolerance scaling
 
       if (topology.cutsFromDB()) {
         rhENormInv = (1.f / topology[pfRecHits[i].denseId()].noiseThreshold());
@@ -128,20 +132,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           printf("Rechit %d has invalid layer %d!\n", i, pfRecHits[i].layer());
         }
       }
-
-      float seedWeight = fmaxf(0., logf(seedEnergy * rhENormInv));
-
-      // Initialize seedPos with WEIGHTED coordinates
-      seedPos = Position4{
-          pfRecHits[i].x() * seedWeight,
-          pfRecHits[i].y() * seedWeight,
-          pfRecHits[i].z() * seedWeight,
-          seedWeight
-      };
-
-      clusterPos = seedPos;
-      prevClusterPos = seedPos;
-      tol = pfClusParams.stoppingTolerance();
 
       iter = 0;
       notDone = true;
@@ -194,7 +184,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       if (once_per_block(acc)) {
         // Reset cluster position and energy
-        clusterPos = seedPos;
+        float seedNorm = fmaxf(0., logf(seedEnergy * rhENormInv));
+        clusterPos.x = seedPos.x * seedNorm;
+        clusterPos.y = seedPos.y * seedNorm;
+        clusterPos.z = seedPos.z * seedNorm;
+        clusterPos.w = seedNorm;
         clusterEnergy = seedEnergy;
       }
       alpaka::syncBlockThreads(acc);  // all threads call sync
@@ -1315,71 +1309,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   };
 
-
-  /*
-  // Corrected: Prefill the rechit index for all PFCluster fractions
-  // Ensures deterministic ordering of rechits across all seeds in a topo cluster
-  class FillRhfIndex {
-  public:
-    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
-                                  const reco::PFRecHitDeviceCollection::ConstView pfRecHits,
-                                  reco::PFClusteringVarsDeviceCollection::View pfClusteringVars,
-                                  reco::PFRecHitFractionDeviceCollection::View fracView) const {
-      const int nRH = pfRecHits.size();
-
-      // Iterate over every rechit 'j' in the event
-      for (int j : uniform_elements(acc, nRH)) {
-
-        int topoId = pfClusteringVars[j].pfrh_topoId();
-
-        // Check if rechit belongs to a valid topo cluster
-        if (topoId > -1) {
-
-          // CASE 1: The rechit 'j' IS a seed.
-          // It always goes into slot 0 of its OWN fraction list.
-          if (pfClusteringVars[j].pfrh_isSeed()) {
-             auto seedFrac = fracView[pfClusteringVars[j].seedFracOffsets()]; // Offset + 0
-             seedFrac.pfrhIdx() = j;
-             seedFrac.frac() = 1.0f;
-             seedFrac.pfcIdx() = pfClusteringVars[j].rhIdxToSeedIdx();
-          }
-          // CASE 2: The rechit 'j' is NOT a seed.
-          // It must be added to the lists of ALL seeds in this topo cluster.
-          else {
-            // We use the topo leader's rhCount as a shared atomic counter for the whole group.
-            // Note: rhCount was initialized to 1 in TopoClusterContraction (reserving slot 0 for the seed).
-            int k = alpaka::atomicAdd(acc, &pfClusteringVars[topoId].rhCount(), 1);
-
-            // Now we must write rechit 'j' into slot 'k' for EVERY seed in this topology.
-
-            // 1. Get the range of seeds for this topology
-            int seedStart = pfClusteringVars[topoId].topoSeedOffsets();
-            int nSeeds = pfClusteringVars[topoId].topoSeedCount();
-
-            // 2. Loop over all seeds in this topology
-            for(int s = 0; s < nSeeds; ++s) {
-                // Get the global rechit index of the s-th seed
-                int seedRhIdx = pfClusteringVars[seedStart + s].topoSeedList();
-
-                // Get the global seed index (for pfcIdx)
-                int seedGlobalIdx = pfClusteringVars[seedRhIdx].rhIdxToSeedIdx();
-
-                // Get the start of this seed's fraction array
-                int seedFracOffset = pfClusteringVars[seedRhIdx].seedFracOffsets();
-
-                // Write rechit 'j' at the common index 'k'
-                auto fraction = fracView[seedFracOffset + k];
-                fraction.pfrhIdx() = j;
-                // Fraction value is calculated later in the clustering kernel
-                fraction.frac() = 0.0f;
-                fraction.pfcIdx() = seedGlobalIdx;
-            }
-          }
-        }
-      }
-    }
-  };
-  */
   // Prefill the rechit index for all PFCluster fractions
   // Optimized for GPU parallel, but works on any backend
   class FillRhfIndex {
