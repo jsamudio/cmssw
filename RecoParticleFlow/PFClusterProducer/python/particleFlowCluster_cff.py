@@ -185,12 +185,12 @@ pfClusterSoAUpdated = _pfClusterSoAPositionUpdater.clone(
     PFRecHitsLabelIn = 'pfRecHitSoAProducerHBHEOnly'
 )
 
-from RecoParticleFlow.PFClusterProducer.pfMultiDepthClusterSoAProducer_cfi import pfMultiDepthClusterSoAProducer as _pfMultiDepthClusterSoAProducer
-pfMultiDepthClusterSoAProducerHCALOnly = _pfMultiDepthClusterSoAProducer.clone(
-    clustersSrc    = "pfClusterSoAUpdated",
-    rhfracSrc      = 'pfClusterSoAUpdated',
-    rechitSrc         = 'pfRecHitSoAProducerHBHEOnly',
-)
+#from RecoParticleFlow.PFClusterProducer.pfMultiDepthClusterSoAProducer_cfi import pfMultiDepthClusterSoAProducer as _pfMultiDepthClusterSoAProducer
+#pfMultiDepthClusterSoAProducerHCALOnly = _pfMultiDepthClusterSoAProducer.clone(
+#    clustersSrc    = "pfClusterSoAUpdated",
+#    rhfracSrc      = 'pfClusterSoAUpdated',
+#    rechitSrc         = 'pfRecHitSoAProducerHBHEOnly',
+#)
 
 _alpaka_pfClusteringHBHEHFOnlyTask.add(alpaka_pfClusteringHBHEHF_esProducersTask)
 _alpaka_pfClusteringHBHEHFOnlyTask.add(pfRecHitSoAProducerHBHEOnly)

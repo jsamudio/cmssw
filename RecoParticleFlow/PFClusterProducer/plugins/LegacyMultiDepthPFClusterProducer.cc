@@ -35,11 +35,11 @@
 class LegacyMultiDepthPFClusterProducer : public edm::stream::EDProducer<> {
 public:
   LegacyMultiDepthPFClusterProducer(edm::ParameterSet const& config)
-      : pfClusterSoAToken_(consumes(config.getParameter<edm::InputTag>("src"))),
-        pfRecHitFractionSoAToken_(consumes(config.getParameter<edm::InputTag>("src"))),
-        inputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("PFRecHitsLabelIn"))},
+      : pfClusterSoAToken_(consumes(config.getParameter<edm::InputTag>("pfClusterSoA"))),
+        pfRecHitFractionSoAToken_(consumes(config.getParameter<edm::InputTag>("pfClusterSoA"))),
+        inputPFRecHitSoA_Token_{consumes(config.getParameter<edm::InputTag>("pfRecHitSoA"))},
         legacyPfClustersToken_(produces()),
-        recHitsLabel_(consumes(config.getParameter<edm::InputTag>("recHitsSource"))),
+        recHitsLabel_(consumes(config.getParameter<edm::InputTag>("pfRecHits"))),
         hcalCutsToken_(esConsumes<HcalPFCuts, HcalPFCutsRcd>(edm::ESInputTag("", "withTopo"))),
         cutsFromDB_(config.getParameter<bool>("usePFThresholdsFromDB")) {
     edm::ConsumesCollector cc = consumesCollector();

@@ -72,12 +72,21 @@ particleFlowClusterHCALOnlyLegacy = particleFlowClusterHCALOnly.clone(
     clustersSource = "particleFlowClusterHBHEOnlyLegacy"
 )
 
-from RecoParticleFlow.PFClusterProducer.legacyMultiDepthPFClusterProducer_cfi import legacyMultiDepthPFClusterProducer as _legacyPFMultiDepthClusterProducer
+from RecoParticleFlow.PFClusterProducer.legacyMultiDepthPFClusterProducer_cfi import legacyMultiDepthPFClusterProducer as _legacyMultiDepthPFClusterProducer
+from RecoParticleFlow.PFClusterProducer.pfMultiDepthClusterSoAProducer_cfi import pfMultiDepthClusterSoAProducer as _pfMultiDepthClusterSoAProducer
 
-legacyPFMultiDepthClusterProducerHCALOnly = _legacyPFMultiDepthClusterProducer.clone(
-    src              = 'pfMultiDepthClusterSoAProducerHCALOnly',
-    recHitsSource    = 'particleFlowRecHitHBHEOnly',
-    PFRecHitsLabelIn = 'pfRecHitSoAProducerHBHEOnly'
+pfMultiDepthClusterSoAProducerHCALOnly = _pfMultiDepthClusterSoAProducer.clone(
+    #clustersSrc    = "pfClusterSoAUpdated",
+    #rhfracSrc      = 'pfClusterSoAUpdated',
+    clustersSrc    = "pfClusterSoAProducerHBHEOnly",
+    rhfracSrc      = 'pfClusterSoAProducerHBHEOnly',
+    rechitSrc         = 'pfRecHitSoAProducerHBHEOnly',
+)
+
+legacyPFMultiDepthClusterProducerHCALOnly = _legacyMultiDepthPFClusterProducer.clone(
+    pfClusterSoA              = cms.InputTag('pfMultiDepthClusterSoAProducerHCALOnly'),
+    pfRecHits    = cms.InputTag('particleFlowRecHitHBHEOnly'),
+    pfRecHitSoA = cms.InputTag('pfRecHitSoAProducerHBHEOnly')
 )
 
 
