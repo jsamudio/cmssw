@@ -37,6 +37,51 @@ def customiseForOffline(process):
 
     return process
 
+
+def customizeHLTforAlpakaPFMultidepthClustering(process):
+    ''' Includes customization to run alpaka MDPF clustering
+    '''
+    old_hltParticleFlowClusterHCAL = process.hltParticleFlowClusterHCAL
+
+    process.hltPFMultiDepthClusterSoA = cms.EDProducer('PFMultiDepthClusterSoAProducer@alpaka',
+        clustersSrc = cms.InputTag("hltParticleFlowClusterHBHESoA"),
+        rhfracSrc   = cms.InputTag('hltParticleFlowClusterHBHESoA'),
+        rechitSrc   = cms.InputTag('hltParticleFlowRecHitHBHESoA')
+    )
+
+    process.hltParticleFlowClusterHCAL = cms.EDProducer('LegacyMultiDepthPFClusterProducer',
+        pfClusterSoA   = cms.InputTag('hltPFMultiDepthClusterSoA'),
+        pfRecHitFractionSoA = cms.InputTag('hltPFMultiDepthClusterSoA'),
+        pfRecHitsSoA        = cms.InputTag('hltParticleFlowRecHitHBHESoA'),
+        recHitsSource  = cms.InputTag('hltParticleFlowRecHitHBHE'),
+    )
+
+    process.HLTPFHcalClustering = cms.Sequence(
+        process.hltParticleFlowRecHitHBHESoA +
+        process.hltParticleFlowRecHitHBHE +
+        process.hltParticleFlowClusterHBHESoA +
+        process.hltParticleFlowClusterHBHE +
+        process.hltPFMultiDepthClusterSoA +
+        process.hltParticleFlowClusterHCAL  # This now refers to LegacyMultiDepth producer
+    )
+
+    def replaceItemsInSequence(process, itemsToReplace, replacingSequence):
+        for sequence, items in process.sequences.items():
+            containsAll = all(items.contains(item) for item in itemsToReplace)
+            if(containsAll):
+                for item in itemsToReplace:
+                    if(item != itemsToReplace[-1]):
+                        items.remove(item)
+                    else:
+                        items.replace(item, replacingSequence)
+        return process
+
+    itemsList = [ old_hltParticleFlowClusterHCAL ]
+
+    process = replaceItemsInSequence(process, itemsList, process.HLTPFHcalClustering)
+
+    return process
+
 def replace_all_pixel_seed_inputtags(process):
     import FWCore.ParameterSet.Config as cms
 
