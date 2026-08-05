@@ -551,7 +551,7 @@ public:
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     std::string EFTcoefDoc = "EFT fit coefficients";
     outEFT.reset(new nanoaod::FlatTable(nCoef, "EFTfitCoefficients", false));
-    outEFT->addColumn<float>("", coefs, EFTcoefDoc, lheWeightPrecision_);
+    outEFT->addColumn<float>("", coefs, EFTcoefDoc, nanoaod::FlatTable::FloatColumn, lheWeightPrecision_);
 
 	std::string EFTind1Doc = "EFT fit WCname index 1";
 	std::string EFTind2Doc = "EFT fit WCname index 2";
@@ -561,14 +561,14 @@ public:
 	outEFT_index2.reset(new nanoaod::FlatTable(nCoef, "EFTfitCoefficientIndex2", false));
 	outEFT_name1.reset(new nanoaod::FlatTable(nEFT_name1, "EFTfitCoefficientName1", false));
 	outEFT_name2.reset(new nanoaod::FlatTable(nEFT_name2, "EFTfitCoefficientName2", false));
-	outEFT_index1->addColumn<int>("", EFT_ind1, EFTind1Doc, lheWeightPrecision_);
-	outEFT_index2->addColumn<int>("", EFT_ind2, EFTind2Doc, lheWeightPrecision_);
-	outEFT_name1->addColumn<int>("", EFT_name1, EFTname1Doc, lheWeightPrecision_);
-	outEFT_name2->addColumn<int>("", EFT_name2, EFTname2Doc, lheWeightPrecision_);
+	outEFT_index1->addColumn<int>("", EFT_ind1, EFTind1Doc);
+	outEFT_index2->addColumn<int>("", EFT_ind2, EFTind2Doc);
+	outEFT_name1->addColumn<int>("", EFT_name1, EFTname1Doc);
+	outEFT_name2->addColumn<int>("", EFT_name2, EFTname2Doc);
 
     std::string WCnamDoc = "EFT WC names";
     outWCnam.reset(new nanoaod::FlatTable(nWC, "WCnames", false));
-    outWCnam->addColumn<int>("", wcnames, WCnamDoc, lheWeightPrecision_);
+    outWCnam->addColumn<int>("", wcnames, WCnamDoc);
 
     outNamed = std::make_unique<nanoaod::FlatTable>(1, "LHEWeight", true);
     outNamed->addColumnValue<float>("originalXWGTUP",
